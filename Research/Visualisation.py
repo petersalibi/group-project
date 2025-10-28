@@ -235,3 +235,27 @@ for loss_surface, title, ax in landscape_plots:
 
 plt.tight_layout()
 plt.show()
+
+import json
+
+def save_loss_surface_to_json(filename, A, B, loss_surface):
+    # Create meshgrid of coordinates
+    alphas, betas = torch.meshgrid(A, B, indexing='ij')
+    
+    X = alphas.numpy().flatten().tolist()
+    Y = betas.numpy().flatten().tolist()
+    Z = loss_surface.numpy().flatten().tolist()
+
+    # Prepare list of {x, y, z} dicts
+    points = [{"x": x, "y": y, "z": z} for x, y, z in zip(X, Y, Z)]
+
+    # Save to JSON
+    with open(filename, "w") as f:
+        json.dump(points, f, indent=2)
+
+    print(f"Saved {filename} with {len(points)} points.")
+
+
+# Save both random and filter-normalized loss landscapes
+save_loss_surface_to_json("loss_rand.json", A, B, loss_rand)
+save_loss_surface_to_json("loss_filt.json", A, B, loss_filt)
