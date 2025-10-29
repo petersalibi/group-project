@@ -1,0 +1,120 @@
+# ===================================
+# 🐍 PYTHON (and venv in subfolders)
+# ===================================
+**/venv/
+**/.venv/
+**/env/
+**/.env/
+**/ENV/
+**/env.bak/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local environment variables
+.env
+.env.*
+*.env
+
+# Logs & temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+
+# ===================================
+# ⚛️ EXPO / REACT NATIVE / NODE.JS
+# ===================================
+# Node modules
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Expo specific
+.expo/
+.expo-shared/
+.expo/web-build/
+.expo/*-cache/
+.expo/**/packager-info.json
+.expo/**/settings.json
+.expo/**/devices.json
+
+# Metro bundler cache
+.metro-cache/
+
+# Build outputs
+**/build/
+**/android/app/build/
+**/ios/build/
+**/ios/Pods/
+**/ios/DerivedData/
+
+# React Native / Expo asset cache
+*.packager
+*.jsbundle
+*.map
+
+# macOS / Windows system files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea/
+.vscode/
+*.code-workspace
+
+# Misc
+npm-debug.log
+yarn-error.log
+package-lock.json
+*.keystore
+*.p8
+*.pem
+*.key
+*.mobileprovision
+
+# Temporary files
+*.orig
+*.rej
