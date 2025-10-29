@@ -116,8 +116,8 @@ export default function App() {
             style={{
               width: "100%",
               height: 400,
-              resizeMode: "cover",
             }}
+            resizeMode="cover"
           />
 
           {/* Content area */}
