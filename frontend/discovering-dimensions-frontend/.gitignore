@@ -80,6 +80,7 @@ pnpm-debug.log*
 .expo/**/packager-info.json
 .expo/**/settings.json
 .expo/**/devices.json
+expo-env.d.ts
 
 # Metro bundler cache
 .metro-cache/
