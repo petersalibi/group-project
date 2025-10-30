@@ -8,9 +8,11 @@ import api from '@/src/api';
 import { Picker } from '@react-native-picker/picker';
 import Slider from '@react-native-community/slider';
 
-export default function TabThreeScreen() {
+export default function Landscape() {
   const [selectedSurface, setSelectedSurface] = useState('loss_filt.json');
-  const [zValue, setZValue] = useState(1.0);
+  const [zValue, setZValue] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  // References to Three.js objects
   const meshRef = useRef<THREE.Mesh | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -77,6 +79,7 @@ export default function TabThreeScreen() {
 
     // Load JSON of {x, y, z} points
     async function loadAndBuild(url: string) {
+      setIsLoading(true);
       // Fetch JSON data
       const response = await api.get(`/data/${url}`);
       const json = await response.data;
@@ -166,20 +169,12 @@ export default function TabThreeScreen() {
       mesh.scale.z = zScale;
       sceneRef.current!.add(mesh);
       meshRef.current = mesh;
+      setIsLoading(false);
+      setZValue(1);
     }
 
     loadAndBuild(selectedSurface);
   }, [selectedSurface]);
-
-  useEffect(() => {
-    // Update mesh Z scale when zScale state changes
-    const mesh = sceneRef.current?.children.find(
-      (child) => child instanceof THREE.Mesh,
-    ) as THREE.Mesh | undefined;
-    if (mesh) {
-      mesh.scale.z = zValue;
-    }
-  }, [zValue]);
 
   const surfaces = [
     { id: 1, label: 'Filterwise Normalised', value: 'loss_filt.json' },
@@ -219,13 +214,21 @@ export default function TabThreeScreen() {
             minimumValue={0.001}
             maximumValue={5}
             value={zValue}
-            onValueChange={(value) => setZValue(value)}
-            minimumTrackTintColor='#1EB1FC'
-            maximumTrackTintColor='#1EB1FC'
+            onValueChange={(value) => {
+              setZValue(value);
+              if (meshRef.current) {
+                meshRef.current.scale.z = value;
+              }
+            }}
+            minimumTrackTintColor='#00aaffff'
+            maximumTrackTintColor='#0083c4ff'
+            thumbTintColor='#0076a9ff'
+            disabled={isLoading}
           />
           <Text>{zValue}</Text>
         </View>
       </View>
+      {/* Placeholder for Three.js rendering */}
       <canvas id='landscapeCanvas'></canvas>
     </SafeAreaView>
   );
