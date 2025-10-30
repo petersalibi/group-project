@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -12,15 +11,9 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import api from '@/src/api';
 
-const getBaseUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl && envUrl.length > 0) return envUrl;
-  return Platform.OS === 'android'
-    ? 'http://10.0.2.2:8000'
-    : 'http://localhost:8000';
-};
-const BASE_URL = getBaseUrl();
+const BASE_URL = api.defaults.baseURL || 'unknown';
 
 export default function Home() {
   const [ping, setPing] = useState<string | null>(null);
@@ -34,9 +27,9 @@ export default function Home() {
     setPingLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/ping`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const res = await api.get('/ping');
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      const data = res.data;
       setPing(data?.message ?? 'no message');
     } catch (e: any) {
       setPing(null);
@@ -53,11 +46,9 @@ export default function Home() {
     setGreeting(null);
     setError(null);
     try {
-      const res = await fetch(
-        `${BASE_URL}/greet/${encodeURIComponent(name.trim())}`,
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const res = await api.get(`/greet/${encodeURIComponent(name.trim())}`);
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      const data = res.data;
       setGreeting(data?.greeting ?? 'no greeting');
     } catch (e: any) {
       setError(`Greet failed: ${e.message}`);
