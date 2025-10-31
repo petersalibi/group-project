@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from losslandscape import *
 from minimisers import *
 from network import *
+from utils import parse_landscape_params
 
 import traceback
 
@@ -28,11 +29,11 @@ def generatelandscape(params: str):
 
     try:
         # construct LandscapeParams from parsed dict
-        lp = LandscapeParams(**params_dict)
+        lp = parse_landscape_params(params_dict)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to construct LandscapeParams: {e}")
     
-    return generate_loss_landscape(params)
+    return generate_loss_landscape(lp)
 
 @app.get("/generatelandscapesample")
 def generatelandscape():
