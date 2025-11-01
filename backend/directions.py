@@ -8,16 +8,50 @@ class VisualisationMethod(Enum):
     RANDOMDIRS = 1
     FILTERNORM = 2
 
-def get_directions(model, method: VisualisationMethod):
+def get_directions(model, method: VisualisationMethod, args=None):
     match method:
         case VisualisationMethod.TWOPARAMETERS:
-            return None
+            return get_two_parameter_directions(model, args)
         case VisualisationMethod.RANDOMDIRS:
             return get_random_directions(model)
         case VisualisationMethod.FILTERNORM:
             return get_filterwise_directions(model)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
+
+def get_two_parameter_directions(model, args):
+    if args is None or len(args) < 2:
+        raise ValueError("get_two_parameter_directions expects args with two indices")
+
+    i1, i2 = args[0], args[1]
+    first_linear = None
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            first_linear = m
+            break
+
+    in_features = first_linear.in_features
+    out_features = first_linear.out_features
+
+    # validate indices
+    if not (0 <= i1 < in_features) or not (0 <= i2 < in_features):
+        raise IndexError(f"Input index out of range. valid range: 0..{in_features-1}")
+
+    dirs = []
+
+    for target_idx in (i1, i2):
+        direction = []
+        for p in model.parameters():
+            d = torch.zeros_like(p)
+
+            if p is first_linear.weight:
+                d[:, target_idx] = 1.0
+
+            direction.append(d)
+
+        dirs.append(direction)
+
+    return dirs[0], dirs[1]
 
 def get_random_directions(model):
     dirs = []

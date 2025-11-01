@@ -22,7 +22,7 @@ class LandscapeParams:
 def generate_loss_landscape(landscape_params: LandscapeParams):
     model = Model(landscape_params.network)
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
-    dir1, dir2 = get_directions(model, landscape_params.method)
+    dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
 
     xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
                                                        dir1, dir2,
