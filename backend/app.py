@@ -52,13 +52,3 @@ def generatelandscape():
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
-
-@app.get("/ping")
-def ping():
-    print("pinged")
-    return {"message": "penguins"}
-
-@app.get("/greet/{name}")
-def greet(name: str):
-    print("greeted")
-    return {"greeting": f"Hello, {name}!"}
