@@ -5,7 +5,7 @@ import json
 from losslandscape import *
 from minimisers import *
 from network import *
-from utils import parse_landscape_params, print_landscape
+from utils import parse_landscape_params, parse_minimiser_params, print_landscape
 
 import traceback
 
@@ -56,7 +56,45 @@ def generatelandscape():
         raise HTTPException(
             status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
 
+@app.get("/animateminimiser/{params}")
+def animateminimiser(params: str):
+    import json
+    try:
+        params_dict = json.loads(params)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
 
+    try:
+        # construct MinimiserParams from parsed dict
+        mp = parse_minimiser_params(params_dict)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to construct MinimiserParams: {e}")
+    
+    try:
+        path = animate_optimiser(mp)
+        return {"path": path}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
+
+@app.get("/animateminimisersample")
+def animateminimisersample():
+    try:
+        network = NetworkParams()
+        data = TrainingDataType.SINREGRESSION
+        directions = (torch.randn(1000), torch.randn(1000))  # dummy directions
+        theta_0 = torch.randn(1000)  # dummy initial params
+        params = MinimiserParams(network, data, directions, theta_0)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Failed to construct default MinimiserParams: {e}")
+    
+    try:
+        path = animate_optimiser(params)
+        return {"path": path}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
 
 # Fetch the given JSON data file
 @app.get("/data/{filename}")
