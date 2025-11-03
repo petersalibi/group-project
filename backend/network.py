@@ -22,7 +22,7 @@ class TrainingData:
 
 class NetworkParams:
 
-    def __init__(self, activation=nn.Tanh(), depth=2, height=10, inputs=1, outputs=1):
+    def __init__(self, activation=nn.Tanh(), depth=2, height=10, inputs=None, outputs=None):
         self.activation = activation
         self.depth = depth
         self.height = height

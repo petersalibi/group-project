@@ -20,8 +20,14 @@ class LandscapeParams:
         self.surface_samples = surface_samples
 
 def generate_loss_landscape(landscape_params: LandscapeParams):
-    model = Model(landscape_params.network)
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
+
+    # Automatically infer input/output dimensions if not provided
+    if landscape_params.network.inputs is None or landscape_params.network.outputs is None:
+        landscape_params.network.inputs = data.X.shape[1]
+        landscape_params.network.outputs = data.y.shape[1]
+
+    model = Model(landscape_params.network)
     dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
 
     xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
