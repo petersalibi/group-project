@@ -5,7 +5,7 @@ import json
 from losslandscape import *
 from minimisers import *
 from network import *
-from utils import parse_landscape_params
+from utils import parse_landscape_params, print_landscape
 
 import traceback
 
@@ -40,7 +40,7 @@ def generatelandscape(params: str):
 def generatelandscape():
     try:
         network = NetworkParams()
-        method = VisualisationMethod.FILTERNORM
+        method = VisualisationMethod.RANDOMDIRS
         data = TrainingDataType.SINREGRESSION
         params = LandscapeParams(network, method, data)
     except Exception as e:
@@ -49,7 +49,9 @@ def generatelandscape():
     
     try:
         # generate the landscape
-        return generate_loss_landscape(params)
+        landscape = generate_loss_landscape(params)
+
+        return print_landscape(landscape["surface"])
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")

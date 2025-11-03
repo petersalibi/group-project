@@ -48,3 +48,19 @@ def print_progress_bar (progress, total, prefix = '', suffix = '', length = 100)
 
 def flatten_params(param_list):
     return torch.cat([p.flatten() for p in param_list])
+
+def print_landscape(surface):
+    gradient = " .-:=+*#%@"
+    max_idx = len(gradient) - 1
+    lines = []
+    for row in surface:
+        chars = []
+        for val in row:
+            try:
+                idx = int(round(float(val)))
+            except Exception:
+                idx = 0
+            idx = max(0, min(idx, max_idx))
+            chars.append(gradient[idx])
+        lines.append("".join(chars))
+    return lines
