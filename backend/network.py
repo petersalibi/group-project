@@ -5,6 +5,7 @@ from enum import Enum
 
 class TrainingDataType(Enum):
     SINREGRESSION = 0
+    PENGUINS = 1
 
 class TrainingData:
 
