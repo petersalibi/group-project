@@ -11,6 +11,7 @@ class LandscapeParams:
                  loss=nn.MSELoss(), 
                  training_samples=128,
                  surface_samples=100):
+        
         self.network = network
         self.method = method
         self.loss = loss
