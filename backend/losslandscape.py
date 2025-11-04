@@ -37,10 +37,10 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
                                                        landscape_params.surface_samples)
 
     return {"surface": loss_surface.tolist(), 
-            "xAxis": xAxis.tolist(), 
-            "yAxis": yAxis.tolist(),
-            "direction1": flatten_params(dir1).tolist(),
-            "direction2": flatten_params(dir2).tolist(),
+            "x_axis": xAxis.tolist(), 
+            "y_axis": yAxis.tolist(),
+            "x_direction": flatten_params(dir1).tolist(),
+            "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist()}
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, max_loss=300):
