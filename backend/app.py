@@ -5,7 +5,7 @@ import json
 from losslandscape import *
 from minimisers import *
 from network import *
-from utils import parse_landscape_params, parse_minimiser_params, print_landscape
+from utils import parse_landscape_params, parse_minimiser_params, print_landscape, sample_dir1, sample_dir2, sample_theta0
 
 import traceback
 
@@ -51,7 +51,7 @@ def generatelandscape():
         # generate the landscape
         landscape = generate_loss_landscape(params)
 
-        return print_landscape(landscape["surface"])
+        return landscape
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
@@ -82,8 +82,8 @@ def animateminimisersample():
     try:
         network = NetworkParams()
         data = TrainingDataType.SINREGRESSION
-        directions = (torch.randn(1000), torch.randn(1000))  # dummy directions
-        theta_0 = torch.randn(1000)  # dummy initial params
+        directions = (sample_dir1, sample_dir2)
+        theta_0 = sample_theta0
         params = MinimiserParams(network, data, directions, theta_0)
     except Exception as e:
         raise HTTPException(

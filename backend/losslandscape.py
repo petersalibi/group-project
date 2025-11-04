@@ -38,7 +38,10 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
 
     return {"surface": loss_surface.tolist(), 
             "xAxis": xAxis.tolist(), 
-            "yAxis": yAxis.tolist()}
+            "yAxis": yAxis.tolist(),
+            "direction1": flatten_params(dir1).tolist(),
+            "direction2": flatten_params(dir2).tolist(),
+            "theta_0": flatten_params(model.parameters()).tolist()}
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, max_loss=300):
     print_progress_bar(0, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)

@@ -34,8 +34,14 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
     return sol[0].item(), sol[1].item()
 
 def animate_optimiser(params: MinimiserParams):
-    model = Model(params.network)
+    
     data = TrainingData(params.data)
+    # Automatically infer input/output dimensions if not provided
+    if params.network.inputs is None or params.network.outputs is None:
+        params.network.inputs = data.X.shape[1]
+        params.network.outputs = data.y.shape[1]
+    model = Model(params.network)
+
     dir1, dir2 = params.directions
     optimiser = params.optimiser(model.parameters(), lr=0.1)
 
