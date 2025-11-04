@@ -196,36 +196,37 @@ export default function LandscapeWithPath() {
       setIsLoading(true);
 
       try {
-        const resp = await api.get(`/data/${url}`);
-        const json = await resp.data;
-        if (!json?.data?.length && !Array.isArray(json)) {
-          if (!Array.isArray(json)) {
-            setIsLoading(false);
-            return;
-          }
-        }
-        const dataArr = Array.isArray(json) ? json : json.data;
+        const resp = await api.get(`/generatelandscapesample`);
+        const dict = resp.data;
 
-        if (!dataArr || dataArr.length === 0) {
+        if (
+          !dict ||
+          !dict.surface ||
+          !dict.x_axis ||
+          !dict.y_axis ||
+          !Array.isArray(dict.surface) ||
+          !Array.isArray(dict.x_axis) ||
+          !Array.isArray(dict.y_axis)
+        ) {
           setIsLoading(false);
           return;
         }
 
-        // Prepare grid
-        const xs = [...new Set(dataArr.map((p: any) => p.x))].sort((a: number, b: number) => a - b);
-        const ys = [...new Set(dataArr.map((p: any) => p.y))].sort((a: number, b: number) => a - b);
+        const zGrid: number[][] = dict.surface;
+        const xs: number[] = dict.x_axis;
+        const ys: number[] = dict.y_axis;
+
         const nx = xs.length;
         const ny = ys.length;
 
-        const zGrid: number[][] = Array.from({ length: nx }, () => Array(ny).fill(0));
-        dataArr.forEach((p: any) => {
-          const i = xs.indexOf(p.x);
-          const j = ys.indexOf(p.y);
-          if (i >= 0 && j >= 0) zGrid[i][j] = p.z;
-        });
+        if (nx === 0 || ny === 0 || zGrid.length === 0) {
+          setIsLoading(false);
+          return;
+        }
 
-        const width = xs[xs.length - 1] - xs[0];
-        const height = ys[ys.length - 1] - ys[0];
+        // Compute geometry dimensions
+        const width = xs[nx - 1] - xs[0];
+        const height = ys[ny - 1] - ys[0];
         const widthSegments = nx - 1;
         const heightSegments = ny - 1;
 
@@ -242,7 +243,7 @@ export default function LandscapeWithPath() {
         const positions = geometry.attributes.position;
         const vertexCount = positions.count;
 
-        const zs = dataArr.map((p: any) => p.z);
+        const zs = zGrid.flat();
         const minZ = Math.min(...zs);
         const maxZ = Math.max(...zs);
         const range = maxZ - minZ || 1;
@@ -337,17 +338,18 @@ export default function LandscapeWithPath() {
 
     setIsLoading(true);
     try {
-      // Fetch via API helper to /data/path.json
-      const resp = await api.get(`/data/${selectedPath}`);
+      const resp = await api.get(`/animateminimisersample`);
       const pathData = await resp.data;
-      const arr = Array.isArray(pathData) ? pathData : pathData.data ?? pathData;
+      const path = pathData.path;
+      const arr = Array.isArray(path) ? path : path.data ?? path;
+
       if (!Array.isArray(arr) || arr.length < 2) {
         setIsLoading(false);
         return;
       }
 
       // Build a smooth 2D curve from path points
-      const twoDPoints = arr.map((p: any) => new THREE.Vector2(p.x, p.y));
+      const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
       const smoothPoints: THREE.Vector2[] = curve2D.getPoints(500);
 
@@ -495,4 +497,5 @@ export default function LandscapeWithPath() {
       {/* Renderer will append a canvas into the container div above */}
     </SafeAreaView>
   );
+
 }
