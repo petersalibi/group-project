@@ -30,13 +30,6 @@ def get_two_parameter_directions(model, args):
             first_linear = m
             break
 
-    in_features = first_linear.in_features
-    out_features = first_linear.out_features
-
-    # validate indices
-    if not (0 <= i1 < in_features) or not (0 <= i2 < in_features):
-        raise IndexError(f"Input index out of range. valid range: 0..{in_features-1}")
-
     dirs = []
 
     for target_idx in (i1, i2):
