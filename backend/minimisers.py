@@ -12,6 +12,7 @@ class MinimiserParams:
                  theta_0: torch.Tensor,
                  init_xy=(0.0, 0.0),
                  optimiser=optim.Adam,
+                 learning_rate=0.1,
                  loss=nn.MSELoss(), 
                  epochs=300,
                  lock_to_plane=False):
@@ -22,6 +23,7 @@ class MinimiserParams:
         self.theta_0 = theta_0
         self.init_xy = init_xy
         self.optimiser = optimiser
+        self.learning_rate = learning_rate
         self.loss = loss
         self.epochs = epochs
         self.lock_to_plane = lock_to_plane
@@ -64,7 +66,7 @@ def animate_optimiser(params: MinimiserParams):
         # trainable scalars (must be tensors with grad)
         a = torch.tensor(x, dtype=torch.float32, device=device, requires_grad=True)
         b = torch.tensor(y, dtype=torch.float32, device=device, requires_grad=True)
-        optimiser = params.optimiser([a, b], lr=0.1)
+        optimiser = params.optimiser([a, b], lr=params.learning_rate)
 
         theta0 = params.theta_0.to(device)
         dir1 = dir1.to(device)
@@ -104,7 +106,7 @@ def animate_optimiser(params: MinimiserParams):
                 p.copy_(new_params[index:index + numel].view_as(p))
                 index += numel
 
-        optimiser = params.optimiser(model.parameters(), lr=0.1)
+        optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
 
         for i in range(params.epochs):
             print_progress_bar(i, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
