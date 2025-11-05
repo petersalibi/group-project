@@ -83,7 +83,7 @@ def animate_optimiser(params: MinimiserParams):
                 idx += n
 
             optimiser.zero_grad()
-            preds = torch.nn.utils.stateless.functional_call(model, params_dict, (data.X,))
+            preds = torch.func.functional_call(model, params_dict, (data.X,))
             loss = params.loss(preds, data.y)
             loss.backward()
             optimiser.step()
