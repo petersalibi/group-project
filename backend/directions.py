@@ -7,6 +7,7 @@ class VisualisationMethod(Enum):
     TWOPARAMETERS = 0
     RANDOMDIRS = 1
     FILTERNORM = 2
+    PCAMINIMISER = 3
 
 def get_directions(model, method: VisualisationMethod, args=None):
     match method:
@@ -16,6 +17,8 @@ def get_directions(model, method: VisualisationMethod, args=None):
             return get_random_directions(model)
         case VisualisationMethod.FILTERNORM:
             return get_filterwise_directions(model)
+        case VisualisationMethod.PCAMINIMISER:
+            return get_pca_directions(model, args)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
@@ -81,3 +84,6 @@ def get_filterwise_directions(model):
         dirs.append(scaled_direction)
     
     return dirs[0], dirs[1]
+
+def get_pca_directions(model, minimiser_trajectories):
+    return NotImplementedError("PCA directions not yet implemented")
