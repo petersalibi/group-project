@@ -99,10 +99,11 @@ def animate_optimiser(params: MinimiserParams):
 
         # update parameters by copying in new_params manually
         index = 0
-        for p in model.parameters():
-            numel = p.numel()
-            p.copy_(new_params[index:index + numel].view_as(p))
-            index += numel
+        with torch.no_grad(): # HOTFIX - prevent tracking in autograd
+            for p in model.parameters():
+                numel = p.numel()
+                p.copy_(new_params[index:index + numel].view_as(p))
+                index += numel
 
         optimiser = params.optimiser(model.parameters(), lr=0.1)
 

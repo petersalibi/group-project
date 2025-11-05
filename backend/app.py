@@ -84,7 +84,7 @@ def animateminimisersample():
         data = TrainingDataType.SINREGRESSION
         directions = (sample_dir1, sample_dir2)
         theta_0 = sample_theta0
-        params = MinimiserParams(network, data, directions, theta_0, lock_to_plane=True)
+        params = MinimiserParams(network, data, directions, theta_0, lock_to_plane=False)
     except Exception as e:
         raise HTTPException(
             status_code=400, detail=f"Failed to construct default MinimiserParams: {e}")
