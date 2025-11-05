@@ -10,8 +10,7 @@ class MinimiserParams:
                  data: TrainingDataType,
                  directions: tuple,
                  theta_0: torch.Tensor,
-                 init_x: float = 0.0,
-                 init_y: float = 0.0,
+                 init_xy=(0.0, 0.0),
                  optimiser=optim.Adam,
                  loss=nn.MSELoss(), 
                  epochs=300,
@@ -21,8 +20,7 @@ class MinimiserParams:
         self.data = data
         self.directions = directions
         self.theta_0 = theta_0
-        self.init_x = init_x
-        self.init_y = init_y
+        self.init_xy = init_xy
         self.optimiser = optimiser
         self.loss = loss
         self.epochs = epochs
@@ -49,6 +47,7 @@ def animate_optimiser(params: MinimiserParams):
     model = Model(params.network)
 
     dir1, dir2 = params.directions
+    x, y = params.init_xy
     path = []
 
     # save state (clone tensors so we won't share memory)
@@ -63,8 +62,8 @@ def animate_optimiser(params: MinimiserParams):
         data.y = data.y.to(device)
 
         # trainable scalars (must be tensors with grad)
-        a = torch.tensor(params.init_x, dtype=torch.float32, device=device, requires_grad=True)
-        b = torch.tensor(params.init_y, dtype=torch.float32, device=device, requires_grad=True)
+        a = torch.tensor(x, dtype=torch.float32, device=device, requires_grad=True)
+        b = torch.tensor(y, dtype=torch.float32, device=device, requires_grad=True)
         optimiser = params.optimiser([a, b], lr=0.1)
 
         theta0 = params.theta_0.to(device)
@@ -95,7 +94,7 @@ def animate_optimiser(params: MinimiserParams):
         return path
 
     else:
-        new_params = flatten_params(model.parameters()) + params.init_x * dir1 + params.init_y * dir2
+        new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2
 
         # update parameters by copying in new_params manually
         index = 0

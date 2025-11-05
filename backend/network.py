@@ -29,16 +29,16 @@ class TrainingData:
                 self.y = df['species'].astype('category').cat.codes.values
                 self.X = torch.tensor(X, dtype=torch.float32)
                 self.y = torch.tensor(self.y, dtype=torch.long).unsqueeze(1)
-                
+
             case _:
                 raise ValueError("Training Data Type Not Found!")
 
 class NetworkParams:
 
-    def __init__(self, activation=nn.Tanh(), depth=2, height=10, inputs=None, outputs=None):
+    def __init__(self, activation=nn.Tanh(), depth=2, width=10, inputs=None, outputs=None):
         self.activation = activation
         self.depth = depth
-        self.height = height
+        self.width = width
         self.inputs = inputs
         self.outputs = outputs
 
@@ -47,13 +47,13 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         layers = nn.Sequential(
-            nn.Linear(params.inputs, params.height),
+            nn.Linear(params.inputs, params.width),
             params.activation,
-            nn.Linear(params.height, params.outputs)
+            nn.Linear(params.width, params.outputs)
         )
 
         for _ in range(params.depth-1):
-            layers.insert(1, nn.Linear(params.height, params.height))
+            layers.insert(1, nn.Linear(params.width, params.width))
             layers.insert(1, params.activation)
         
         self.net = layers
