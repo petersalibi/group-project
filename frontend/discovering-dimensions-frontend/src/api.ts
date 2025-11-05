@@ -12,7 +12,7 @@ if (Platform.OS === 'android') {
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 8000,
+  timeout: 0,
 });
 
 export default api;

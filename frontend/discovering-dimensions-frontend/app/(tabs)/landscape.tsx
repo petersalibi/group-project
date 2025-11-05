@@ -185,7 +185,7 @@ export default function LandscapeWithPath() {
     };
   }, []);
 
-  // --- Load surface & build landscape when selectedSurface changes or zValue changes ---
+  // --- Load surface & build landscape when selectedSurface changes ---
   useEffect(() => {
     if (!sceneRef.current) return;
 
@@ -303,7 +303,7 @@ export default function LandscapeWithPath() {
     return () => {
       cancelled = true;
     };
-  }, [selectedSurface, zValue]); // Rebuild when surface or zValue changes
+  }, [selectedSurface]); // Rebuild when surface changes
 
   // --- Load path and animate ---
   async function loadAndAnimatePath(mesh: THREE.Mesh | null) {
@@ -344,6 +344,7 @@ export default function LandscapeWithPath() {
       const arr = Array.isArray(path) ? path : path.data ?? path;
 
       if (!Array.isArray(arr) || arr.length < 2) {
+        console.error('Invalid path data');
         setIsLoading(false);
         return;
       }
