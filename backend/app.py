@@ -1,6 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import json
+
+from losslandscape import *
+from minimisers import *
+from network import *
+from utils import parse_landscape_params, parse_minimiser_params, print_landscape, sample_dir1, sample_dir2, sample_theta0
+
+import traceback
 
 app = FastAPI()
 
@@ -13,18 +20,81 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/generatelandscape/{params}")
+def generatelandscape(params: str):
+    import json
+    try:
+        params_dict = json.loads(params)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
 
-@app.get("/ping")
-def ping():
-    print("pinged")
-    return {"message": "pong"}
+    try:
+        # construct LandscapeParams from parsed dict
+        lp = parse_landscape_params(params_dict)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to construct LandscapeParams: {e}")
+    
+    return generate_loss_landscape(lp)
 
+@app.get("/generatelandscapesample")
+def generatelandscape():
+    try:
+        network = NetworkParams()
+        method = VisualisationMethod.RANDOMDIRS
+        data = TrainingDataType.SINREGRESSION
+        params = LandscapeParams(network, method, data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Failed to construct default LandscapeParams: {e}")
+    
+    try:
+        # generate the landscape
+        landscape = generate_loss_landscape(params)
+        # return print_landscape(landscape["surface"])
+        return landscape
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
 
-@app.get("/greet/{name}")
-def greet(name: str):
-    print("greeted")
-    return {"greeting": f"Hello, {name}!"}
+@app.get("/animateminimiser/{params}")
+def animateminimiser(params: str):
+    import json
+    try:
+        params_dict = json.loads(params)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
 
+    try:
+        # construct MinimiserParams from parsed dict
+        mp = parse_minimiser_params(params_dict)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to construct MinimiserParams: {e}")
+    
+    try:
+        path = animate_optimiser(mp)
+        return {"path": path}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
+
+@app.get("/animateminimisersample")
+def animateminimisersample():
+    try:
+        network = NetworkParams()
+        data = TrainingDataType.SINREGRESSION
+        directions = (sample_dir1, sample_dir2)
+        theta_0 = sample_theta0
+        params = MinimiserParams(network, data, directions, theta_0, lock_to_plane=True)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Failed to construct default MinimiserParams: {e}")
+    
+    try:
+        path = animate_optimiser(params)
+        return {"path": path}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
 
 # Fetch the given JSON data file
 @app.get("/data/{filename}")
