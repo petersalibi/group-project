@@ -25,6 +25,66 @@ class TestParser(unittest.TestCase):
         optimiser = parse_optimiser("SGD")
         self.assertEqual(optimiser, torch.optim.SGD)
 
+    
+    def test_parse_string_landscape_params(self):
+        params = """
+        {
+            "network": {
+                "depth": 2,
+                "width": 8,
+                "inputs": 1,
+                "outputs": 1
+            },
+            "method": "FILTERNORM",
+            "data": "SINREGRESSION",
+            "args": [],
+            "loss": "MSELoss",
+            "training_samples": 32,
+            "surface_samples": 10
+        }
+        """
+        params_dict = json.loads(params)
+        lp = parse_landscape_params(params_dict)
+
+        self.assertIsInstance(lp, LandscapeParams)
+        self.assertIsInstance(lp.network, NetworkParams)
+        self.assertEqual(lp.method, VisualisationMethod.FILTERNORM)
+        self.assertEqual(lp.data, TrainingDataType.SINREGRESSION)
+        self.assertIsInstance(lp.loss, nn.MSELoss)
+        self.assertEqual(lp.training_samples, 32)
+        self.assertEqual(lp.surface_samples, 10)
+
+    def test_parse_string_minimiser_params(self):
+        params = """
+        {
+            "network": {
+                "depth": 2,
+                "width": 8,
+                "inputs": 1,
+                "outputs": 1
+            },
+            "data": "SINREGRESSION",
+            "directions": [[0.1, 0.2], [0.3, 0.4]],
+            "theta_0": [[0.5, 0.6], [0.7, 0.8]],
+            "init_xy": [0.0, 0.0],
+            "optimiser": "Adam",
+            "learning_rate": 0.01,
+            "loss": "MSELoss",
+            "epochs": 100
+        }
+        """
+        params_dict = json.loads(params)
+        mp = parse_minimiser_params(params_dict)
+
+        self.assertIsInstance(mp, MinimiserParams)
+        self.assertIsInstance(mp.network, NetworkParams)
+        self.assertEqual(mp.data, TrainingDataType.SINREGRESSION)
+        self.assertIsInstance(mp.directions[0], torch.Tensor)
+        self.assertIsInstance(mp.directions[1], torch.Tensor)
+        self.assertIsInstance(mp.theta_0, torch.Tensor)
+        self.assertEqual(mp.init_xy, (0.0, 0.0))
+        self.assertEqual(mp.learning_rate, 0.01)
+
     def test_parse_landscape_params_from_url_encoded_json(self):
         # build a sample params dict similar to what the frontend would send
         params = {
