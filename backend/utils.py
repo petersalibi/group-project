@@ -29,11 +29,47 @@ def parse_optimiser(optimiser: str):
     else:
         raise ValueError(f"Unsupported optimiser: {optimiser}")
 
+def parse_activation(activation: str):
+    import torch.nn as nn
+
+    activation_mapping = {
+        "ReLU": nn.ReLU(),
+        "Tanh": nn.Tanh(),
+        "Sigmoid": nn.Sigmoid(),
+        "LeakyReLU": nn.LeakyReLU()
+    }
+
+    if activation in activation_mapping:
+        return activation_mapping[activation]
+    else:
+        raise ValueError(f"Unsupported activation function: {activation}")
+
+def parse_network_params(params: dict):
+    from network import NetworkParams
+
+    try:
+        activation = parse_activation(params.get("activation", "Tanh"))
+        depth = params.get("depth", 2)
+        width = params.get("width", 10)
+        inputs = params.get("inputs", 1)
+        outputs = params.get("outputs", 1)
+
+        network_params = NetworkParams(
+            activation=activation,
+            depth=depth,
+            width=width,
+            inputs=inputs,
+            outputs=outputs
+        )
+        return network_params
+    except Exception as e:
+        raise ValueError(f"Error parsing network parameters: {e}")
+
 def parse_landscape_params(params: dict):
     from losslandscape import LandscapeParams, NetworkParams, VisualisationMethod, TrainingDataType
 
     try:
-        network_params = NetworkParams(**params.get("network", {}))
+        network_params = parse_network_params(params.get("network", {}))
         method = VisualisationMethod[params.get("method", "FILTERNORM")]
         data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
         args = params.get("args", [])
@@ -59,10 +95,12 @@ def parse_minimiser_params(params: dict):
     import torch
 
     try:
-        network_params = NetworkParams(**params.get("network", {}))
+        network_params = parse_network_params(params.get("network", {}))
         data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
+
         x_direction = torch.tensor(params.get("x_direction", torch.randn(100).tolist()))
         y_direction = torch.tensor(params.get("y_direction", torch.randn(100).tolist()))
+
         theta_0 = torch.tensor(params.get("theta_0", torch.randn(100).tolist()))
         optimiser = parse_optimiser(params.get("optimiser", "Adam"))
         learning_rate = params.get("learning_rate", 0.1)
