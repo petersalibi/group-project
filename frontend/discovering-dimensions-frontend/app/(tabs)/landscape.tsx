@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Text, View, Button } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import Slider from '@react-native-community/slider';
@@ -13,16 +13,19 @@ import api from '@/src/api';
 
 export default function LandscapeWithPath() {
   // UI state
-  const depthRef = useRef<number>(2);
-  const widthRef = useRef<number>(10);
-  const methodRef = useRef<string>("RANDOMDIRS");
-  const dataRef = useRef<string>("SINREGRESSION");
+  const [activation, setActivation] = useState<string>("ReLU");
+  const [depth, setDepth] = useState<number>(2);
+  const [width, setWidth] = useState<number>(10);
+  const [method, setMethod] = useState<string>("RANDOMDIRS");
+  const [data, setData] = useState<string>("SINREGRESSION");
+  const [optim, setOptim] = useState<string>("Adam");
+  const [loss, setLoss] = useState<string>("MSELoss");
+  const [zValue, setZValue] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
-  const lrRef = useRef<number>(0.1);
-  const [zValue, setZValue] = useState<number>(1);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Three.js refs
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -191,130 +194,129 @@ export default function LandscapeWithPath() {
     };
   }, []);
 
-  // --- Load surface & build landscape when selectedSurface changes ---
-  useEffect(() => {
-    if (!sceneRef.current) return;
-
-    let cancelled = false;
-    const scene = sceneRef.current;
-
-    async function loadAndBuildLandscape() {
-      setIsLoading(true);
-
-      try {
-        const paramString = `/generatelandscape/${JSON.stringify({ network: { depth: depthRef.current, width: widthRef.current }, method: methodRef.current, data: dataRef.current })}`;
-        const resp = await api.get(paramString);
-        const dict = resp.data;
-
-        if (
-          !dict ||
-          !dict.surface ||
-          !dict.x_axis ||
-          !dict.y_axis ||
-          !Array.isArray(dict.surface) ||
-          !Array.isArray(dict.x_axis) ||
-          !Array.isArray(dict.y_axis)
-        ) {
-          setIsLoading(false);
-          return;
-        }
-
-        originRef.current = dict.theta_0 || null;
-        xDirRef.current = dict.x_direction || null;
-        yDirRef.current = dict.y_direction || null;
-
-        const zGrid: number[][] = dict.surface;
-        const xs: number[] = dict.x_axis;
-        const ys: number[] = dict.y_axis;
-
-        const nx = xs.length;
-        const ny = ys.length;
-
-        if (nx === 0 || ny === 0 || zGrid.length === 0) {
-          setIsLoading(false);
-          return;
-        }
-
-        // Compute geometry dimensions
-        const width = xs[nx - 1] - xs[0];
-        const height = ys[ny - 1] - ys[0];
-        const widthSegments = nx - 1;
-        const heightSegments = ny - 1;
-
-        // Remove old mesh
-        if (meshRef.current) {
-          scene.remove(meshRef.current);
-          meshRef.current.geometry.dispose();
-          (meshRef.current.material as THREE.Material).dispose();
-          meshRef.current = null;
-        }
-
-        // Create landscape geometry and colors
-        const geometry = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments);
-        const positions = geometry.attributes.position;
-        const vertexCount = positions.count;
-
-        const zs = zGrid.flat();
-        const minZ = Math.min(...zs);
-        const maxZ = Math.max(...zs);
-        const range = maxZ - minZ || 1;
-        const baseZScale = Math.min(width, height) * 0.2;
-
-        const colors = new Float32Array(vertexCount * 3);
-        let v = 0;
-        for (let j = 0; j <= heightSegments; j++) {
-          for (let i = 0; i <= widthSegments; i++) {
-            const zVal = zGrid[i][j];
-            positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
-            const color = new THREE.Color().setHSL((1 - (zVal - minZ) / range) * 0.7, 0.8, 0.5);
-            colors[v * 3] = color.r;
-            colors[v * 3 + 1] = color.g;
-            colors[v * 3 + 2] = color.b;
-            v++;
-          }
-        }
-
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        geometry.computeVertexNormals();
-
-        const material = new THREE.MeshStandardMaterial({
-          vertexColors: true,
-          side: THREE.DoubleSide,
-          flatShading: false,
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.rotation.x = -Math.PI / 2;
-
-        // Set z-scale
-        mesh.scale.set(1, 1, zValue);
-        scene.add(mesh);
-        meshRef.current = mesh;
-
-        // Reposition camera using diag
-        const diag = Math.sqrt(width ** 2 + height ** 2);
-        if (cameraRef.current && controlsRef.current) {
-          cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
-          controlsRef.current.target.set(0, 0, 0);
-          controlsRef.current.update();
-        }
-
-        // After mesh created, load and animate path
-        await loadAndAnimatePath(mesh);
-
-        if (!cancelled) setIsLoading(false);
-      } catch (err) {
-        console.error('Failed to load landscape:', err);
-        if (!cancelled) setIsLoading(false);
-      }
+  async function loadAndBuildLandscape() {
+    if (!sceneRef.current) {
+      console.error("Scene is not ready.");
+      return;
     }
+    const scene = sceneRef.current;
+    
+    setIsLoading(true);
 
-    loadAndBuildLandscape();
+    try {
+      const paramString = `/generatelandscape/${JSON.stringify({ 
+        network: { activation: activation, depth: depth, width: width },
+        method: method,
+        data: data,
+        loss: loss
+      })}`;
+      const resp = await api.get(paramString);
+      const dict = resp.data;
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      if (
+        !dict ||
+        !dict.surface ||
+        !dict.x_axis ||
+        !dict.y_axis ||
+        !Array.isArray(dict.surface) ||
+        !Array.isArray(dict.x_axis) ||
+        !Array.isArray(dict.y_axis)
+      ) {
+        console.error("Invalid data received from API");
+        setIsLoading(false);
+        return;
+      }
+
+      originRef.current = dict.theta_0 || null;
+      xDirRef.current = dict.x_direction || null;
+      yDirRef.current = dict.y_direction || null;
+
+      const zGrid: number[][] = dict.surface;
+      const xs: number[] = dict.x_axis;
+      const ys: number[] = dict.y_axis;
+
+      const nx = xs.length;
+      const ny = ys.length;
+
+      if (nx === 0 || ny === 0 || zGrid.length === 0) {
+        console.error("Empty data received from API");
+        setIsLoading(false);
+        return;
+      }
+
+      // Compute geometry dimensions
+      const geoWidth = xs[nx - 1] - xs[0];
+      const geoHeight = ys[ny - 1] - ys[0];
+      const widthSegments = nx - 1;
+      const heightSegments = ny - 1;
+
+      // Remove old mesh
+      if (meshRef.current) {
+        scene.remove(meshRef.current);
+        meshRef.current.geometry.dispose();
+        (meshRef.current.material as THREE.Material).dispose();
+        meshRef.current = null;
+      }
+
+      // Create landscape geometry and colors
+      const geometry = new THREE.PlaneGeometry(geoWidth, geoHeight, widthSegments, heightSegments);
+      const positions = geometry.attributes.position;
+      const vertexCount = positions.count;
+
+      const zs = zGrid.flat();
+      const minZ = Math.min(...zs);
+      const maxZ = Math.max(...zs);
+      const range = maxZ - minZ || 1;
+      const baseZScale = Math.min(geoWidth, geoHeight) * 0.2;
+
+      const colors = new Float32Array(vertexCount * 3);
+      let v = 0;
+      for (let j = 0; j <= heightSegments; j++) {
+        for (let i = 0; i <= widthSegments; i++) {
+          const zVal = zGrid[i][j];
+          positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
+          const color = new THREE.Color().setHSL((1 - (zVal - minZ) / range) * 0.7, 0.8, 0.5);
+          colors[v * 3] = color.r;
+          colors[v * 3 + 1] = color.g;
+          colors[v * 3 + 2] = color.b;
+          v++;
+        }
+      }
+
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        flatShading: false,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.rotation.x = -Math.PI / 2;
+
+      // Set z-scale
+      mesh.scale.set(1, 1, zValue);
+      scene.add(mesh);
+      meshRef.current = mesh;
+
+      // Reposition camera using diag
+      const diag = Math.sqrt(geoWidth ** 2 + geoHeight ** 2);
+      if (cameraRef.current && controlsRef.current) {
+        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+
+      // After mesh created, load and animate path
+      await loadAndAnimatePath(mesh);
+
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Failed to load landscape:', err);
+      setIsLoading(false);
+    }
+  }
 
   // --- Load path and animate ---
   async function loadAndAnimatePath(mesh: THREE.Mesh | null) {
@@ -349,7 +351,15 @@ export default function LandscapeWithPath() {
 
     setIsLoading(true);
     try {
-      const paramString = `/animateminimiser/${JSON.stringify({ network: { depth: depthRef.current, width: widthRef.current } })}`;
+      const paramString = `/animateminimiser/${JSON.stringify({ 
+        network: { activation: activation, depth: depth, width: width },
+        data: data,
+        x_direction: xDirRef.current,
+        y_direction: yDirRef.current,
+        theta_0: originRef.current,
+        optimiser: optim,
+        loss: loss,
+      })}`;
       const resp = await api.get(paramString);
       const pathData = await resp.data;
       const path = pathData.path;
@@ -399,9 +409,9 @@ export default function LandscapeWithPath() {
 
       // Create ball
       const geomParams = (mesh.geometry as any).parameters ?? { width: 1, height: 1 };
-      const width = geomParams.width || 1;
-      const height = geomParams.height || 1;
-      const ballRadius = Math.sqrt(width ** 2 + height ** 2) * 0.005;
+      const geoWidth = geomParams.width || 1;
+      const geoHeight = geomParams.height || 1;
+      const ballRadius = Math.sqrt(geoWidth ** 2 + geoHeight ** 2) * 0.005;
       const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
       const ballMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
@@ -434,10 +444,34 @@ export default function LandscapeWithPath() {
   }
 
   // --- UI lists ---
+  const depths = [
+    { id: 1, label: '2 Layers', value: 2 },
+    { id: 2, label: '3 Layers', value: 3 },
+    { id: 3, label: '4 Layers', value: 4 }
+  ];
+  const widths = [
+    { id: 1, label: '5 Nodes', value: 5 },
+    { id: 2, label: '10 Nodes', value: 10 },
+    { id: 3, label: '15 Nodes', value: 15 }
+  ];
   const methods = [
     { id: 1, label: 'Random Directions', value: "RANDOMDIRS" },
+    { id:2, label: 'Filter-wise Normalised Directions', value: "FILTERNORM" }
   ];
-  const lrs = [{ id: 1, label: 'Learning Rate 1', value: 0.1 }];
+  const dataSets = [
+    { id: 1, label: 'Sine Regression', value: "SINREGRESSION" },
+    { id: 2, label: 'Penguins', value: "PENGUINS" }
+  ];
+  const optimisers = [
+    { id: 1, label: 'SGD', value: "SGD" },
+    { id: 2, label: 'Adam', value: "Adam" },
+    { id: 3, label: 'RMSProp', value: "RMSprop" }
+  ];
+  const losses = [
+    { id: 1, label: 'MSE', value: "MSELoss" },
+    { id: 2, label: 'Cross-Entropy', value: "CrossEntropyLoss" },
+    { id: 3, label: 'L1', value: "L1Loss" }
+  ];
 
   // --- Handler: when user changes z-value (slider) update mesh scale immediately ---
   const handleZChange = (val: number) => {
@@ -449,6 +483,10 @@ export default function LandscapeWithPath() {
         if (meshRef.current) loadAndAnimatePath(meshRef.current);
       }, 50); // Small debounce to avoid too many loads
     }
+  };
+
+  const handleLoadButtonClick = () => {
+    loadAndBuildLandscape();
   };
 
   return (
@@ -463,31 +501,75 @@ export default function LandscapeWithPath() {
             backgroundColor: '#d8eeffd3',
           }}
         >
-          <Text>Select method:</Text>
+          <Text>Select depth of network:</Text>
+          <Picker
+            id="depthSelect"
+            selectedValue={depth}
+            style={{ height: 30, width: 200 }}
+            onValueChange={(itemValue) => setDepth(Number(itemValue))}
+          >
+            {depths.map((d) => (
+              <Picker.Item key={d.id} label={d.label} value={d.value} />
+            ))}
+          </Picker>
+
+          <Text>Select width of hidden layers:</Text>
+          <Picker
+            id="widthSelect"
+            selectedValue={width}
+            style={{ height: 30, width: 200 }}
+            onValueChange={(itemValue) => setWidth(Number(itemValue))}
+          >
+            {widths.map((w) => (
+              <Picker.Item key={w.id} label={w.label} value={w.value} />
+            ))}
+          </Picker>
+
+          <Text>Select visualisation method:</Text>
           <Picker
             id="methodSelect"
-            selectedValue={methodRef.current}
+            selectedValue={method}
             style={{ height: 30, width: 200 }}
-            onValueChange={(itemValue) => (methodRef.current = String(itemValue))}
+            onValueChange={(itemValue) => setMethod(String(itemValue))}
           >
             {methods.map((m) => (
               <Picker.Item key={m.id} label={m.label} value={m.value} />
             ))}
           </Picker>
 
-          <Text>Select learning rate:</Text>
+          <Text>Select dataset:</Text>
           <Picker
-            id="lrSelect"
-            selectedValue={lrRef.current}
-            style={{ height: 30, width: 160 }}
-            onValueChange={(itemValue) => {
-              lrRef.current = Number(itemValue);
-              // Reload path for current mesh
-              if (meshRef.current) loadAndAnimatePath(meshRef.current);
-            }}
+            id="dataSetSelect"
+            selectedValue={data}
+            style={{ height: 30, width: 200 }}
+            onValueChange={(itemValue) => setData(String(itemValue))}
           >
-            {lrs.map((lr) => (
-              <Picker.Item key={lr.id} label={lr.label} value={lr.value} />
+            {dataSets.map((d) => (
+              <Picker.Item key={d.id} label={d.label} value={d.value} />
+            ))}
+          </Picker>
+
+          <Text>Select optimiser:</Text>
+          <Picker
+            id="optimiserSelect"
+            selectedValue={optim}
+            style={{ height: 30, width: 200 }}
+            onValueChange={(itemValue) => setOptim(String(itemValue))}
+          >
+            {optimisers.map((o) => (
+              <Picker.Item key={o.id} label={o.label} value={o.value} />
+            ))}
+          </Picker>
+
+          <Text>Select loss:</Text>
+          <Picker
+            id="lossSelect"
+            selectedValue={loss}
+            style={{ height: 30, width: 160 }}
+            onValueChange={(itemValue) => {setLoss(String(itemValue));}}
+          >
+            {losses.map((loss) => (
+              <Picker.Item key={loss.id} label={loss.label} value={loss.value} />
             ))}
           </Picker>
 
@@ -504,6 +586,12 @@ export default function LandscapeWithPath() {
             disabled={isLoading}
           />
           <Text>{zValue.toFixed(3)}</Text>
+
+          <Button
+            title={isLoading ? "Loading..." : "Generate Landscape"}
+            onPress={handleLoadButtonClick}
+            disabled={isLoading}
+          />
         </View>
       </View>
       {/* Renderer will append a canvas into the container div above */}
