@@ -4,10 +4,10 @@ import torch.nn as nn
 from enum import Enum
 
 class VisualisationMethod(Enum):
-    TWOPARAMETERS = 0
-    RANDOMDIRS = 1
-    FILTERNORM = 2
-    PCAMINIMISER = 3
+    TWOPARAMETERS   = 0
+    RANDOMDIRS      = 1
+    FILTERNORM      = 2
+    PCAMINIMISER    = 3
 
 def get_directions(model, method: VisualisationMethod, args=None):
     match method:

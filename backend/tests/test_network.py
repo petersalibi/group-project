@@ -8,7 +8,7 @@ class TestNetwork(unittest.TestCase):
         self.network_params = NetworkParams(
             activation=nn.Tanh(),
             depth=2,
-            height=10,
+            width=10,
             inputs=1,
             outputs=1
         )
@@ -30,7 +30,7 @@ class TestNetwork(unittest.TestCase):
         # Test default parameters
         params = NetworkParams()
         self.assertEqual(params.depth, 2)
-        self.assertEqual(params.height, 10)
+        self.assertEqual(params.width, 10)
         self.assertEqual(params.inputs, 1)
         self.assertEqual(params.outputs, 1)
         self.assertIsInstance(params.activation, nn.Tanh)
@@ -39,12 +39,12 @@ class TestNetwork(unittest.TestCase):
         custom_params = NetworkParams(
             activation=nn.ReLU(),
             depth=3,
-            height=20,
+            width=20,
             inputs=2,
             outputs=1
         )
         self.assertEqual(custom_params.depth, 3)
-        self.assertEqual(custom_params.height, 20)
+        self.assertEqual(custom_params.width, 20)
         self.assertEqual(custom_params.inputs, 2)
         self.assertEqual(custom_params.outputs, 1)
         self.assertIsInstance(custom_params.activation, nn.ReLU)

@@ -31,12 +31,12 @@ class TestLossLandscape(unittest.TestCase):
         
         # Check if result contains required keys
         self.assertIn('surface', result)
-        self.assertIn('xAxis', result)
-        self.assertIn('yAxis', result)
+        self.assertIn('x_axis', result)
+        self.assertIn('y_axis', result)
         
         # Check dimensions
-        self.assertEqual(len(result['xAxis']), self.landscape_params.surface_samples)
-        self.assertEqual(len(result['yAxis']), self.landscape_params.surface_samples)
+        self.assertEqual(len(result['x_axis']), self.landscape_params.surface_samples)
+        self.assertEqual(len(result['y_axis']), self.landscape_params.surface_samples)
         self.assertEqual(len(result['surface']), self.landscape_params.surface_samples)
         self.assertEqual(len(result['surface'][0]), self.landscape_params.surface_samples)
         
