@@ -61,7 +61,8 @@ def parse_minimiser_params(params: dict):
     try:
         network_params = NetworkParams(**params.get("network", {}))
         data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
-        directions = params.get("directions", (torch.randn(100), torch.randn(100)))
+        lst_directions = params.get("directions", (torch.randn(100), torch.randn(100)))
+        directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
         theta_0 = torch.tensor(params.get("theta_0", torch.randn(100).tolist()))
         optimiser = parse_optimiser(params.get("optimiser", "Adam"))
         loss = parse_loss(params.get("loss", "MSELoss"))
