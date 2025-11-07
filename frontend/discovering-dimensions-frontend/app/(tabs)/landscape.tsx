@@ -13,8 +13,14 @@ import api from '@/src/api';
 
 export default function LandscapeWithPath() {
   // UI state
-  const [selectedSurface, setSelectedSurface] = useState<string>('loss_filt.json');
-  const [selectedPath, setSelectedPath] = useState<string>('path.json');
+  const depthRef = useRef<number>(2);
+  const widthRef = useRef<number>(10);
+  const methodRef = useRef<string>("RANDOMDIRS");
+  const dataRef = useRef<string>("SINREGRESSION");
+  const originRef = useRef<number[] | null>(null);
+  const xDirRef = useRef<number[] | null>(null);
+  const yDirRef = useRef<number[] | null>(null);
+  const lrRef = useRef<number>(0.1);
   const [zValue, setZValue] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -192,11 +198,12 @@ export default function LandscapeWithPath() {
     let cancelled = false;
     const scene = sceneRef.current;
 
-    async function loadAndBuildLandscape(url: string) {
+    async function loadAndBuildLandscape() {
       setIsLoading(true);
 
       try {
-        const resp = await api.get(`/generatelandscapesample`);
+        const paramString = `/generatelandscape/${JSON.stringify({ network: { depth: depthRef.current, width: widthRef.current }, method: methodRef.current, data: dataRef.current })}`;
+        const resp = await api.get(paramString);
         const dict = resp.data;
 
         if (
@@ -211,6 +218,10 @@ export default function LandscapeWithPath() {
           setIsLoading(false);
           return;
         }
+
+        originRef.current = dict.theta_0 || null;
+        xDirRef.current = dict.x_direction || null;
+        yDirRef.current = dict.y_direction || null;
 
         const zGrid: number[][] = dict.surface;
         const xs: number[] = dict.x_axis;
@@ -298,12 +309,12 @@ export default function LandscapeWithPath() {
       }
     }
 
-    loadAndBuildLandscape(selectedSurface);
+    loadAndBuildLandscape();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedSurface]); // Rebuild when surface changes
+  }, []);
 
   // --- Load path and animate ---
   async function loadAndAnimatePath(mesh: THREE.Mesh | null) {
@@ -338,7 +349,8 @@ export default function LandscapeWithPath() {
 
     setIsLoading(true);
     try {
-      const resp = await api.get(`/animateminimisersample`);
+      const paramString = `/animateminimiser/${JSON.stringify({ network: { depth: depthRef.current, width: widthRef.current } })}`;
+      const resp = await api.get(paramString);
       const pathData = await resp.data;
       const path = pathData.path;
       const arr = Array.isArray(path) ? path : path.data ?? path;
@@ -352,7 +364,7 @@ export default function LandscapeWithPath() {
       // Build a smooth 2D curve from path points
       const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
-      const smoothPoints: THREE.Vector2[] = curve2D.getPoints(500);
+      const smoothPoints: THREE.Vector2[] = curve2D.getPoints(100);
 
       // Raycast from above onto the mesh to get 3D points & normals
       const raycaster = new THREE.Raycaster();
@@ -421,12 +433,11 @@ export default function LandscapeWithPath() {
     }
   }
 
-  // --- UI surfaces & paths lists ---
-  const surfaces = [
-    { id: 1, label: 'Filterwise Normalised', value: 'loss_filt.json' },
-    { id: 2, label: 'Random Directions', value: 'loss_rand.json' },
+  // --- UI lists ---
+  const methods = [
+    { id: 1, label: 'Random Directions', value: "RANDOMDIRS" },
   ];
-  const paths = [{ id: 1, label: 'path.json', value: 'path.json' }];
+  const lrs = [{ id: 1, label: 'Learning Rate 1', value: 0.1 }];
 
   // --- Handler: when user changes z-value (slider) update mesh scale immediately ---
   const handleZChange = (val: number) => {
@@ -452,31 +463,31 @@ export default function LandscapeWithPath() {
             backgroundColor: '#d8eeffd3',
           }}
         >
-          <Text>Select surface:</Text>
+          <Text>Select method:</Text>
           <Picker
-            id="fileSelect"
-            selectedValue={selectedSurface}
+            id="methodSelect"
+            selectedValue={methodRef.current}
             style={{ height: 30, width: 200 }}
-            onValueChange={(itemValue) => setSelectedSurface(String(itemValue))}
+            onValueChange={(itemValue) => (methodRef.current = String(itemValue))}
           >
-            {surfaces.map((s) => (
-              <Picker.Item key={s.id} label={s.label} value={s.value} />
+            {methods.map((m) => (
+              <Picker.Item key={m.id} label={m.label} value={m.value} />
             ))}
           </Picker>
 
-          <Text>Select path:</Text>
+          <Text>Select learning rate:</Text>
           <Picker
-            id="pathSelect"
-            selectedValue={selectedPath}
+            id="lrSelect"
+            selectedValue={lrRef.current}
             style={{ height: 30, width: 160 }}
             onValueChange={(itemValue) => {
-              setSelectedPath(String(itemValue));
+              lrRef.current = Number(itemValue);
               // Reload path for current mesh
               if (meshRef.current) loadAndAnimatePath(meshRef.current);
             }}
           >
-            {paths.map((p) => (
-              <Picker.Item key={p.id} label={p.label} value={p.value} />
+            {lrs.map((lr) => (
+              <Picker.Item key={lr.id} label={lr.label} value={lr.value} />
             ))}
           </Picker>
 
