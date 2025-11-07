@@ -61,21 +61,26 @@ def parse_minimiser_params(params: dict):
     try:
         network_params = NetworkParams(**params.get("network", {}))
         data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
-        lst_directions = params.get("directions", (torch.randn(100), torch.randn(100)))
-        directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
+        x_direction = torch.tensor(params.get("x_direction", torch.randn(100).tolist()))
+        y_direction = torch.tensor(params.get("y_direction", torch.randn(100).tolist()))
         theta_0 = torch.tensor(params.get("theta_0", torch.randn(100).tolist()))
         optimiser = parse_optimiser(params.get("optimiser", "Adam"))
+        learning_rate = params.get("learning_rate", 0.1)
         loss = parse_loss(params.get("loss", "MSELoss"))
         epochs = params.get("epochs", 300)
+        lock_to_plane = params.get("lock_to_plane", False)
 
         minimiser_params = MinimiserParams(
             network=network_params,
             data=data_type,
-            directions=directions,
+            x_direction=x_direction,
+            y_direction=y_direction,
             theta_0=theta_0,
             optimiser=optimiser,
             loss=loss,
-            epochs=epochs
+            learning_rate=learning_rate,
+            epochs=epochs,
+            lock_to_plane=lock_to_plane
         )
         return minimiser_params
     except Exception as e:

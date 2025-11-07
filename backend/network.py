@@ -35,7 +35,7 @@ class TrainingData:
 
 class NetworkParams:
 
-    def __init__(self, activation=nn.Tanh(), depth=2, width=10, inputs=None, outputs=None):
+    def __init__(self, activation=nn.Tanh(), depth=2, width=10, inputs=1, outputs=1):
         self.activation = activation
         self.depth = depth
         self.width = width

@@ -8,7 +8,8 @@ class MinimiserParams:
     def __init__(self,
                  network: NetworkParams,
                  data: TrainingDataType,
-                 directions: tuple,
+                 x_direction: torch.Tensor,
+                 y_direction: torch.Tensor,
                  theta_0: torch.Tensor,
                  init_xy=(0.0, 0.0),
                  optimiser=optim.Adam,
@@ -19,7 +20,7 @@ class MinimiserParams:
         
         self.network = network
         self.data = data
-        self.directions = directions
+        self.directions = (x_direction, y_direction)
         self.theta_0 = theta_0
         self.init_xy = init_xy
         self.optimiser = optimiser
