@@ -23,6 +23,10 @@ export default function LandscapeWithPath() {
   const [zValue, setZValue] = useState<number>(1);
   const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
   const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
+  const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [animationProgress, setAnimationProgress] = useState<number>(0);
+
 
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
@@ -39,6 +43,7 @@ export default function LandscapeWithPath() {
   const pathPointsRef = useRef<THREE.Vector3[]>([]);
   const pathNormalsRef = useRef<THREE.Vector3[]>([]);
   const totalPathPointsRef = useRef<number>(0);
+  const path2DRef = useRef<THREE.Vector2[] | null>(null);
 
   // Animation
   const clockRef = useRef<THREE.Clock | null>(null);
@@ -80,6 +85,10 @@ export default function LandscapeWithPath() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.zIndex = '1';
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -109,6 +118,7 @@ export default function LandscapeWithPath() {
 
         if (pathLine && totalPathPoints > 0 && clock) {
           const progress = (clock.getElapsedTime() / animationDuration) % 1;
+          setAnimationProgress(progress);
           const drawCount = Math.floor(progress * totalPathPoints);
           (pathLine.geometry as any).instanceCount = drawCount;
 
@@ -266,6 +276,7 @@ export default function LandscapeWithPath() {
         if (mat) mat.dispose?.();
         pathLineRef.current = null;
         clockRef.current = new THREE.Clock();
+        setIsPathLoaded(false);
       }
       if (ballRef.current) {
         scene.remove(ballRef.current);
@@ -336,6 +347,11 @@ export default function LandscapeWithPath() {
     const scene = sceneRef.current;
     if (!scene) return;
 
+    // Reset clock and animation state
+    clockRef.current = new THREE.Clock();
+    setIsPlaying(true);
+    setAnimationProgress(0);
+
     // Remove existing pathLine & ball
     try {
       if (pathLineRef.current) {
@@ -345,7 +361,6 @@ export default function LandscapeWithPath() {
         if (geo) geo.dispose?.();
         if (mat) mat.dispose?.();
         pathLineRef.current = null;
-        clockRef.current = new THREE.Clock();
       }
       if (ballRef.current) {
         scene.remove(ballRef.current);
@@ -360,6 +375,8 @@ export default function LandscapeWithPath() {
     pathPointsRef.current = [];
     pathNormalsRef.current = [];
     totalPathPointsRef.current = 0;
+    path2DRef.current = null; // Clear 2D path cache
+    setIsPathLoaded(false);
 
     if (!mesh) return;
 
@@ -387,43 +404,70 @@ export default function LandscapeWithPath() {
         return;
       }
       console.log("First point is:", arr[0][0], arr[0][1]);
-      // Build a smooth 2D curve from path points
+      
       const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
       const smoothPoints: THREE.Vector2[] = curve2D.getPoints(100);
+      path2DRef.current = smoothPoints;
 
-      // Raycast from above onto the mesh to get 3D points & normals
-      const raycaster = new THREE.Raycaster();
-      const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-      const lineLiftAmount = 0.002; // small lift so line sits just above the surface
+      updatePathGeometry(mesh, true); 
+      setIsPathLoaded(true);
+      setIsPathLoading(false);
 
-      for (const p of smoothPoints) {
-        const rayOrigin = new THREE.Vector3(p.x, 1000, -p.y);
-        raycaster.set(rayOrigin, new THREE.Vector3(0, -1, 0));
-        const hit = raycaster.intersectObject(mesh)[0];
-        if (hit) {
-          // Transform face normal to world space
-          const worldNormal = hit.face!.normal.clone().applyMatrix3(normalMatrix).normalize();
-          const lifted = hit.point.clone().add(worldNormal.clone().multiplyScalar(lineLiftAmount));
-          pathPointsRef.current.push(lifted);
-          pathNormalsRef.current.push(worldNormal);
-        }
+    } catch (err) {
+      console.error('Failed to load or process path.json:', err);
+      setIsPathLoaded(false);
+      setIsPathLoading(false);
+    }
+  }
+
+  // Updates the 3D path geometry based on the cached 2D path and a given mesh
+  function updatePathGeometry(mesh: THREE.Mesh, createBall: boolean = false) {
+    const scene = sceneRef.current;
+    const smoothPoints = path2DRef.current;
+
+    if (!scene || !mesh || !smoothPoints || smoothPoints.length < 2) {
+      return;
+    }
+
+    // Raycast from above onto the mesh to get 3D points & normals
+    const raycaster = new THREE.Raycaster();
+    const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+    const lineLiftAmount = 0.002;
+
+    // Clear old 3D points
+    pathPointsRef.current = [];
+    pathNormalsRef.current = [];
+
+    for (const p of smoothPoints) {
+      const rayOrigin = new THREE.Vector3(p.x, 1000, -p.y);
+      raycaster.set(rayOrigin, new THREE.Vector3(0, -1, 0));
+      const hit = raycaster.intersectObject(mesh)[0];
+      if (hit) {
+        const worldNormal = hit.face!.normal.clone().applyMatrix3(normalMatrix).normalize();
+        const lifted = hit.point.clone().add(worldNormal.clone().multiplyScalar(lineLiftAmount));
+        pathPointsRef.current.push(lifted);
+        pathNormalsRef.current.push(worldNormal);
       }
+    }
 
-      if (pathPointsRef.current.length < 2) {
-        setIsPathLoading(false);
-        return;
+    if (pathPointsRef.current.length < 2) {
+      return;
+    }
+
+    totalPathPointsRef.current = Math.max(0, pathPointsRef.current.length - 1);
+    const positions: number[] = [];
+    for (const p of pathPointsRef.current) {
+      positions.push(p.x, p.y, p.z);
+    }
+
+    if (createBall) {
+      // --- Create Ball (only on first load) ---
+      if (ballRef.current) {
+         scene.remove(ballRef.current);
+         ballRef.current.geometry.dispose();
+         (ballRef.current.material as THREE.Material).dispose();
       }
-
-      totalPathPointsRef.current = Math.max(0, pathPointsRef.current.length - 1);
-
-      // Build positions for LineGeometry
-      const positions: number[] = [];
-      for (const p of pathPointsRef.current) {
-        positions.push(p.x, p.y, p.z);
-      }
-
-      // Create ball
       const geomParams = (mesh.geometry as any).parameters ?? { width: 1, height: 1 };
       const geoWidth = geomParams.width || 1;
       const geoHeight = geomParams.height || 1;
@@ -437,8 +481,14 @@ export default function LandscapeWithPath() {
       ball.position.copy(pathPointsRef.current[0]).add(pathNormalsRef.current[0].clone().multiplyScalar(ballRadius));
       scene.add(ball);
       ballRef.current = ball;
+    }
 
-      // Create Line2 path
+    // --- Create or Update Line ---
+    if (pathLineRef.current) {
+      // Path line already exists, just update its geometry
+      (pathLineRef.current.geometry as LineGeometry).setPositions(positions);
+    } else {
+      // Create new Line2 path
       const lineGeometry = new LineGeometry();
       lineGeometry.setPositions(positions);
       const lineMaterial = new LineMaterial({
@@ -451,11 +501,6 @@ export default function LandscapeWithPath() {
       (line2.geometry as any).instanceCount = 0;
       scene.add(line2);
       pathLineRef.current = line2;
-
-      setIsPathLoading(false);
-    } catch (err) {
-      console.error('Failed to load or process path.json:', err);
-      setIsPathLoading(false);
     }
   }
 
@@ -500,11 +545,15 @@ export default function LandscapeWithPath() {
     setZValue(val);
     if (meshRef.current) {
       meshRef.current.scale.z = val;
-      window.clearTimeout((handleZChange as any).__debounce);
-      (handleZChange as any).__debounce = window.setTimeout(() => {
-        if (meshRef.current && pathLineRef.current) loadAndAnimatePath(meshRef.current);
-      }, 50); // Small debounce to avoid too many loads
     }
+
+    window.clearTimeout((handleZChange as any).__debounce);
+    (handleZChange as any).__debounce = window.setTimeout(() => {
+      if (meshRef.current && path2DRef.current && pathLineRef.current) {
+        // Pass 'false' because we don't need to re-create the ball
+        updatePathGeometry(meshRef.current, false); 
+      }
+    }, 50); // 50ms debounce
   };
 
   const handleLoadLandscapeButtonClick = () => {
@@ -515,9 +564,39 @@ export default function LandscapeWithPath() {
     loadAndAnimatePath(meshRef.current);
   }
 
+  const togglePlayPause = () => {
+    if (!clockRef.current) return;
+    if (isPlaying) {
+      clockRef.current.stop();
+    } else {
+      clockRef.current.oldTime = performance.now();
+      clockRef.current.running = true;
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+const handleProgressChange = (newProgress: number) => {
+  if (!clockRef.current) return;
+
+  setAnimationProgress(newProgress);
+  const newElapsedTimeInSeconds = newProgress * animationDuration;
+  clockRef.current.elapsedTime = newElapsedTimeInSeconds;
+  clockRef.current.oldTime = performance.now();
+};
+
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View id={containerId}>
+    <SafeAreaView style={{ flex: 1, position: 'relative' }}>
+      <View id={containerId} style={{ flex: 1 }} />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          flexDirection: 'column',
+        }}
+      >
         <View
           style={{
             flexDirection: Platform.OS === 'web' ? 'row' : 'column',
@@ -525,6 +604,7 @@ export default function LandscapeWithPath() {
             padding: 10,
             gap: 10,
             backgroundColor: '#d8eeffd3',
+            flexWrap: 'wrap',
           }}
         >
           <Text>Select depth of network:</Text>
@@ -625,6 +705,41 @@ export default function LandscapeWithPath() {
           />
           <Text>{zValue.toFixed(3)}</Text>
         </View>
+        
+        {isPathLoaded && (
+          <View
+            style={{
+              alignSelf: 'flex-end',
+              marginTop: 10,
+              marginRight: 10,
+              width: 300,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              padding: 5,
+              borderRadius: 5,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <Button
+              title={isPlaying ? "Pause" : "Play"}
+              onPress={togglePlayPause}
+              disabled={!pathLineRef.current}
+            />
+            <Slider
+              style={{ flex: 1, height: 40 }}
+              minimumValue={0}
+              maximumValue={1}
+              step={0.001}
+              value={animationProgress}
+              onValueChange={handleProgressChange}
+              minimumTrackTintColor="#00aaffff"
+              maximumTrackTintColor="#ffffff"
+              thumbTintColor="#0076a9ff"
+              disabled={!pathLineRef.current}
+            />
+          </View>
+        )}
       </View>
       {/* Renderer will append a canvas into the container div above */}
     </SafeAreaView>
