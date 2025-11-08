@@ -60,7 +60,7 @@ export default function LandscapeWithPath() {
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0);
+    scene.background = new THREE.Color(0x1a1a1a);
     sceneRef.current = scene;
 
     // Camera
@@ -82,6 +82,8 @@ export default function LandscapeWithPath() {
 
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -97,10 +99,19 @@ export default function LandscapeWithPath() {
     controlsRef.current = controls;
 
     // Lights
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    directionalLight.position.set(1, 1, 1);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    const hemiLight = new THREE.HemisphereLight(
+        0x4488ff, // Sky color
+        0x000000, // Ground color
+        0.5       // Intensity
+    );
+    scene.add(hemiLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(2, 5, 3); 
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 
     // Clock
     clockRef.current = new THREE.Clock();
@@ -264,6 +275,9 @@ export default function LandscapeWithPath() {
       // Remove old mesh, path line and ball
       if (meshRef.current) {
         scene.remove(meshRef.current);
+        if (meshRef.current.children[0]) {
+            ((meshRef.current.children[0] as THREE.Mesh).material as THREE.Material).dispose();
+        }
         meshRef.current.geometry.dispose();
         (meshRef.current.material as THREE.Material).dispose();
         meshRef.current = null;
@@ -317,10 +331,24 @@ export default function LandscapeWithPath() {
         vertexColors: true,
         side: THREE.DoubleSide,
         flatShading: false,
+        metalness: 0.2, // Add a slight metallic sheen
+        roughness: 0.5, // Make it semi-glossy
       });
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.rotation.x = -Math.PI / 2;
+      mesh.receiveShadow = true;
+
+      const wireframeMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        opacity: 0.1,
+        transparent: true,
+        wireframe: true,
+      });
+      const wireframeMesh = new THREE.Mesh(geometry, wireframeMaterial);
+      // Slightly lift the wireframe to prevent z-fighting
+      wireframeMesh.position.y = 0.001; 
+      mesh.add(wireframeMesh);
 
       // Set z-scale
       mesh.scale.set(1, 1, zValue);
@@ -475,9 +503,10 @@ export default function LandscapeWithPath() {
       const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
       const ballMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
-        roughness: 0.5,
+        toneMapped: false,
       });
       const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+      ball.castShadow = true;
       ball.position.copy(pathPointsRef.current[0]).add(pathNormalsRef.current[0].clone().multiplyScalar(ballRadius));
       scene.add(ball);
       ballRef.current = ball;
@@ -492,8 +521,11 @@ export default function LandscapeWithPath() {
       const lineGeometry = new LineGeometry();
       lineGeometry.setPositions(positions);
       const lineMaterial = new LineMaterial({
-        color: 0x00ffff,
-        linewidth: 8, // pixels
+        color: 0xffff00, // Match the ball's bright yellow
+        linewidth: 3,    // Thinner (in pixels)
+        dashed: true,    // Make it a dashed line
+        dashSize: 0.01,
+        gapSize: 0.005,
       }) as any;
       lineMaterial.resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
       const line2 = new Line2(lineGeometry as any, lineMaterial);
