@@ -21,7 +21,8 @@ export default function LandscapeWithPath() {
   const [optim, setOptim] = useState<string>("Adam");
   const [loss, setLoss] = useState<string>("MSELoss");
   const [zValue, setZValue] = useState<number>(1);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
+  const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
 
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
@@ -200,8 +201,8 @@ export default function LandscapeWithPath() {
       return;
     }
     const scene = sceneRef.current;
-    
-    setIsLoading(true);
+
+    setIsLandscapeLoading(true);
 
     try {
       const paramString = `/generatelandscape/${JSON.stringify({ 
@@ -223,7 +224,7 @@ export default function LandscapeWithPath() {
         !Array.isArray(dict.y_axis)
       ) {
         console.error("Invalid data received from API");
-        setIsLoading(false);
+        setIsLandscapeLoading(false);
         return;
       }
 
@@ -240,7 +241,7 @@ export default function LandscapeWithPath() {
 
       if (nx === 0 || ny === 0 || zGrid.length === 0) {
         console.error("Empty data received from API");
-        setIsLoading(false);
+        setIsLandscapeLoading(false);
         return;
       }
 
@@ -250,12 +251,27 @@ export default function LandscapeWithPath() {
       const widthSegments = nx - 1;
       const heightSegments = ny - 1;
 
-      // Remove old mesh
+      // Remove old mesh, path line and ball
       if (meshRef.current) {
         scene.remove(meshRef.current);
         meshRef.current.geometry.dispose();
         (meshRef.current.material as THREE.Material).dispose();
         meshRef.current = null;
+      }
+      if (pathLineRef.current) {
+        scene.remove(pathLineRef.current);
+        const geo = (pathLineRef.current.geometry as any);
+        const mat = (pathLineRef.current.material as any);
+        if (geo) geo.dispose?.();
+        if (mat) mat.dispose?.();
+        pathLineRef.current = null;
+        clockRef.current = new THREE.Clock();
+      }
+      if (ballRef.current) {
+        scene.remove(ballRef.current);
+        ballRef.current.geometry.dispose();
+        (ballRef.current.material as THREE.Material).dispose();
+        ballRef.current = null;
       }
 
       // Create landscape geometry and colors
@@ -308,13 +324,10 @@ export default function LandscapeWithPath() {
         controlsRef.current.update();
       }
 
-      // After mesh created, load and animate path
-      await loadAndAnimatePath(mesh);
-
-      setIsLoading(false);
+      setIsLandscapeLoading(false);
     } catch (err) {
       console.error('Failed to load landscape:', err);
-      setIsLoading(false);
+      setIsLandscapeLoading(false);
     }
   }
 
@@ -332,6 +345,7 @@ export default function LandscapeWithPath() {
         if (geo) geo.dispose?.();
         if (mat) mat.dispose?.();
         pathLineRef.current = null;
+        clockRef.current = new THREE.Clock();
       }
       if (ballRef.current) {
         scene.remove(ballRef.current);
@@ -349,7 +363,8 @@ export default function LandscapeWithPath() {
 
     if (!mesh) return;
 
-    setIsLoading(true);
+    setIsPathLoading(true);
+
     try {
       const paramString = `/animateminimiser/${JSON.stringify({ 
         network: { activation: activation, depth: depth, width: width },
@@ -357,6 +372,7 @@ export default function LandscapeWithPath() {
         x_direction: xDirRef.current,
         y_direction: yDirRef.current,
         theta_0: originRef.current,
+        init_xy: [-0.5, -0.5],
         optimiser: optim,
         loss: loss,
       })}`;
@@ -367,10 +383,10 @@ export default function LandscapeWithPath() {
 
       if (!Array.isArray(arr) || arr.length < 2) {
         console.error('Invalid path data');
-        setIsLoading(false);
+        setIsPathLoading(false);
         return;
       }
-
+      console.log("First point is:", arr[0][0], arr[0][1]);
       // Build a smooth 2D curve from path points
       const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
@@ -395,7 +411,7 @@ export default function LandscapeWithPath() {
       }
 
       if (pathPointsRef.current.length < 2) {
-        setIsLoading(false);
+        setIsPathLoading(false);
         return;
       }
 
@@ -436,10 +452,10 @@ export default function LandscapeWithPath() {
       scene.add(line2);
       pathLineRef.current = line2;
 
-      setIsLoading(false);
+      setIsPathLoading(false);
     } catch (err) {
       console.error('Failed to load or process path.json:', err);
-      setIsLoading(false);
+      setIsPathLoading(false);
     }
   }
 
@@ -453,6 +469,12 @@ export default function LandscapeWithPath() {
     { id: 1, label: '5 Nodes', value: 5 },
     { id: 2, label: '10 Nodes', value: 10 },
     { id: 3, label: '15 Nodes', value: 15 }
+  ];
+  const activations = [
+    { id: 1, label: 'ReLU', value: "ReLU" },
+    { id: 2, label: 'Tanh', value: "Tanh" },
+    { id: 3, label: 'Sigmoid', value: "Sigmoid" },
+    { id: 4, label: 'LeakyReLU', value: "LeakyReLU" }
   ];
   const methods = [
     { id: 1, label: 'Random Directions', value: "RANDOMDIRS" },
@@ -480,14 +502,18 @@ export default function LandscapeWithPath() {
       meshRef.current.scale.z = val;
       window.clearTimeout((handleZChange as any).__debounce);
       (handleZChange as any).__debounce = window.setTimeout(() => {
-        if (meshRef.current) loadAndAnimatePath(meshRef.current);
+        if (meshRef.current && pathLineRef.current) loadAndAnimatePath(meshRef.current);
       }, 50); // Small debounce to avoid too many loads
     }
   };
 
-  const handleLoadButtonClick = () => {
+  const handleLoadLandscapeButtonClick = () => {
     loadAndBuildLandscape();
   };
+
+  const handleLoadPathButtonClick = () => {
+    loadAndAnimatePath(meshRef.current);
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -505,7 +531,7 @@ export default function LandscapeWithPath() {
           <Picker
             id="depthSelect"
             selectedValue={depth}
-            style={{ height: 30, width: 200 }}
+            style={{ height: 30, width: 100 }}
             onValueChange={(itemValue) => setDepth(Number(itemValue))}
           >
             {depths.map((d) => (
@@ -517,11 +543,23 @@ export default function LandscapeWithPath() {
           <Picker
             id="widthSelect"
             selectedValue={width}
-            style={{ height: 30, width: 200 }}
+            style={{ height: 30, width: 100 }}
             onValueChange={(itemValue) => setWidth(Number(itemValue))}
           >
             {widths.map((w) => (
               <Picker.Item key={w.id} label={w.label} value={w.value} />
+            ))}
+          </Picker>
+
+          <Text>Select activation function:</Text>
+          <Picker
+            id="activationSelect"
+            selectedValue={activation}
+            style={{ height: 30, width: 100 }}
+            onValueChange={(itemValue) => setActivation(String(itemValue))}
+          >
+            {activations.map((a) => (
+              <Picker.Item key={a.id} label={a.label} value={a.value} />
             ))}
           </Picker>
 
@@ -537,17 +575,11 @@ export default function LandscapeWithPath() {
             ))}
           </Picker>
 
-          <Text>Select dataset:</Text>
-          <Picker
-            id="dataSetSelect"
-            selectedValue={data}
-            style={{ height: 30, width: 200 }}
-            onValueChange={(itemValue) => setData(String(itemValue))}
-          >
-            {dataSets.map((d) => (
-              <Picker.Item key={d.id} label={d.label} value={d.value} />
-            ))}
-          </Picker>
+          <Button
+            title={isLandscapeLoading ? "Loading..." : "Generate Landscape"}
+            onPress={handleLoadLandscapeButtonClick}
+            disabled={isLandscapeLoading}
+          />
 
           <Text>Select optimiser:</Text>
           <Picker
@@ -565,7 +597,7 @@ export default function LandscapeWithPath() {
           <Picker
             id="lossSelect"
             selectedValue={loss}
-            style={{ height: 30, width: 160 }}
+            style={{ height: 30, width: 150 }}
             onValueChange={(itemValue) => {setLoss(String(itemValue));}}
           >
             {losses.map((loss) => (
@@ -573,9 +605,15 @@ export default function LandscapeWithPath() {
             ))}
           </Picker>
 
+          <Button
+            title={isPathLoading ? "Loading..." : "Generate Path"}
+            onPress={handleLoadPathButtonClick}
+            disabled={isPathLoading || !meshRef.current}
+          />
+
           <Text>Z scale:</Text>
           <Slider
-            style={{ width: 200, height: 40 }}
+            style={{ width: 150, height: 40 }}
             minimumValue={0.001}
             maximumValue={5}
             value={zValue}
@@ -583,15 +621,9 @@ export default function LandscapeWithPath() {
             minimumTrackTintColor="#00aaffff"
             maximumTrackTintColor="#0083c4ff"
             thumbTintColor="#0076a9ff"
-            disabled={isLoading}
+            disabled={isLandscapeLoading || isPathLoading}
           />
           <Text>{zValue.toFixed(3)}</Text>
-
-          <Button
-            title={isLoading ? "Loading..." : "Generate Landscape"}
-            onPress={handleLoadButtonClick}
-            disabled={isLoading}
-          />
         </View>
       </View>
       {/* Renderer will append a canvas into the container div above */}
