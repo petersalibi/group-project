@@ -447,7 +447,6 @@ export default function LandscapeWithPath() {
         setIsPathLoading(false);
         return;
       }
-      console.log("First point is:", arr[0][0], arr[0][1]);
       
       const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
@@ -519,6 +518,8 @@ export default function LandscapeWithPath() {
       const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
       const ballMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 2,
         toneMapped: false,
       });
       const ball = new THREE.Mesh(ballGeometry, ballMaterial);
@@ -539,8 +540,6 @@ export default function LandscapeWithPath() {
       const lineMaterial = new LineMaterial({
         color: 0xffff00,
         linewidth: 3,
-        dashSize: 0.01,
-        gapSize: 0.005,
       }) as any;
       lineMaterial.resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
       const line2 = new Line2(lineGeometry as any, lineMaterial);
@@ -677,6 +676,8 @@ export default function LandscapeWithPath() {
           const ballGeom = new THREE.SphereGeometry(ballRadius, 16, 16);
           const ballMaterial = new THREE.MeshStandardMaterial({
             color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 2,
             toneMapped: false,
           });
           ghostBallRef.current = new THREE.Mesh(ballGeom, ballMaterial);
