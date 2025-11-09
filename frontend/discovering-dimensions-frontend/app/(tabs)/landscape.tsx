@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -26,11 +26,12 @@ export default function LandscapeWithPath() {
   const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [animationProgress, setAnimationProgress] = useState<number>(0);
-
+  const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
 
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
+  const startPointRef = useRef<[number, number]>([0, 0]);
 
   // Three.js refs
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -44,6 +45,9 @@ export default function LandscapeWithPath() {
   const pathNormalsRef = useRef<THREE.Vector3[]>([]);
   const totalPathPointsRef = useRef<number>(0);
   const path2DRef = useRef<THREE.Vector2[] | null>(null);
+  const ghostBallRef = useRef<THREE.Mesh | null>(null);
+  const ghostLineRef = useRef<THREE.Line | null>(null);
+  const raycasterRef = useRef<THREE.Raycaster | null>(null);
 
   // Animation
   const clockRef = useRef<THREE.Clock | null>(null);
@@ -113,8 +117,8 @@ export default function LandscapeWithPath() {
     directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
 
-    // Clock
     clockRef.current = new THREE.Clock();
+    raycasterRef.current = new THREE.Raycaster();
 
     // Render loop
     let rafId = 0;
@@ -202,7 +206,18 @@ export default function LandscapeWithPath() {
           (meshRef.current.material as THREE.Material).dispose();
           meshRef.current = null;
         }
-
+        if (ghostBallRef.current) {
+            scene.remove(ghostBallRef.current);
+            ghostBallRef.current.geometry.dispose();
+            (ghostBallRef.current.material as THREE.Material).dispose();
+            ghostBallRef.current = null;
+        }
+        if (ghostLineRef.current) {
+            scene.remove(ghostLineRef.current);
+            ghostLineRef.current.geometry.dispose();
+            (ghostLineRef.current.material as THREE.Material).dispose();
+            ghostLineRef.current = null;
+        }
         if (rendererRef.current) {
           rendererRef.current.dispose();
           if (rendererRef.current.domElement && rendererRef.current.domElement.parentElement) {
@@ -417,7 +432,7 @@ export default function LandscapeWithPath() {
         x_direction: xDirRef.current,
         y_direction: yDirRef.current,
         theta_0: originRef.current,
-        init_xy: [-0.5, -0.5],
+        init_xy: startPointRef.current,
         optimiser: optim,
         loss: loss,
         lock_to_plane: true
@@ -436,7 +451,7 @@ export default function LandscapeWithPath() {
       
       const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
-      const smoothPoints: THREE.Vector2[] = curve2D.getPoints(100);
+      const smoothPoints: THREE.Vector2[] = curve2D.getPoints(1000);
       path2DRef.current = smoothPoints;
 
       updatePathGeometry(mesh, true); 
@@ -522,9 +537,8 @@ export default function LandscapeWithPath() {
       const lineGeometry = new LineGeometry();
       lineGeometry.setPositions(positions);
       const lineMaterial = new LineMaterial({
-        color: 0xffff00, // Match the ball's bright yellow
-        linewidth: 3,    // Thinner (in pixels)
-        dashed: true,    // Make it a dashed line
+        color: 0xffff00,
+        linewidth: 3,
         dashSize: 0.01,
         gapSize: 0.005,
       }) as any;
@@ -588,6 +602,111 @@ export default function LandscapeWithPath() {
       }
     }, 50); // 50ms debounce
   };
+
+  const handleCanvasMouseMove = useCallback((event: MouseEvent) => {
+      if (!rendererRef.current || !cameraRef.current || !meshRef.current || !ghostBallRef.current || !ghostLineRef.current || !raycasterRef.current) {
+          return;
+      }
+
+      const canvas = rendererRef.current.domElement;
+      const rect = canvas.getBoundingClientRect();
+      const mouse = new THREE.Vector2();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycasterRef.current.setFromCamera(mouse, cameraRef.current);
+      const intersects = raycasterRef.current.intersectObject(meshRef.current);
+
+      if (intersects.length > 0) {
+          const hit = intersects[0];
+          ghostBallRef.current.visible = true;
+          ghostLineRef.current.visible = true;
+
+          // Vertical white dashed line (along world Y-axis)
+          const lineTopPosition = hit.point.clone().add(new THREE.Vector3(0, 0.2, 0)); // 0.2 world units high
+          const lineBottomPosition = hit.point;
+
+          ghostBallRef.current.position.copy(lineTopPosition);
+          (ghostLineRef.current.geometry as THREE.BufferGeometry).setFromPoints([lineBottomPosition, lineTopPosition]);
+          ghostLineRef.current.computeLineDistances();
+      } else {
+          ghostBallRef.current.visible = false;
+          ghostLineRef.current.visible = false;
+      }
+  }, []);
+
+  // Click handler for placing mode
+  const handleCanvasClick = useCallback((event: MouseEvent) => {
+      if (!rendererRef.current || !cameraRef.current || !meshRef.current || !raycasterRef.current) {
+          return;
+      }
+
+      const canvas = rendererRef.current.domElement;
+      const rect = canvas.getBoundingClientRect();
+      const mouse = new THREE.Vector2();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycasterRef.current.setFromCamera(mouse, cameraRef.current);
+      const intersects = raycasterRef.current.intersectObject(meshRef.current);
+
+      if (intersects.length > 0) {
+          const hit = intersects[0];
+          // Mapping: world (x, z) -> plane (x, -y)
+          const init_xy: [number, number] = [hit.point.x, -hit.point.z];
+          startPointRef.current = init_xy;
+          console.log("Set start point to:", init_xy);
+          
+          // Automatically load the path from this new point
+          loadAndAnimatePath(meshRef.current);
+      }
+      
+      // Always exit placing mode on click, whether it hit or not
+      setIsPlacingMode(false);
+  }, []);
+
+  // This effect manages the event listeners and ghost objects based on isPlacingMode
+  useEffect(() => {
+    const canvas = rendererRef.current?.domElement;
+    if (!canvas) return;
+
+    if (isPlacingMode) {
+      // Create ghost objects if they don't exist
+      if (!ghostBallRef.current && sceneRef.current) {
+          const ballRadius = (ballRef.current?.geometry as any)?.parameters?.radius || 0.01;
+          const ballGeom = new THREE.SphereGeometry(ballRadius, 16, 16);
+          const ballMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            toneMapped: false,
+          });
+          ghostBallRef.current = new THREE.Mesh(ballGeom, ballMaterial);
+          ghostBallRef.current.visible = false;
+          sceneRef.current.add(ghostBallRef.current);
+
+          const lineMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.01, gapSize: 0.01, transparent: true, opacity: 0.7 });
+          const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0.2, 0)]);
+          ghostLineRef.current = new THREE.Line(lineGeom, lineMat);
+          ghostLineRef.current.visible = false;
+          sceneRef.current.add(ghostLineRef.current);
+      }
+
+      canvas.addEventListener('mousemove', handleCanvasMouseMove);
+      canvas.addEventListener('click', handleCanvasClick);
+      canvas.style.cursor = 'none'; // Hide cursor, ball will follow
+    } else {
+      // Cleanup: hide objects and remove listeners
+      if (ghostBallRef.current) ghostBallRef.current.visible = false;
+      if (ghostLineRef.current) ghostLineRef.current.visible = false;
+      canvas.style.cursor = 'auto'; // Restore cursor
+    }
+
+    // Cleanup function for the effect
+    return () => {
+      canvas.removeEventListener('mousemove', handleCanvasMouseMove);
+      canvas.removeEventListener('click', handleCanvasClick);
+      canvas.style.cursor = 'auto';
+    };
+  }, [isPlacingMode, handleCanvasMouseMove, handleCanvasClick]);
 
   const handleLoadLandscapeButtonClick = () => {
     loadAndBuildLandscape();
@@ -719,9 +838,15 @@ const handleProgressChange = (newProgress: number) => {
           </Picker>
 
           <Button
+            title={isPlacingMode ? "Cancel Placing" : "Place Start Point"}
+            onPress={() => setIsPlacingMode(prev => !prev)}
+            disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
+          />
+
+          <Button
             title={isPathLoading ? "Loading..." : "Generate Path"}
             onPress={handleLoadPathButtonClick}
-            disabled={isPathLoading || !meshRef.current}
+            disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
           />
 
           <Text>Z scale:</Text>
