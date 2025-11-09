@@ -53,6 +53,9 @@ def animate_optimiser(params: MinimiserParams):
     x, y = params.init_xy
     path = []
 
+    # Add initial position
+    path.append((x, y))
+
     # save state (clone tensors so we won't share memory)
     saved = {k: v.clone() for k, v in model.state_dict().items()}
     print_progress_bar(0, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
@@ -108,6 +111,9 @@ def animate_optimiser(params: MinimiserParams):
                 index += numel
 
         optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
+
+        # Add initial position
+        path.append((x, y))
 
         for i in range(params.epochs):
             print_progress_bar(i, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)

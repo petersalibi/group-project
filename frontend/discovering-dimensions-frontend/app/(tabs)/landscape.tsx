@@ -420,6 +420,7 @@ export default function LandscapeWithPath() {
         init_xy: [-0.5, -0.5],
         optimiser: optim,
         loss: loss,
+        lock_to_plane: true
       })}`;
       const resp = await api.get(paramString);
       const pathData = await resp.data;
