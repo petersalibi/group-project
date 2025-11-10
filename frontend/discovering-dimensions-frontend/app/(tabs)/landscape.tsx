@@ -160,16 +160,18 @@ export default function LandscapeWithPath() {
             const i2 = Math.min(i1 + 1, totalSegments);
 
             if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-                // Interpolate position
-                TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-                
-                // Interpolate normal and re-normalize it
-                TEMP_BALL_NORM.copy(norms[i1]).lerp(norms[i2], segmentProgress).normalize();
+              // Interpolate position
+              TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
 
-                // Apply offset from the surface
-                const radius = (ball.geometry as any).parameters?.radius ?? 0;
-                TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-                ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
+              // Interpolate normal and re-normalize it
+              TEMP_BALL_NORM.copy(norms[i1])
+                .lerp(norms[i2], segmentProgress)
+                .normalize();
+
+              // Apply offset from the surface
+              const radius = (ball.geometry as any).parameters?.radius ?? 0;
+              TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
+              ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
             }
           }
         }
@@ -529,7 +531,7 @@ export default function LandscapeWithPath() {
     const smoothPoints = path2DRef.current;
 
     if (!scene || !mesh || !smoothPoints || smoothPoints.length < 2) {
-        return;
+      return;
     }
 
     NORMAL_MATRIX.getNormalMatrix(mesh.matrixWorld);
@@ -541,35 +543,36 @@ export default function LandscapeWithPath() {
     const positions: number[] = [];
 
     for (const p of smoothPoints) {
-        RAY_ORIGIN.set(p.x, 1000, -p.y);
-        RAYCASTER.set(RAY_ORIGIN, RAY_DIRECTION);
-        const hit = RAYCASTER.intersectObject(mesh)[0];
-        
-        if (hit) {
-            // Get world normal
-            TEMP_WORLD_NORMAL.copy(hit.face!.normal)
-                .applyMatrix3(NORMAL_MATRIX)
-                .normalize();
+      RAY_ORIGIN.set(p.x, 1000, -p.y);
+      RAYCASTER.set(RAY_ORIGIN, RAY_DIRECTION);
+      const hit = RAYCASTER.intersectObject(mesh)[0];
 
-            // Get lift offset
-            TEMP_LIFT_OFFSET.copy(TEMP_WORLD_NORMAL)
-                .multiplyScalar(lineLiftAmount);
+      if (hit) {
+        // Get world normal
+        TEMP_WORLD_NORMAL.copy(hit.face!.normal)
+          .applyMatrix3(NORMAL_MATRIX)
+          .normalize();
 
-            // Create the final point
-            const liftedPoint = hit.point.clone().add(TEMP_LIFT_OFFSET);
+        // Get lift offset
+        TEMP_LIFT_OFFSET.copy(TEMP_WORLD_NORMAL).multiplyScalar(lineLiftAmount);
 
-            if (newPathPoints.length > 0) {
-              totalLength += liftedPoint.distanceTo(newPathPoints[newPathPoints.length - 1]);
-            }
+        // Create the final point
+        const liftedPoint = hit.point.clone().add(TEMP_LIFT_OFFSET);
 
-            newPathPoints.push(liftedPoint);
-            newPathNormals.push(TEMP_WORLD_NORMAL.clone());
-            positions.push(liftedPoint.x, liftedPoint.y, liftedPoint.z);
+        if (newPathPoints.length > 0) {
+          totalLength += liftedPoint.distanceTo(
+            newPathPoints[newPathPoints.length - 1],
+          );
         }
+
+        newPathPoints.push(liftedPoint);
+        newPathNormals.push(TEMP_WORLD_NORMAL.clone());
+        positions.push(liftedPoint.x, liftedPoint.y, liftedPoint.z);
+      }
     }
 
     if (newPathPoints.length < 2) {
-        return; // Not enough points
+      return; // Not enough points
     }
 
     pathPointsRef.current = newPathPoints;
@@ -578,52 +581,56 @@ export default function LandscapeWithPath() {
     pathLengthRef.current = totalLength;
 
     if (createBall) {
-        // Remove old ball
-        if (ballRef.current) {
-            scene.remove(ballRef.current);
-            ballRef.current.geometry.dispose();
-            (ballRef.current.material as THREE.Material).dispose();
-        }
-        
-        // Create new ball
-        mesh.geometry.computeBoundingBox();
-        mesh.geometry.boundingBox!.getSize(TEMP_BBOX_SIZE);
-        const geoWidth = TEMP_BBOX_SIZE.x || 1;
-        const geoHeight = TEMP_BBOX_SIZE.z || 1;
-        const ballRadius = Math.hypot(geoWidth, geoHeight) * 0.005;
-        const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
-        const ballMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff0000,
-            emissive: 0xff0000,
-            emissiveIntensity: 2,
-            toneMapped: false,
-        });
-        const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-        ball.castShadow = true;
+      // Remove old ball
+      if (ballRef.current) {
+        scene.remove(ballRef.current);
+        ballRef.current.geometry.dispose();
+        (ballRef.current.material as THREE.Material).dispose();
+      }
 
-        TEMP_BALL_OFFSET.copy(pathNormalsRef.current[0])
-            .multiplyScalar(ballRadius);
-        ball.position.copy(pathPointsRef.current[0]).add(TEMP_BALL_OFFSET);
-        
-        scene.add(ball);
-        ballRef.current = ball;
+      // Create new ball
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.boundingBox!.getSize(TEMP_BBOX_SIZE);
+      const geoWidth = TEMP_BBOX_SIZE.x || 1;
+      const geoHeight = TEMP_BBOX_SIZE.z || 1;
+      const ballRadius = Math.hypot(geoWidth, geoHeight) * 0.005;
+      const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
+      const ballMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 2,
+        toneMapped: false,
+      });
+      const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+      ball.castShadow = true;
+
+      TEMP_BALL_OFFSET.copy(pathNormalsRef.current[0]).multiplyScalar(
+        ballRadius,
+      );
+      ball.position.copy(pathPointsRef.current[0]).add(TEMP_BALL_OFFSET);
+
+      scene.add(ball);
+      ballRef.current = ball;
     }
 
     // Update or create path line
     if (pathLineRef.current) {
-        (pathLineRef.current.geometry as LineGeometry).setPositions(positions);
+      (pathLineRef.current.geometry as LineGeometry).setPositions(positions);
     } else {
-        const lineGeometry = new LineGeometry();
-        lineGeometry.setPositions(positions);
-        const lineMaterial = new LineMaterial({
-            color: 0xffff00,
-            linewidth: 3,
-        }) as any;
-        lineMaterial.resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
-        const line2 = new Line2(lineGeometry as any, lineMaterial);
-        (line2.geometry as any).instanceCount = 0;
-        scene.add(line2);
-        pathLineRef.current = line2;
+      const lineGeometry = new LineGeometry();
+      lineGeometry.setPositions(positions);
+      const lineMaterial = new LineMaterial({
+        color: 0xffff00,
+        linewidth: 3,
+      }) as any;
+      lineMaterial.resolution = new THREE.Vector2(
+        window.innerWidth,
+        window.innerHeight,
+      );
+      const line2 = new Line2(lineGeometry as any, lineMaterial);
+      (line2.geometry as any).instanceCount = 0;
+      scene.add(line2);
+      pathLineRef.current = line2;
     }
   }
 
@@ -743,18 +750,18 @@ export default function LandscapeWithPath() {
     raycasterRef.current.setFromCamera(mouse, cameraRef.current);
     const intersects = raycasterRef.current.intersectObject(meshRef.current);
 
-      if (intersects.length > 0) {
-          const hit = intersects[0];
-          // Mapping: world (x, z) -> plane (x, -y)
-          const init_xy: [number, number] = [hit.point.x, -hit.point.z];
-          startPointRef.current = init_xy;
-          
-          // Automatically load the path from this new point
-          loadAndAnimatePath(meshRef.current);
-      }
-      
-      // Always exit placing mode on click, whether it hit or not
-      setIsPlacingMode(false);
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      // Mapping: world (x, z) -> plane (x, -y)
+      const init_xy: [number, number] = [hit.point.x, -hit.point.z];
+      startPointRef.current = init_xy;
+
+      // Automatically load the path from this new point
+      loadAndAnimatePath(meshRef.current);
+    }
+
+    // Always exit placing mode on click, whether it hit or not
+    setIsPlacingMode(false);
   }, []);
 
   // This effect manages the event listeners and ghost objects based on isPlacingMode
@@ -834,12 +841,12 @@ export default function LandscapeWithPath() {
   const handleProgressChange = (newProgress: number) => {
     if (!clockRef.current) return;
 
-  setAnimationProgress(newProgress);
-  const animationDuration = pathLengthRef.current / animationSpeed;
-  const newElapsedTimeInSeconds = newProgress * animationDuration;
-  clockRef.current.elapsedTime = newElapsedTimeInSeconds;
-  clockRef.current.oldTime = performance.now();
-};
+    setAnimationProgress(newProgress);
+    const animationDuration = pathLengthRef.current / animationSpeed;
+    const newElapsedTimeInSeconds = newProgress * animationDuration;
+    clockRef.current.elapsedTime = newElapsedTimeInSeconds;
+    clockRef.current.oldTime = performance.now();
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, position: 'relative' }}>
