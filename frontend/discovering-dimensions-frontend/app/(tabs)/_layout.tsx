@@ -1,49 +1,161 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Link, Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/components/theme-provider';
+import { Platform, Image, Pressable, View } from 'react-native';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { theme, toggleTheme } = useTheme();
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}
-    >
-      <Tabs.Screen
-        name='index'
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name='house.fill' color={color} />
-          ),
+  // Default to a top nav bar on web
+  if (Platform.OS === 'web') {
+    return (
+      <>
+        <ThemedView
+          style={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 20,
+            width: '100%',
+            flexDirection: 'row',
+            borderBottomWidth: 1,
+            gap: 16,
+            maxHeight: 56,
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+          }}
+        >
+          {/* Logo and app name */}
+          <Link href='/' style={{ textDecorationLine: 'none' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              <Image
+                style={{
+                  width: 30,
+                  height: 30,
+                  marginRight: 8,
+                  // Web: apply SVG-friendly drop shadow
+                  // prettier-ignore
+                  filter: 'brightness(130%)',
+                }}
+                source={require('@/assets/images/logo.svg')}
+                resizeMode='contain'
+              />
+              <ThemedText
+                style={{
+                  fontSize: 20,
+                  fontWeight: '700',
+                }}
+              >
+                Discovering Dimensions
+              </ThemedText>
+            </View>
+          </Link>
+          {/* Navigation links */}
+          <header style={{ display: 'flex', gap: 20 }}>
+            <Link href='/landscape'>
+              <ThemedText>Loss landscape</ThemedText>
+            </Link>
+            <Link href='/neural-flow'>
+              <ThemedText>Neural flow</ThemedText>
+            </Link>
+            <Link href='/how-to'>
+              <ThemedText>How-to</ThemedText>
+            </Link>
+            <Link href='/about'>
+              <ThemedText>About</ThemedText>
+            </Link>
+          </header>
+          {/* Theme toggle button */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Pressable onPress={toggleTheme}>
+              <IconSymbol
+                name={theme === 'light' ? 'moon.fill' : 'sun.max.fill'}
+                size={24}
+                color={Colors[theme].text}
+              />
+            </Pressable>
+            {/* Settings button */}
+            <Link href='/settings'>
+              <IconSymbol
+                name='gearshape.fill'
+                size={24}
+                color={Colors[theme].text}
+              />
+            </Link>
+          </View>
+        </ThemedView>
+
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: Colors[theme].tint,
+            headerShown: false,
+            // hide the native tab bar on web since we have a top nav
+            tabBarStyle: { display: 'none' },
+          }}
+        >
+          <Tabs.Screen name='index' options={{ title: 'Home' }} />
+          <Tabs.Screen name='landscape' options={{ title: 'Loss landscape' }} />
+          <Tabs.Screen name='neural-flow' options={{ title: 'Neural flow' }} />
+          <Tabs.Screen name='about' options={{ title: 'About' }} />
+        </Tabs>
+      </>
+    );
+  } else {
+    return (
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[theme].tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
         }}
-      />
-      <Tabs.Screen
-        name='landscape'
-        options={{
-          title: 'Landscape',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name='mountain.2.fill' color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='about'
-        options={{
-          title: 'About',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name='info.circle.fill' color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
+      >
+        <Tabs.Screen
+          name='index'
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name='house.fill' color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='landscape'
+          options={{
+            title: 'Landscape',
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name='mountain.2.fill' color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='about'
+          options={{
+            title: 'About',
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name='info.circle.fill' color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='settings'
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name='gearshape.fill' color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    );
+  }
 }
