@@ -45,13 +45,14 @@ export default function LandscapeWithPath() {
   const pathNormalsRef = useRef<THREE.Vector3[]>([]);
   const totalPathPointsRef = useRef<number>(0);
   const path2DRef = useRef<THREE.Vector2[] | null>(null);
+  const pathLengthRef = React.useRef(0);
   const ghostBallRef = useRef<THREE.Mesh | null>(null);
   const ghostLineRef = useRef<THREE.Line | null>(null);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
 
   // Animation
   const clockRef = useRef<THREE.Clock | null>(null);
-  const animationDuration = 10; // seconds
+  const animationSpeed = 0.2; // 0.2 3D units per second
 
   const containerId = 'container';
 
@@ -120,6 +121,10 @@ export default function LandscapeWithPath() {
     clockRef.current = new THREE.Clock();
     raycasterRef.current = new THREE.Raycaster();
 
+    const TEMP_BALL_POS = new THREE.Vector3();
+    const TEMP_BALL_NORM = new THREE.Vector3();
+    const TEMP_BALL_OFFSET = new THREE.Vector3();
+
     // Render loop
     let rafId = 0;
     const animate = () => {
@@ -130,8 +135,10 @@ export default function LandscapeWithPath() {
         const pathLine = pathLineRef.current;
         const clock = clockRef.current;
         const totalPathPoints = totalPathPointsRef.current;
+        const totalPathLength = pathLengthRef.current;
 
         if (pathLine && totalPathPoints > 0 && clock) {
+          const animationDuration = totalPathLength / animationSpeed;
           const progress = (clock.getElapsedTime() / animationDuration) % 1;
           setAnimationProgress(progress);
           const drawCount = Math.floor(progress * totalPathPoints);
@@ -142,11 +149,27 @@ export default function LandscapeWithPath() {
           const pts = pathPointsRef.current;
           const norms = pathNormalsRef.current;
           if (ball && pts.length > 0) {
-            const idx = Math.min(Math.floor(progress * pts.length), pts.length - 1);
-            const pos = pts[idx];
-            const normal = norms[idx];
-            const radius = (ball.geometry as any).parameters?.radius ?? 0;
-            ball.position.copy(pos).add(normal.clone().multiplyScalar(radius));
+            const totalSegments = pts.length - 1;
+            const currentSegmentFloat = progress * totalSegments;
+            const segmentIndex = Math.floor(currentSegmentFloat);
+            const segmentProgress = currentSegmentFloat - segmentIndex;
+
+            // Get the two points and normals we are between
+            const i1 = Math.min(segmentIndex, totalSegments);
+            const i2 = Math.min(i1 + 1, totalSegments);
+
+            if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
+                // Interpolate position
+                TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
+                
+                // Interpolate normal and re-normalize it
+                TEMP_BALL_NORM.copy(norms[i1]).lerp(norms[i2], segmentProgress).normalize();
+
+                // Apply offset from the surface
+                const radius = (ball.geometry as any).parameters?.radius ?? 0;
+                TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
+                ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
+            }
           }
         }
       } catch (err) {
@@ -464,89 +487,116 @@ export default function LandscapeWithPath() {
     }
   }
 
+  const RAYCASTER = new THREE.Raycaster();
+  const RAY_ORIGIN = new THREE.Vector3();
+  const RAY_DIRECTION = new THREE.Vector3(0, -1, 0);
+  const NORMAL_MATRIX = new THREE.Matrix3();
+  const TEMP_WORLD_NORMAL = new THREE.Vector3();
+  const TEMP_LIFT_OFFSET = new THREE.Vector3();
+  const TEMP_BALL_OFFSET = new THREE.Vector3();
+  const TEMP_BBOX_SIZE = new THREE.Vector3();
+
   // Updates the 3D path geometry based on the cached 2D path and a given mesh
   function updatePathGeometry(mesh: THREE.Mesh, createBall: boolean = false) {
     const scene = sceneRef.current;
     const smoothPoints = path2DRef.current;
 
     if (!scene || !mesh || !smoothPoints || smoothPoints.length < 2) {
-      return;
+        return;
     }
 
-    // Raycast from above onto the mesh to get 3D points & normals
-    const raycaster = new THREE.Raycaster();
-    const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+    NORMAL_MATRIX.getNormalMatrix(mesh.matrixWorld);
     const lineLiftAmount = 0.002;
 
-    // Clear old 3D points
-    pathPointsRef.current = [];
-    pathNormalsRef.current = [];
+    let totalLength = 0;
+    const newPathPoints: THREE.Vector3[] = [];
+    const newPathNormals: THREE.Vector3[] = [];
+    const positions: number[] = [];
 
     for (const p of smoothPoints) {
-      const rayOrigin = new THREE.Vector3(p.x, 1000, -p.y);
-      raycaster.set(rayOrigin, new THREE.Vector3(0, -1, 0));
-      const hit = raycaster.intersectObject(mesh)[0];
-      if (hit) {
-        const worldNormal = hit.face!.normal.clone().applyMatrix3(normalMatrix).normalize();
-        const lifted = hit.point.clone().add(worldNormal.clone().multiplyScalar(lineLiftAmount));
-        pathPointsRef.current.push(lifted);
-        pathNormalsRef.current.push(worldNormal);
-      }
+        RAY_ORIGIN.set(p.x, 1000, -p.y);
+        RAYCASTER.set(RAY_ORIGIN, RAY_DIRECTION);
+        const hit = RAYCASTER.intersectObject(mesh)[0];
+        
+        if (hit) {
+            // Get world normal
+            TEMP_WORLD_NORMAL.copy(hit.face!.normal)
+                .applyMatrix3(NORMAL_MATRIX)
+                .normalize();
+
+            // Get lift offset
+            TEMP_LIFT_OFFSET.copy(TEMP_WORLD_NORMAL)
+                .multiplyScalar(lineLiftAmount);
+
+            // Create the final point
+            const liftedPoint = hit.point.clone().add(TEMP_LIFT_OFFSET);
+
+            if (newPathPoints.length > 0) {
+              totalLength += liftedPoint.distanceTo(newPathPoints[newPathPoints.length - 1]);
+            }
+
+            newPathPoints.push(liftedPoint);
+            newPathNormals.push(TEMP_WORLD_NORMAL.clone());
+            positions.push(liftedPoint.x, liftedPoint.y, liftedPoint.z);
+        }
     }
 
-    if (pathPointsRef.current.length < 2) {
-      return;
+    if (newPathPoints.length < 2) {
+        return; // Not enough points
     }
 
-    totalPathPointsRef.current = Math.max(0, pathPointsRef.current.length - 1);
-    const positions: number[] = [];
-    for (const p of pathPointsRef.current) {
-      positions.push(p.x, p.y, p.z);
-    }
+    pathPointsRef.current = newPathPoints;
+    pathNormalsRef.current = newPathNormals;
+    totalPathPointsRef.current = Math.max(0, newPathPoints.length - 1);
+    pathLengthRef.current = totalLength;
 
     if (createBall) {
-      // --- Create Ball (only on first load) ---
-      if (ballRef.current) {
-         scene.remove(ballRef.current);
-         ballRef.current.geometry.dispose();
-         (ballRef.current.material as THREE.Material).dispose();
-      }
-      const geomParams = (mesh.geometry as any).parameters ?? { width: 1, height: 1 };
-      const geoWidth = geomParams.width || 1;
-      const geoHeight = geomParams.height || 1;
-      const ballRadius = Math.sqrt(geoWidth ** 2 + geoHeight ** 2) * 0.005;
-      const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
-      const ballMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff0000,
-        emissive: 0xff0000,
-        emissiveIntensity: 2,
-        toneMapped: false,
-      });
-      const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-      ball.castShadow = true;
-      ball.position.copy(pathPointsRef.current[0]).add(pathNormalsRef.current[0].clone().multiplyScalar(ballRadius));
-      scene.add(ball);
-      ballRef.current = ball;
+        // Remove old ball
+        if (ballRef.current) {
+            scene.remove(ballRef.current);
+            ballRef.current.geometry.dispose();
+            (ballRef.current.material as THREE.Material).dispose();
+        }
+        
+        // Create new ball
+        mesh.geometry.computeBoundingBox();
+        mesh.geometry.boundingBox!.getSize(TEMP_BBOX_SIZE);
+        const geoWidth = TEMP_BBOX_SIZE.x || 1;
+        const geoHeight = TEMP_BBOX_SIZE.z || 1;
+        const ballRadius = Math.hypot(geoWidth, geoHeight) * 0.005;
+        const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
+        const ballMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 2,
+            toneMapped: false,
+        });
+        const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+        ball.castShadow = true;
+
+        TEMP_BALL_OFFSET.copy(pathNormalsRef.current[0])
+            .multiplyScalar(ballRadius);
+        ball.position.copy(pathPointsRef.current[0]).add(TEMP_BALL_OFFSET);
+        
+        scene.add(ball);
+        ballRef.current = ball;
     }
 
-    // --- Create or Update Line ---
+    // Update or create path line
     if (pathLineRef.current) {
-      // Path line already exists, just update its geometry
-      (pathLineRef.current.geometry as LineGeometry).setPositions(positions);
+        (pathLineRef.current.geometry as LineGeometry).setPositions(positions);
     } else {
-      // Create new Line2 path
-      const lineGeometry = new LineGeometry();
-      lineGeometry.setPositions(positions);
-      const lineMaterial = new LineMaterial({
-        color: 0xffff00,
-        linewidth: 3,
-      }) as any;
-      lineMaterial.resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
-      const line2 = new Line2(lineGeometry as any, lineMaterial);
-      // Initialise with zero drawn segments
-      (line2.geometry as any).instanceCount = 0;
-      scene.add(line2);
-      pathLineRef.current = line2;
+        const lineGeometry = new LineGeometry();
+        lineGeometry.setPositions(positions);
+        const lineMaterial = new LineMaterial({
+            color: 0xffff00,
+            linewidth: 3,
+        }) as any;
+        lineMaterial.resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+        const line2 = new Line2(lineGeometry as any, lineMaterial);
+        (line2.geometry as any).instanceCount = 0;
+        scene.add(line2);
+        pathLineRef.current = line2;
     }
   }
 
@@ -654,7 +704,6 @@ export default function LandscapeWithPath() {
           // Mapping: world (x, z) -> plane (x, -y)
           const init_xy: [number, number] = [hit.point.x, -hit.point.z];
           startPointRef.current = init_xy;
-          console.log("Set start point to:", init_xy);
           
           // Automatically load the path from this new point
           loadAndAnimatePath(meshRef.current);
@@ -732,6 +781,7 @@ const handleProgressChange = (newProgress: number) => {
   if (!clockRef.current) return;
 
   setAnimationProgress(newProgress);
+  const animationDuration = pathLengthRef.current / animationSpeed;
   const newElapsedTimeInSeconds = newProgress * animationDuration;
   clockRef.current.elapsedTime = newElapsedTimeInSeconds;
   clockRef.current.oldTime = performance.now();
