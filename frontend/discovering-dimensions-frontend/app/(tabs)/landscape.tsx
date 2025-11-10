@@ -941,6 +941,12 @@ export default function LandscapeWithPath() {
             </Picker>
           </View>
 
+          <Button
+              title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
+              onPress={handleLoadLandscapeButtonClick}
+              disabled={isLandscapeLoading}
+            />
+
           <View style={styles.param}>
             <Text>Select optimiser:</Text>
             <Picker
@@ -1001,13 +1007,6 @@ export default function LandscapeWithPath() {
             gap: 10,
           }}
         >
-          <View style={{ width: 200, marginRight: 10 }}>
-            <Button
-              title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
-              onPress={handleLoadLandscapeButtonClick}
-              disabled={isLandscapeLoading}
-            />
-          </View>
           <View
             style={{
               width: 250,
