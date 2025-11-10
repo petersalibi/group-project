@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
-import { Platform, Text, View, Button } from 'react-native';
+import { Platform, StyleSheet, Text, View, Button } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import Slider from '@react-native-community/slider';
@@ -13,15 +13,16 @@ import api from '@/src/api';
 
 export default function LandscapeWithPath() {
   // UI state
-  const [activation, setActivation] = useState<string>("ReLU");
+  const [activation, setActivation] = useState<string>('ReLU');
   const [depth, setDepth] = useState<number>(2);
   const [width, setWidth] = useState<number>(10);
-  const [method, setMethod] = useState<string>("RANDOMDIRS");
-  const [data, setData] = useState<string>("SINREGRESSION");
-  const [optim, setOptim] = useState<string>("Adam");
-  const [loss, setLoss] = useState<string>("MSELoss");
+  const [method, setMethod] = useState<string>('RANDOMDIRS');
+  const [data, setData] = useState<string>('SINREGRESSION');
+  const [optim, setOptim] = useState<string>('Adam');
+  const [loss, setLoss] = useState<string>('MSELoss');
   const [zValue, setZValue] = useState<number>(1);
   const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
+  const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
   const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
   const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -105,13 +106,13 @@ export default function LandscapeWithPath() {
     // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.3));
     const hemiLight = new THREE.HemisphereLight(
-        0x4488ff, // Sky color
-        0x000000, // Ground color
-        0.5       // Intensity
+      0x4488ff, // Sky color
+      0x000000, // Ground color
+      0.5, // Intensity
     );
     scene.add(hemiLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    directionalLight.position.set(2, 5, 3); 
+    directionalLight.position.set(2, 5, 3);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 1024;
     directionalLight.shadow.mapSize.height = 1024;
@@ -142,7 +143,10 @@ export default function LandscapeWithPath() {
           const pts = pathPointsRef.current;
           const norms = pathNormalsRef.current;
           if (ball && pts.length > 0) {
-            const idx = Math.min(Math.floor(progress * pts.length), pts.length - 1);
+            const idx = Math.min(
+              Math.floor(progress * pts.length),
+              pts.length - 1,
+            );
             const pos = pts[idx];
             const normal = norms[idx];
             const radius = (ball.geometry as any).parameters?.radius ?? 0;
@@ -171,7 +175,11 @@ export default function LandscapeWithPath() {
         const mat = line.material as any;
         if (mat && mat.resolution && typeof mat.resolution.set === 'function') {
           mat.resolution.set(window.innerWidth, window.innerHeight);
-        } else if (mat && mat.resolution && mat.resolution instanceof THREE.Vector2) {
+        } else if (
+          mat &&
+          mat.resolution &&
+          mat.resolution instanceof THREE.Vector2
+        ) {
           mat.resolution.set(window.innerWidth, window.innerHeight);
         }
       }
@@ -187,8 +195,8 @@ export default function LandscapeWithPath() {
       try {
         if (pathLineRef.current) {
           scene.remove(pathLineRef.current);
-          const geo = (pathLineRef.current.geometry as any);
-          const mat = (pathLineRef.current.material as any);
+          const geo = pathLineRef.current.geometry as any;
+          const mat = pathLineRef.current.material as any;
           if (geo) geo.dispose?.();
           if (mat) mat.dispose?.();
           pathLineRef.current = null;
@@ -207,21 +215,26 @@ export default function LandscapeWithPath() {
           meshRef.current = null;
         }
         if (ghostBallRef.current) {
-            scene.remove(ghostBallRef.current);
-            ghostBallRef.current.geometry.dispose();
-            (ghostBallRef.current.material as THREE.Material).dispose();
-            ghostBallRef.current = null;
+          scene.remove(ghostBallRef.current);
+          ghostBallRef.current.geometry.dispose();
+          (ghostBallRef.current.material as THREE.Material).dispose();
+          ghostBallRef.current = null;
         }
         if (ghostLineRef.current) {
-            scene.remove(ghostLineRef.current);
-            ghostLineRef.current.geometry.dispose();
-            (ghostLineRef.current.material as THREE.Material).dispose();
-            ghostLineRef.current = null;
+          scene.remove(ghostLineRef.current);
+          ghostLineRef.current.geometry.dispose();
+          (ghostLineRef.current.material as THREE.Material).dispose();
+          ghostLineRef.current = null;
         }
         if (rendererRef.current) {
           rendererRef.current.dispose();
-          if (rendererRef.current.domElement && rendererRef.current.domElement.parentElement) {
-            rendererRef.current.domElement.parentElement.removeChild(rendererRef.current.domElement);
+          if (
+            rendererRef.current.domElement &&
+            rendererRef.current.domElement.parentElement
+          ) {
+            rendererRef.current.domElement.parentElement.removeChild(
+              rendererRef.current.domElement,
+            );
           }
           rendererRef.current = null;
         }
@@ -233,7 +246,7 @@ export default function LandscapeWithPath() {
 
   async function loadAndBuildLandscape() {
     if (!sceneRef.current) {
-      console.error("Scene is not ready.");
+      console.error('Scene is not ready.');
       return;
     }
     const scene = sceneRef.current;
@@ -241,11 +254,11 @@ export default function LandscapeWithPath() {
     setIsLandscapeLoading(true);
 
     try {
-      const paramString = `/generatelandscape/${JSON.stringify({ 
+      const paramString = `/generatelandscape/${JSON.stringify({
         network: { activation: activation, depth: depth, width: width },
         method: method,
         data: data,
-        loss: loss
+        loss: loss,
       })}`;
       const resp = await api.get(paramString);
       const dict = resp.data;
@@ -259,7 +272,7 @@ export default function LandscapeWithPath() {
         !Array.isArray(dict.x_axis) ||
         !Array.isArray(dict.y_axis)
       ) {
-        console.error("Invalid data received from API");
+        console.error('Invalid data received from API');
         setIsLandscapeLoading(false);
         return;
       }
@@ -276,7 +289,7 @@ export default function LandscapeWithPath() {
       const ny = ys.length;
 
       if (nx === 0 || ny === 0 || zGrid.length === 0) {
-        console.error("Empty data received from API");
+        console.error('Empty data received from API');
         setIsLandscapeLoading(false);
         return;
       }
@@ -291,7 +304,10 @@ export default function LandscapeWithPath() {
       if (meshRef.current) {
         scene.remove(meshRef.current);
         if (meshRef.current.children[0]) {
-            ((meshRef.current.children[0] as THREE.Mesh).material as THREE.Material).dispose();
+          (
+            (meshRef.current.children[0] as THREE.Mesh)
+              .material as THREE.Material
+          ).dispose();
         }
         meshRef.current.geometry.dispose();
         (meshRef.current.material as THREE.Material).dispose();
@@ -299,8 +315,8 @@ export default function LandscapeWithPath() {
       }
       if (pathLineRef.current) {
         scene.remove(pathLineRef.current);
-        const geo = (pathLineRef.current.geometry as any);
-        const mat = (pathLineRef.current.material as any);
+        const geo = pathLineRef.current.geometry as any;
+        const mat = pathLineRef.current.material as any;
         if (geo) geo.dispose?.();
         if (mat) mat.dispose?.();
         pathLineRef.current = null;
@@ -315,7 +331,12 @@ export default function LandscapeWithPath() {
       }
 
       // Create landscape geometry and colors
-      const geometry = new THREE.PlaneGeometry(geoWidth, geoHeight, widthSegments, heightSegments);
+      const geometry = new THREE.PlaneGeometry(
+        geoWidth,
+        geoHeight,
+        widthSegments,
+        heightSegments,
+      );
       const positions = geometry.attributes.position;
       const vertexCount = positions.count;
 
@@ -331,7 +352,11 @@ export default function LandscapeWithPath() {
         for (let i = 0; i <= widthSegments; i++) {
           const zVal = zGrid[i][j];
           positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
-          const color = new THREE.Color().setHSL((1 - (zVal - minZ) / range) * 0.7, 0.8, 0.5);
+          const color = new THREE.Color().setHSL(
+            (1 - (zVal - minZ) / range) * 0.7,
+            0.8,
+            0.5,
+          );
           colors[v * 3] = color.r;
           colors[v * 3 + 1] = color.g;
           colors[v * 3 + 2] = color.b;
@@ -362,7 +387,7 @@ export default function LandscapeWithPath() {
       });
       const wireframeMesh = new THREE.Mesh(geometry, wireframeMaterial);
       // Slightly lift the wireframe to prevent z-fighting
-      wireframeMesh.position.y = 0.001; 
+      wireframeMesh.position.y = 0.001;
       mesh.add(wireframeMesh);
 
       // Set z-scale
@@ -379,6 +404,7 @@ export default function LandscapeWithPath() {
       }
 
       setIsLandscapeLoading(false);
+      setIsLandscapeLoaded(true); // Enable Z-value slider
     } catch (err) {
       console.error('Failed to load landscape:', err);
       setIsLandscapeLoading(false);
@@ -387,6 +413,7 @@ export default function LandscapeWithPath() {
 
   // --- Load path and animate ---
   async function loadAndAnimatePath(mesh: THREE.Mesh | null) {
+    setIsLandscapeLoaded(false);
     const scene = sceneRef.current;
     if (!scene) return;
 
@@ -399,8 +426,8 @@ export default function LandscapeWithPath() {
     try {
       if (pathLineRef.current) {
         scene.remove(pathLineRef.current);
-        const geo = (pathLineRef.current.geometry as any);
-        const mat = (pathLineRef.current.material as any);
+        const geo = pathLineRef.current.geometry as any;
+        const mat = pathLineRef.current.material as any;
         if (geo) geo.dispose?.();
         if (mat) mat.dispose?.();
         pathLineRef.current = null;
@@ -426,7 +453,7 @@ export default function LandscapeWithPath() {
     setIsPathLoading(true);
 
     try {
-      const paramString = `/animateminimiser/${JSON.stringify({ 
+      const paramString = `/animateminimiser/${JSON.stringify({
         network: { activation: activation, depth: depth, width: width },
         data: data,
         x_direction: xDirRef.current,
@@ -435,32 +462,35 @@ export default function LandscapeWithPath() {
         init_xy: startPointRef.current,
         optimiser: optim,
         loss: loss,
-        lock_to_plane: true
+        lock_to_plane: true,
       })}`;
       const resp = await api.get(paramString);
       const pathData = await resp.data;
       const path = pathData.path;
-      const arr = Array.isArray(path) ? path : path.data ?? path;
+      const arr = Array.isArray(path) ? path : (path.data ?? path);
 
       if (!Array.isArray(arr) || arr.length < 2) {
         console.error('Invalid path data');
         setIsPathLoading(false);
         return;
       }
-      
-      const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]));
+
+      const twoDPoints = arr.map(
+        (p: number[]) => new THREE.Vector2(p[0], p[1]),
+      );
       const curve2D = new THREE.SplineCurve(twoDPoints);
       const smoothPoints: THREE.Vector2[] = curve2D.getPoints(1000);
       path2DRef.current = smoothPoints;
 
-      updatePathGeometry(mesh, true); 
+      updatePathGeometry(mesh, true);
       setIsPathLoaded(true);
       setIsPathLoading(false);
-
+      setIsLandscapeLoaded(true);
     } catch (err) {
       console.error('Failed to load or process path.json:', err);
       setIsPathLoaded(false);
       setIsPathLoading(false);
+      setIsLandscapeLoaded(true);
     }
   }
 
@@ -487,8 +517,13 @@ export default function LandscapeWithPath() {
       raycaster.set(rayOrigin, new THREE.Vector3(0, -1, 0));
       const hit = raycaster.intersectObject(mesh)[0];
       if (hit) {
-        const worldNormal = hit.face!.normal.clone().applyMatrix3(normalMatrix).normalize();
-        const lifted = hit.point.clone().add(worldNormal.clone().multiplyScalar(lineLiftAmount));
+        const worldNormal = hit
+          .face!.normal.clone()
+          .applyMatrix3(normalMatrix)
+          .normalize();
+        const lifted = hit.point
+          .clone()
+          .add(worldNormal.clone().multiplyScalar(lineLiftAmount));
         pathPointsRef.current.push(lifted);
         pathNormalsRef.current.push(worldNormal);
       }
@@ -507,11 +542,14 @@ export default function LandscapeWithPath() {
     if (createBall) {
       // --- Create Ball (only on first load) ---
       if (ballRef.current) {
-         scene.remove(ballRef.current);
-         ballRef.current.geometry.dispose();
-         (ballRef.current.material as THREE.Material).dispose();
+        scene.remove(ballRef.current);
+        ballRef.current.geometry.dispose();
+        (ballRef.current.material as THREE.Material).dispose();
       }
-      const geomParams = (mesh.geometry as any).parameters ?? { width: 1, height: 1 };
+      const geomParams = (mesh.geometry as any).parameters ?? {
+        width: 1,
+        height: 1,
+      };
       const geoWidth = geomParams.width || 1;
       const geoHeight = geomParams.height || 1;
       const ballRadius = Math.sqrt(geoWidth ** 2 + geoHeight ** 2) * 0.005;
@@ -524,7 +562,9 @@ export default function LandscapeWithPath() {
       });
       const ball = new THREE.Mesh(ballGeometry, ballMaterial);
       ball.castShadow = true;
-      ball.position.copy(pathPointsRef.current[0]).add(pathNormalsRef.current[0].clone().multiplyScalar(ballRadius));
+      ball.position
+        .copy(pathPointsRef.current[0])
+        .add(pathNormalsRef.current[0].clone().multiplyScalar(ballRadius));
       scene.add(ball);
       ballRef.current = ball;
     }
@@ -541,7 +581,10 @@ export default function LandscapeWithPath() {
         color: 0xffff00,
         linewidth: 3,
       }) as any;
-      lineMaterial.resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+      lineMaterial.resolution = new THREE.Vector2(
+        window.innerWidth,
+        window.innerHeight,
+      );
       const line2 = new Line2(lineGeometry as any, lineMaterial);
       // Initialise with zero drawn segments
       (line2.geometry as any).instanceCount = 0;
@@ -554,36 +597,36 @@ export default function LandscapeWithPath() {
   const depths = [
     { id: 1, label: '2 Layers', value: 2 },
     { id: 2, label: '3 Layers', value: 3 },
-    { id: 3, label: '4 Layers', value: 4 }
+    { id: 3, label: '4 Layers', value: 4 },
   ];
   const widths = [
     { id: 1, label: '5 Nodes', value: 5 },
     { id: 2, label: '10 Nodes', value: 10 },
-    { id: 3, label: '15 Nodes', value: 15 }
+    { id: 3, label: '15 Nodes', value: 15 },
   ];
   const activations = [
-    { id: 1, label: 'ReLU', value: "ReLU" },
-    { id: 2, label: 'Tanh', value: "Tanh" },
-    { id: 3, label: 'Sigmoid', value: "Sigmoid" },
-    { id: 4, label: 'LeakyReLU', value: "LeakyReLU" }
+    { id: 1, label: 'ReLU', value: 'ReLU' },
+    { id: 2, label: 'Tanh', value: 'Tanh' },
+    { id: 3, label: 'Sigmoid', value: 'Sigmoid' },
+    { id: 4, label: 'LeakyReLU', value: 'LeakyReLU' },
   ];
   const methods = [
-    { id: 1, label: 'Random Directions', value: "RANDOMDIRS" },
-    { id:2, label: 'Filter-wise Normalised Directions', value: "FILTERNORM" }
+    { id: 1, label: 'Random Directions', value: 'RANDOMDIRS' },
+    { id: 2, label: 'Filter-wise Normalised Directions', value: 'FILTERNORM' },
   ];
   const dataSets = [
-    { id: 1, label: 'Sine Regression', value: "SINREGRESSION" },
-    { id: 2, label: 'Penguins', value: "PENGUINS" }
+    { id: 1, label: 'Sine Regression', value: 'SINREGRESSION' },
+    { id: 2, label: 'Penguins', value: 'PENGUINS' },
   ];
   const optimisers = [
-    { id: 1, label: 'SGD', value: "SGD" },
-    { id: 2, label: 'Adam', value: "Adam" },
-    { id: 3, label: 'RMSProp', value: "RMSprop" }
+    { id: 1, label: 'SGD', value: 'SGD' },
+    { id: 2, label: 'Adam', value: 'Adam' },
+    { id: 3, label: 'RMSProp', value: 'RMSprop' },
   ];
   const losses = [
-    { id: 1, label: 'MSE', value: "MSELoss" },
-    { id: 2, label: 'Cross-Entropy', value: "CrossEntropyLoss" },
-    { id: 3, label: 'L1', value: "L1Loss" }
+    { id: 1, label: 'MSE', value: 'MSELoss' },
+    { id: 2, label: 'Cross-Entropy', value: 'CrossEntropyLoss' },
+    { id: 3, label: 'L1', value: 'L1Loss' },
   ];
 
   // --- Handler: when user changes z-value (slider) update mesh scale immediately ---
@@ -597,71 +640,88 @@ export default function LandscapeWithPath() {
     (handleZChange as any).__debounce = window.setTimeout(() => {
       if (meshRef.current && path2DRef.current && pathLineRef.current) {
         // Pass 'false' because we don't need to re-create the ball
-        updatePathGeometry(meshRef.current, false); 
+        updatePathGeometry(meshRef.current, false);
       }
     }, 50); // 50ms debounce
   };
 
   const handleCanvasMouseMove = useCallback((event: MouseEvent) => {
-      if (!rendererRef.current || !cameraRef.current || !meshRef.current || !ghostBallRef.current || !ghostLineRef.current || !raycasterRef.current) {
-          return;
-      }
+    if (
+      !rendererRef.current ||
+      !cameraRef.current ||
+      !meshRef.current ||
+      !ghostBallRef.current ||
+      !ghostLineRef.current ||
+      !raycasterRef.current
+    ) {
+      return;
+    }
 
-      const canvas = rendererRef.current.domElement;
-      const rect = canvas.getBoundingClientRect();
-      const mouse = new THREE.Vector2();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    const canvas = rendererRef.current.domElement;
+    const rect = canvas.getBoundingClientRect();
+    const mouse = new THREE.Vector2();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-      raycasterRef.current.setFromCamera(mouse, cameraRef.current);
-      const intersects = raycasterRef.current.intersectObject(meshRef.current);
+    raycasterRef.current.setFromCamera(mouse, cameraRef.current);
+    const intersects = raycasterRef.current.intersectObject(meshRef.current);
 
-      if (intersects.length > 0) {
-          const hit = intersects[0];
-          ghostBallRef.current.visible = true;
-          ghostLineRef.current.visible = true;
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      ghostBallRef.current.visible = true;
+      ghostLineRef.current.visible = true;
 
-          // Vertical white dashed line (along world Y-axis)
-          const lineTopPosition = hit.point.clone().add(new THREE.Vector3(0, 0.2, 0)); // 0.2 world units high
-          const lineBottomPosition = hit.point;
+      // Vertical white dashed line (along world Y-axis)
+      const lineTopPosition = hit.point
+        .clone()
+        .add(new THREE.Vector3(0, 0.2, 0)); // 0.2 world units high
+      const lineBottomPosition = hit.point;
 
-          ghostBallRef.current.position.copy(lineTopPosition);
-          (ghostLineRef.current.geometry as THREE.BufferGeometry).setFromPoints([lineBottomPosition, lineTopPosition]);
-          ghostLineRef.current.computeLineDistances();
-      } else {
-          ghostBallRef.current.visible = false;
-          ghostLineRef.current.visible = false;
-      }
+      ghostBallRef.current.position.copy(lineTopPosition);
+      (ghostLineRef.current.geometry as THREE.BufferGeometry).setFromPoints([
+        lineBottomPosition,
+        lineTopPosition,
+      ]);
+      ghostLineRef.current.computeLineDistances();
+    } else {
+      ghostBallRef.current.visible = false;
+      ghostLineRef.current.visible = false;
+    }
   }, []);
 
   // Click handler for placing mode
   const handleCanvasClick = useCallback((event: MouseEvent) => {
-      if (!rendererRef.current || !cameraRef.current || !meshRef.current || !raycasterRef.current) {
-          return;
-      }
+    if (
+      !rendererRef.current ||
+      !cameraRef.current ||
+      !meshRef.current ||
+      !raycasterRef.current
+    ) {
+      return;
+    }
 
-      const canvas = rendererRef.current.domElement;
-      const rect = canvas.getBoundingClientRect();
-      const mouse = new THREE.Vector2();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    const canvas = rendererRef.current.domElement;
+    const rect = canvas.getBoundingClientRect();
+    const mouse = new THREE.Vector2();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-      raycasterRef.current.setFromCamera(mouse, cameraRef.current);
-      const intersects = raycasterRef.current.intersectObject(meshRef.current);
+    raycasterRef.current.setFromCamera(mouse, cameraRef.current);
+    const intersects = raycasterRef.current.intersectObject(meshRef.current);
 
-      if (intersects.length > 0) {
-          const hit = intersects[0];
-          // Mapping: world (x, z) -> plane (x, -y)
-          const init_xy: [number, number] = [hit.point.x, -hit.point.z];
-          startPointRef.current = init_xy;
-          console.log("Set start point to:", init_xy);
-          
-          // Automatically load the path from this new point
-          loadAndAnimatePath(meshRef.current);
-      }
-      
-      // Always exit placing mode on click, whether it hit or not
-      setIsPlacingMode(false);
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      // Mapping: world (x, z) -> plane (x, -y)
+      const init_xy: [number, number] = [hit.point.x, -hit.point.z];
+      startPointRef.current = init_xy;
+      console.log('Set start point to:', init_xy);
+
+      // Automatically load the path from this new point
+      loadAndAnimatePath(meshRef.current);
+    }
+
+    // Always exit placing mode on click, whether it hit or not
+    setIsPlacingMode(false);
   }, []);
 
   // This effect manages the event listeners and ghost objects based on isPlacingMode
@@ -672,23 +732,33 @@ export default function LandscapeWithPath() {
     if (isPlacingMode) {
       // Create ghost objects if they don't exist
       if (!ghostBallRef.current && sceneRef.current) {
-          const ballRadius = (ballRef.current?.geometry as any)?.parameters?.radius || 0.01;
-          const ballGeom = new THREE.SphereGeometry(ballRadius, 16, 16);
-          const ballMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff0000,
-            emissive: 0xff0000,
-            emissiveIntensity: 2,
-            toneMapped: false,
-          });
-          ghostBallRef.current = new THREE.Mesh(ballGeom, ballMaterial);
-          ghostBallRef.current.visible = false;
-          sceneRef.current.add(ghostBallRef.current);
+        const ballRadius =
+          (ballRef.current?.geometry as any)?.parameters?.radius || 0.01;
+        const ballGeom = new THREE.SphereGeometry(ballRadius, 16, 16);
+        const ballMaterial = new THREE.MeshStandardMaterial({
+          color: 0xff0000,
+          emissive: 0xff0000,
+          emissiveIntensity: 2,
+          toneMapped: false,
+        });
+        ghostBallRef.current = new THREE.Mesh(ballGeom, ballMaterial);
+        ghostBallRef.current.visible = false;
+        sceneRef.current.add(ghostBallRef.current);
 
-          const lineMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.01, gapSize: 0.01, transparent: true, opacity: 0.7 });
-          const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0.2, 0)]);
-          ghostLineRef.current = new THREE.Line(lineGeom, lineMat);
-          ghostLineRef.current.visible = false;
-          sceneRef.current.add(ghostLineRef.current);
+        const lineMat = new THREE.LineDashedMaterial({
+          color: 0xffffff,
+          dashSize: 0.01,
+          gapSize: 0.01,
+          transparent: true,
+          opacity: 0.7,
+        });
+        const lineGeom = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(),
+          new THREE.Vector3(0, 0.2, 0),
+        ]);
+        ghostLineRef.current = new THREE.Line(lineGeom, lineMat);
+        ghostLineRef.current.visible = false;
+        sceneRef.current.add(ghostLineRef.current);
       }
 
       canvas.addEventListener('mousemove', handleCanvasMouseMove);
@@ -715,7 +785,7 @@ export default function LandscapeWithPath() {
 
   const handleLoadPathButtonClick = () => {
     loadAndAnimatePath(meshRef.current);
-  }
+  };
 
   const togglePlayPause = () => {
     if (!clockRef.current) return;
@@ -728,14 +798,14 @@ export default function LandscapeWithPath() {
     setIsPlaying(!isPlaying);
   };
 
-const handleProgressChange = (newProgress: number) => {
-  if (!clockRef.current) return;
+  const handleProgressChange = (newProgress: number) => {
+    if (!clockRef.current) return;
 
-  setAnimationProgress(newProgress);
-  const newElapsedTimeInSeconds = newProgress * animationDuration;
-  clockRef.current.elapsedTime = newElapsedTimeInSeconds;
-  clockRef.current.oldTime = performance.now();
-};
+    setAnimationProgress(newProgress);
+    const newElapsedTimeInSeconds = newProgress * animationDuration;
+    clockRef.current.elapsedTime = newElapsedTimeInSeconds;
+    clockRef.current.oldTime = performance.now();
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, position: 'relative' }}>
@@ -756,152 +826,231 @@ const handleProgressChange = (newProgress: number) => {
             alignItems: 'center',
             padding: 10,
             gap: 10,
-            backgroundColor: '#d8eeffd3',
+            backgroundColor: '#d8eeff4d',
             flexWrap: 'wrap',
           }}
         >
-          <Text>Select depth of network:</Text>
-          <Picker
-            id="depthSelect"
-            selectedValue={depth}
-            style={{ height: 30, width: 100 }}
-            onValueChange={(itemValue) => setDepth(Number(itemValue))}
-          >
-            {depths.map((d) => (
-              <Picker.Item key={d.id} label={d.label} value={d.value} />
-            ))}
-          </Picker>
+          <View style={styles.param}>
+            <Text>Select data set:</Text>
+            <Picker
+              id='dataSelect'
+              selectedValue={data}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => setData(String(itemValue))}
+            >
+              {dataSets.map((d) => (
+                <Picker.Item key={d.id} label={d.label} value={d.value} />
+              ))}
+            </Picker>
+          </View>
 
-          <Text>Select width of hidden layers:</Text>
-          <Picker
-            id="widthSelect"
-            selectedValue={width}
-            style={{ height: 30, width: 100 }}
-            onValueChange={(itemValue) => setWidth(Number(itemValue))}
-          >
-            {widths.map((w) => (
-              <Picker.Item key={w.id} label={w.label} value={w.value} />
-            ))}
-          </Picker>
+          <View style={styles.param}>
+            <Text>Select depth of network:</Text>
+            <Picker
+              id='depthSelect'
+              selectedValue={depth}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => setDepth(Number(itemValue))}
+            >
+              {depths.map((d) => (
+                <Picker.Item key={d.id} label={d.label} value={d.value} />
+              ))}
+            </Picker>
+          </View>
 
-          <Text>Select activation function:</Text>
-          <Picker
-            id="activationSelect"
-            selectedValue={activation}
-            style={{ height: 30, width: 100 }}
-            onValueChange={(itemValue) => setActivation(String(itemValue))}
-          >
-            {activations.map((a) => (
-              <Picker.Item key={a.id} label={a.label} value={a.value} />
-            ))}
-          </Picker>
+          <View style={styles.param}>
+            <Text>Select width of hidden layers:</Text>
+            <Picker
+              id='widthSelect'
+              selectedValue={width}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => setWidth(Number(itemValue))}
+            >
+              {widths.map((w) => (
+                <Picker.Item key={w.id} label={w.label} value={w.value} />
+              ))}
+            </Picker>
+          </View>
 
-          <Text>Select visualisation method:</Text>
-          <Picker
-            id="methodSelect"
-            selectedValue={method}
-            style={{ height: 30, width: 200 }}
-            onValueChange={(itemValue) => setMethod(String(itemValue))}
-          >
-            {methods.map((m) => (
-              <Picker.Item key={m.id} label={m.label} value={m.value} />
-            ))}
-          </Picker>
+          <View style={styles.param}>
+            <Text>Select activation function:</Text>
+            <Picker
+              id='activationSelect'
+              selectedValue={activation}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => setActivation(String(itemValue))}
+            >
+              {activations.map((a) => (
+                <Picker.Item key={a.id} label={a.label} value={a.value} />
+              ))}
+            </Picker>
+          </View>
 
-          <Button
-            title={isLandscapeLoading ? "Loading..." : "Generate Landscape"}
-            onPress={handleLoadLandscapeButtonClick}
-            disabled={isLandscapeLoading}
-          />
+          <View style={styles.param}>
+            <Text>Select visualisation method:</Text>
+            <Picker
+              id='methodSelect'
+              selectedValue={method}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => setMethod(String(itemValue))}
+            >
+              {methods.map((m) => (
+                <Picker.Item key={m.id} label={m.label} value={m.value} />
+              ))}
+            </Picker>
+          </View>
 
-          <Text>Select optimiser:</Text>
-          <Picker
-            id="optimiserSelect"
-            selectedValue={optim}
-            style={{ height: 30, width: 200 }}
-            onValueChange={(itemValue) => setOptim(String(itemValue))}
-          >
-            {optimisers.map((o) => (
-              <Picker.Item key={o.id} label={o.label} value={o.value} />
-            ))}
-          </Picker>
+          <View style={styles.param}>
+            <Text>Select optimiser:</Text>
+            <Picker
+              id='optimiserSelect'
+              selectedValue={optim}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => setOptim(String(itemValue))}
+            >
+              {optimisers.map((o) => (
+                <Picker.Item key={o.id} label={o.label} value={o.value} />
+              ))}
+            </Picker>
+          </View>
 
-          <Text>Select loss:</Text>
-          <Picker
-            id="lossSelect"
-            selectedValue={loss}
-            style={{ height: 30, width: 150 }}
-            onValueChange={(itemValue) => {setLoss(String(itemValue));}}
-          >
-            {losses.map((loss) => (
-              <Picker.Item key={loss.id} label={loss.label} value={loss.value} />
-            ))}
-          </Picker>
+          <View style={styles.param}>
+            <Text>Select loss:</Text>
+            <Picker
+              id='lossSelect'
+              selectedValue={loss}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => {
+                setLoss(String(itemValue));
+              }}
+            >
+              {losses.map((loss) => (
+                <Picker.Item
+                  key={loss.id}
+                  label={loss.label}
+                  value={loss.value}
+                />
+              ))}
+            </Picker>
+          </View>
 
-          <Button
-            title={isPlacingMode ? "Cancel Placing" : "Place Start Point"}
-            onPress={() => setIsPlacingMode(prev => !prev)}
-            disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
-          />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Button
+              title={isPlacingMode ? 'Cancel Placing' : 'Place Start Point'}
+              onPress={() => setIsPlacingMode((prev) => !prev)}
+              disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
+            />
 
-          <Button
-            title={isPathLoading ? "Loading..." : "Generate Path"}
-            onPress={handleLoadPathButtonClick}
-            disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
-          />
-
-          <Text>Z scale:</Text>
-          <Slider
-            style={{ width: 150, height: 40 }}
-            minimumValue={0.001}
-            maximumValue={5}
-            value={zValue}
-            onValueChange={handleZChange}
-            minimumTrackTintColor="#00aaffff"
-            maximumTrackTintColor="#0083c4ff"
-            thumbTintColor="#0076a9ff"
-            disabled={isLandscapeLoading || isPathLoading}
-          />
-          <Text>{zValue.toFixed(3)}</Text>
+            <Button
+              title={isPathLoading ? 'Loading...' : 'Generate Path'}
+              onPress={handleLoadPathButtonClick}
+              disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
+            />
+          </View>
         </View>
-        
-        {isPathLoaded && (
+
+        <View
+          style={{
+            backgroundColor: '#2a74874d',
+            padding: 10,
+            borderRadius: 5,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
+          <View style={{ width: 200, marginRight: 10 }}>
+            <Button
+              title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
+              onPress={handleLoadLandscapeButtonClick}
+              disabled={isLandscapeLoading}
+            />
+          </View>
           <View
             style={{
-              alignSelf: 'flex-end',
-              marginTop: 10,
-              marginRight: 10,
-              width: 300,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              padding: 5,
-              borderRadius: 5,
+              width: 250,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 10,
+              gap: 5,
+              marginRight: 10,
             }}
           >
-            <Button
-              title={isPlaying ? "Pause" : "Play"}
-              onPress={togglePlayPause}
-              disabled={!pathLineRef.current}
-            />
+            <Text style={{ color: 'white' }}>Z scale:</Text>
             <Slider
-              style={{ flex: 1, height: 40 }}
+              style={{ width: 150, height: 40 }}
+              minimumValue={0.001}
+              maximumValue={5}
+              value={zValue}
+              onValueChange={handleZChange}
+              minimumTrackTintColor={
+                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  ? '#888888'
+                  : '#00aaffff'
+              }
+              maximumTrackTintColor={
+                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  ? '#444444'
+                  : '#0052c4ff'
+              }
+              thumbTintColor={
+                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  ? '#666666'
+                  : '#00b9e2ff'
+              }
+              disabled={
+                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+              }
+            />
+            <Text style={{ color: 'white' }}>{zValue.toFixed(3)}</Text>
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              flex: 1,
+            }}
+          >
+            <View style={{ width: 70 }}>
+              <Button
+                title={isPlaying ? 'Pause' : 'Play'}
+                onPress={togglePlayPause}
+                disabled={!pathLineRef.current}
+              />
+            </View>
+            <Slider
+              style={{ height: 40, width: 200 }}
               minimumValue={0}
               maximumValue={1}
               step={0.001}
               value={animationProgress}
               onValueChange={handleProgressChange}
-              minimumTrackTintColor="#00aaffff"
-              maximumTrackTintColor="#ffffff"
-              thumbTintColor="#0076a9ff"
+              minimumTrackTintColor={
+                pathLineRef.current ? '#00aaffff' : '#888888'
+              }
+              maximumTrackTintColor={
+                pathLineRef.current ? '#0083c4ff' : '#444444'
+              }
+              thumbTintColor={pathLineRef.current ? '#00b9e2ff' : '#666666'}
               disabled={!pathLineRef.current}
             />
           </View>
-        )}
+        </View>
       </View>
       {/* Renderer will append a canvas into the container div above */}
     </SafeAreaView>
   );
-
 }
+
+const styles = StyleSheet.create({
+  param: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+    backgroundColor: '#90fbffd3',
+    padding: 5,
+    borderRadius: 5,
+  },
+});
