@@ -1,6 +1,6 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
-
-import { useThemeColor } from '@/hooks/use-theme-color';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, type TextProps } from 'react-native';
+import { useTheme } from '@/components/theme-provider';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -10,22 +10,42 @@ export type ThemedTextProps = TextProps & {
 
 export function ThemedText({
   style,
-  lightColor,
-  darkColor,
+  lightColor = '#000',
+  darkColor = '#fff',
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const { theme } = useTheme();
+
+  // Animated value for color interpolation
+  const animation = useRef(
+    new Animated.Value(theme === 'light' ? 0 : 1),
+  ).current;
+
+  // Animate whenever theme changes
+  useEffect(() => {
+    Animated.timing(animation, {
+      toValue: theme === 'light' ? 0 : 1,
+      duration: 400,
+      useNativeDriver: false, // colors require false
+    }).start();
+  }, [theme, animation]);
+
+  // Interpolate text color
+  const animatedColor = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [lightColor, darkColor],
+  });
 
   return (
-    <Text
+    <Animated.Text
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        { color: animatedColor },
+        type === 'default' && styles.default,
+        type === 'title' && styles.title,
+        type === 'defaultSemiBold' && styles.defaultSemiBold,
+        type === 'subtitle' && styles.subtitle,
+        type === 'link' && styles.link,
         style,
       ]}
       {...rest}
