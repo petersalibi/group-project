@@ -276,6 +276,36 @@ export default function LandscapeWithPath() {
 
     setIsLandscapeLoading(true);
 
+    // Remove old mesh, path line and ball
+    if (meshRef.current) {
+      scene.remove(meshRef.current);
+      if (meshRef.current.children[0]) {
+        (
+          (meshRef.current.children[0] as THREE.Mesh)
+            .material as THREE.Material
+        ).dispose();
+      }
+      meshRef.current.geometry.dispose();
+      (meshRef.current.material as THREE.Material).dispose();
+      meshRef.current = null;
+    }
+    if (pathLineRef.current) {
+      scene.remove(pathLineRef.current);
+      const geo = pathLineRef.current.geometry as any;
+      const mat = pathLineRef.current.material as any;
+      if (geo) geo.dispose?.();
+      if (mat) mat.dispose?.();
+      pathLineRef.current = null;
+      clockRef.current = new THREE.Clock();
+      setIsPathLoaded(false);
+    }
+    if (ballRef.current) {
+      scene.remove(ballRef.current);
+      ballRef.current.geometry.dispose();
+      (ballRef.current.material as THREE.Material).dispose();
+      ballRef.current = null;
+    }
+
     try {
       const paramString = `/generatelandscape/${JSON.stringify({
         network: { activation: activation, depth: depth, width: width },
@@ -322,36 +352,6 @@ export default function LandscapeWithPath() {
       const geoHeight = ys[ny - 1] - ys[0];
       const widthSegments = nx - 1;
       const heightSegments = ny - 1;
-
-      // Remove old mesh, path line and ball
-      if (meshRef.current) {
-        scene.remove(meshRef.current);
-        if (meshRef.current.children[0]) {
-          (
-            (meshRef.current.children[0] as THREE.Mesh)
-              .material as THREE.Material
-          ).dispose();
-        }
-        meshRef.current.geometry.dispose();
-        (meshRef.current.material as THREE.Material).dispose();
-        meshRef.current = null;
-      }
-      if (pathLineRef.current) {
-        scene.remove(pathLineRef.current);
-        const geo = pathLineRef.current.geometry as any;
-        const mat = pathLineRef.current.material as any;
-        if (geo) geo.dispose?.();
-        if (mat) mat.dispose?.();
-        pathLineRef.current = null;
-        clockRef.current = new THREE.Clock();
-        setIsPathLoaded(false);
-      }
-      if (ballRef.current) {
-        scene.remove(ballRef.current);
-        ballRef.current.geometry.dispose();
-        (ballRef.current.material as THREE.Material).dispose();
-        ballRef.current = null;
-      }
 
       // Create landscape geometry and colors
       const geometry = new THREE.PlaneGeometry(
@@ -1024,88 +1024,90 @@ export default function LandscapeWithPath() {
             />
           </View>
         </View>
-
-        <View
-          style={{
-            backgroundColor: '#2a74874d',
-            padding: 10,
-            borderRadius: 5,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
+        
+        {isPathLoaded && (
           <View
             style={{
-              width: 250,
+              backgroundColor: '#2a74874d',
+              padding: 10,
+              borderRadius: 5,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 5,
-              marginRight: 10,
+              justifyContent: 'space-between',
+              gap: 10,
             }}
           >
-            <Text style={{ color: 'white' }}>Z scale:</Text>
-            <Slider
-              style={{ width: 150, height: 40 }}
-              minimumValue={0.001}
-              maximumValue={5}
-              value={zValue}
-              onValueChange={handleZChange}
-              minimumTrackTintColor={
-                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
-                  ? '#888888'
-                  : '#00aaffff'
-              }
-              maximumTrackTintColor={
-                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
-                  ? '#444444'
-                  : '#0052c4ff'
-              }
-              thumbTintColor={
-                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
-                  ? '#666666'
-                  : '#00b9e2ff'
-              }
-              disabled={
-                isLandscapeLoading || !isLandscapeLoaded || isPathLoading
-              }
-            />
-            <Text style={{ color: 'white' }}>{zValue.toFixed(3)}</Text>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 5,
-              flex: 1,
-            }}
-          >
-            <View style={{ width: 70 }}>
-              <Button
-                title={isPlaying ? 'Pause' : 'Play'}
-                onPress={togglePlayPause}
+            <View
+              style={{
+                width: 250,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                marginRight: 10,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Z scale:</Text>
+              <Slider
+                style={{ width: 150, height: 40 }}
+                minimumValue={0.001}
+                maximumValue={5}
+                value={zValue}
+                onValueChange={handleZChange}
+                minimumTrackTintColor={
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                    ? '#888888'
+                    : '#00aaffff'
+                }
+                maximumTrackTintColor={
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                    ? '#444444'
+                    : '#0052c4ff'
+                }
+                thumbTintColor={
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                    ? '#666666'
+                    : '#00b9e2ff'
+                }
+                disabled={
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                }
+              />
+              <Text style={{ color: 'white' }}>{zValue.toFixed(3)}</Text>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                flex: 1,
+              }}
+            >
+              <View style={{ width: 70 }}>
+                <Button
+                  title={isPlaying ? 'Pause' : 'Play'}
+                  onPress={togglePlayPause}
+                  disabled={!pathLineRef.current}
+                />
+              </View>
+              <Slider
+                style={{ height: 40, width: 200 }}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.001}
+                value={animationProgress}
+                onValueChange={handleProgressChange}
+                minimumTrackTintColor={
+                  pathLineRef.current ? '#00aaffff' : '#888888'
+                }
+                maximumTrackTintColor={
+                  pathLineRef.current ? '#0083c4ff' : '#444444'
+                }
+                thumbTintColor={pathLineRef.current ? '#00b9e2ff' : '#666666'}
                 disabled={!pathLineRef.current}
               />
             </View>
-            <Slider
-              style={{ height: 40, width: 200 }}
-              minimumValue={0}
-              maximumValue={1}
-              step={0.001}
-              value={animationProgress}
-              onValueChange={handleProgressChange}
-              minimumTrackTintColor={
-                pathLineRef.current ? '#00aaffff' : '#888888'
-              }
-              maximumTrackTintColor={
-                pathLineRef.current ? '#0083c4ff' : '#444444'
-              }
-              thumbTintColor={pathLineRef.current ? '#00b9e2ff' : '#666666'}
-              disabled={!pathLineRef.current}
-            />
           </View>
-        </View>
+        )}
       </View>
       {/* Renderer will append a canvas into the container div above */}
     </SafeAreaView>
