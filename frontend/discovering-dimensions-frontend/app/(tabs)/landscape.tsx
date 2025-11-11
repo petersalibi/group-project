@@ -21,6 +21,7 @@ export default function LandscapeWithPath() {
   const [optim, setOptim] = useState<string>('Adam');
   const [loss, setLoss] = useState<string>('MSELoss');
   const [zValue, setZValue] = useState<number>(1);
+  const [lr, setLr] = useState<number>(0.01);
   const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
   const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
   const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
@@ -483,7 +484,7 @@ export default function LandscapeWithPath() {
         theta_0: originRef.current,
         init_xy: startPointRef.current,
         optimiser: optim,
-        learning_rate: 0.01,
+        learning_rate: lr,
         loss: loss,
         lock_to_plane: true,
       })}`;
@@ -670,6 +671,12 @@ export default function LandscapeWithPath() {
     { id: 2, label: 'Cross-Entropy', value: 'CrossEntropyLoss' },
     { id: 3, label: 'L1', value: 'L1Loss' },
   ];
+
+  const lrs = [
+    { id: 1, label: '0.01', value: 0.01 },
+    { id: 2, label: '0.02', value: 0.02 },
+    { id: 3, label: '0.05', value: 0.05 },
+  ]
 
   // --- Handler: when user changes z-value (slider) update mesh scale immediately ---
   const handleZChange = (val: number) => {
@@ -978,6 +985,26 @@ export default function LandscapeWithPath() {
                   key={loss.id}
                   label={loss.label}
                   value={loss.value}
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.param}>
+            <Text>Select learning rate:</Text>
+            <Picker
+              id='lrSelect'
+              selectedValue={lr}
+              style={{ height: 30 }}
+              onValueChange={(itemValue) => {
+                setLr(Number(itemValue));
+              }}
+            >
+              {lrs.map((lr) => (
+                <Picker.Item
+                  key={lr.id}
+                  label={lr.label}
+                  value={lr.value}
                 />
               ))}
             </Picker>
