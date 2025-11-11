@@ -13,7 +13,7 @@ class MinimiserParams:
                  theta_0: torch.Tensor,
                  init_xy=(0.0, 0.0),
                  optimiser=optim.Adam,
-                 learning_rate=0.1,
+                 learning_rate=0.01,
                  loss=nn.MSELoss(), 
                  epochs=300,
                  lock_to_plane=False):
@@ -39,6 +39,9 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
 
     sol = torch.linalg.solve(lhs, rhs)
     return sol[0].item(), sol[1].item()
+
+def contains_nan(tensor):
+    return torch.isnan(tensor).any().item()
 
 def animate_optimiser(params: MinimiserParams):
     
@@ -95,6 +98,10 @@ def animate_optimiser(params: MinimiserParams):
 
             path.append((float(a.item()), float(b.item())))
 
+        for p in path:
+            if contains_nan(torch.tensor(p)):
+                raise ValueError("NaN encountered in optimiser path.")
+
         print()
         model.load_state_dict(saved)
         return path
@@ -127,7 +134,10 @@ def animate_optimiser(params: MinimiserParams):
             a, b = project_to_plane(theta_i, params.theta_0, dir1, dir2)
             path.append((a,b))
 
-        print()
+        for p in path:
+            if contains_nan(torch.tensor(p)):
+                raise ValueError("NaN encountered in optimiser path.")
 
+        print()
         model.load_state_dict(saved)
         return path

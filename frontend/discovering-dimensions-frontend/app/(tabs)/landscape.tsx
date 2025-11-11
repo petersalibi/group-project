@@ -483,6 +483,7 @@ export default function LandscapeWithPath() {
         theta_0: originRef.current,
         init_xy: startPointRef.current,
         optimiser: optim,
+        learning_rate: 0.01,
         loss: loss,
         lock_to_plane: true,
       })}`;
@@ -679,6 +680,7 @@ export default function LandscapeWithPath() {
 
     window.clearTimeout((handleZChange as any).__debounce);
     (handleZChange as any).__debounce = window.setTimeout(() => {
+      
       if (meshRef.current && path2DRef.current && pathLineRef.current) {
         // Pass 'false' because we don't need to re-create the ball
         updatePathGeometry(meshRef.current, false);
