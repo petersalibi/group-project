@@ -104,7 +104,7 @@ def parse_minimiser_params(params: dict):
         theta_0 = torch.tensor(params.get("theta_0", torch.randn(100).tolist()))
         init_xy = tuple(params.get("init_xy", (0.0, 0.0)))
         optimiser = parse_optimiser(params.get("optimiser", "Adam"))
-        learning_rate = params.get("learning_rate", 0.1)
+        learning_rate = params.get("learning_rate", 0.01)
         loss = parse_loss(params.get("loss", "MSELoss"))
         epochs = params.get("epochs", 300)
         lock_to_plane = params.get("lock_to_plane", False)
