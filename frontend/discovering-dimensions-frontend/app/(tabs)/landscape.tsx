@@ -78,7 +78,7 @@ export default function LandscapeWithPath() {
       1000,
     );
 
-    camera.position.set(0, -3, 3);
+    camera.position.set(0, -3, 5);
     if (Platform.OS === 'web') {
       camera.zoom = 1.0;
     } else {
@@ -503,7 +503,7 @@ export default function LandscapeWithPath() {
         (p: number[]) => new THREE.Vector2(p[0], p[1]),
       );
       const curve2D = new THREE.SplineCurve(twoDPoints);
-      const smoothPoints: THREE.Vector2[] = curve2D.getPoints(1000);
+      const smoothPoints: THREE.Vector2[] = curve2D.getSpacedPoints(1000);
       path2DRef.current = smoothPoints;
 
       updatePathGeometry(mesh, true);
