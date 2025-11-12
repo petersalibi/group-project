@@ -1,16 +1,85 @@
-import { Link, Tabs } from 'expo-router';
-
+import { Link, Tabs, usePathname } from 'expo-router';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useTheme } from '@/components/theme-provider';
-import { Platform, Image, Pressable, View } from 'react-native';
+import { StyleSheet, Platform, Image, Pressable, View } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import type { ComponentProps } from 'react';
+import { useState } from 'react';
 
 export default function TabLayout() {
   const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
 
+  const styles = StyleSheet.create({
+    tab: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      cursor: 'pointer',
+      backgroundColor: Colors[theme].button,
+    },
+  });
+  // Shared hoverable tab component
+  const HoverableTab = ({
+    href,
+    label,
+    disabled = false,
+  }: {
+    href: ComponentProps<typeof Link>['href'];
+    label: string;
+    disabled?: boolean;
+  }) => {
+    const [hovered, setHovered] = useState(false);
+
+    const hoverGesture = Gesture.Hover()
+      .onBegin(() => !disabled && setHovered(true))
+      .onEnd(() => !disabled && setHovered(false));
+
+    const isActive = disabled;
+
+    return (
+      <Link
+        href={disabled ? '/' : href} // Disable navigation
+        style={{
+          textDecorationLine: 'none',
+          pointerEvents: disabled ? 'none' : 'auto', // Prevent clicks
+        }}
+      >
+        <GestureDetector gesture={hoverGesture}>
+          <ThemedView
+            style={[
+              styles.tab,
+              {
+                opacity: disabled ? 0.6 : 1,
+                borderColor: isActive
+                  ? Colors[theme].tint
+                  : hovered
+                    ? Colors[theme].tint
+                    : 'transparent',
+                backgroundColor: isActive
+                  ? theme === 'light'
+                    ? 'rgba(0,0,0,0.1)'
+                    : 'rgba(255,255,255,0.15)'
+                  : hovered
+                    ? theme === 'light'
+                      ? 'rgba(0,0,0,0.05)'
+                      : 'rgba(255,255,255,0.1)'
+                    : 'transparent',
+              },
+            ]}
+          >
+            <ThemedText>{label}</ThemedText>
+          </ThemedView>
+        </GestureDetector>
+      </Link>
+    );
+  };
   // Default to a top nav bar on web
   if (Platform.OS === 'web') {
     return (
@@ -43,9 +112,6 @@ export default function TabLayout() {
                   width: 30,
                   height: 30,
                   marginRight: 8,
-                  // Web: apply SVG-friendly drop shadow
-                  // prettier-ignore
-                  filter: 'brightness(130%)',
                 }}
                 source={require('@/assets/images/logo.svg')}
                 resizeMode='contain'
@@ -62,18 +128,26 @@ export default function TabLayout() {
           </Link>
           {/* Navigation links */}
           <header style={{ display: 'flex', gap: 20 }}>
-            <Link href='/landscape'>
-              <ThemedText>Loss landscape</ThemedText>
-            </Link>
-            <Link href='/neural-flow'>
-              <ThemedText>Neural flow</ThemedText>
-            </Link>
-            <Link href='/how-to'>
-              <ThemedText>How-to</ThemedText>
-            </Link>
-            <Link href='/about'>
-              <ThemedText>About</ThemedText>
-            </Link>
+            <HoverableTab
+              href='/landscape'
+              label='Loss landscape'
+              disabled={pathname === '/landscape'}
+            />
+            <HoverableTab
+              href='/neural-flow'
+              label='Neural flow'
+              disabled={pathname === '/neural-flow'}
+            />
+            <HoverableTab
+              href='/how-to'
+              label='How-to'
+              disabled={pathname === '/how-to'}
+            />
+            <HoverableTab
+              href='/about'
+              label='About'
+              disabled={pathname === '/about'}
+            />
           </header>
           {/* Theme toggle button */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
