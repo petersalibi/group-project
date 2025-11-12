@@ -1,14 +1,49 @@
-import { ScrollView, StatusBar, Image } from 'react-native';
+import { StatusBar, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  FadeIn,
+  ZoomOut,
+} from 'react-native-reanimated';
+import { Colors } from '@/constants/theme';
+import { useTheme } from '@/components/theme-provider';
+import { Link } from 'expo-router';
 
 export default function Home() {
+  const { theme } = useTheme();
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const titleAnimatedStyle = useAnimatedStyle(() => {
+    // Fade and shrink between scroll 0 -> 200
+    const opacity = interpolate(scrollY.value, [0, 150], [1, 0], 'clamp');
+
+    const scale = interpolate(scrollY.value, [0, 150], [1, 0.9], 'clamp');
+
+    return {
+      opacity,
+      transform: [{ scale }],
+    };
+  });
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: Colors[theme].background }}
+    >
       <StatusBar barStyle='dark-content' />
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         style={{ flex: 1, width: '100%' }}
         contentContainerStyle={{
           flexGrow: 1,
@@ -26,20 +61,25 @@ export default function Home() {
             height: '100%',
           }}
         >
-          <ThemedText
-            style={{
-              fontSize: 100,
-              fontWeight: '300',
-              marginBottom: 20,
-              marginTop: 200,
-              textAlign: 'center',
-              lineHeight: 110,
-              position: 'sticky',
-              top: 200,
-            }}
+          <Animated.View
+            key='title'
+            entering={FadeIn.duration(1000)}
+            exiting={ZoomOut.duration(500)}
+            style={titleAnimatedStyle}
           >
-            Discovering Dimensions
-          </ThemedText>
+            <ThemedText
+              style={{
+                fontSize: 100,
+                fontWeight: '300',
+                marginBottom: 20,
+                marginTop: 200,
+                textAlign: 'center',
+                lineHeight: 110,
+              }}
+            >
+              Discovering Dimensions
+            </ThemedText>
+          </Animated.View>
           <ThemedView
             style={{
               marginTop: 500,
@@ -54,7 +94,14 @@ export default function Home() {
               position: 'relative',
             }}
           >
-            <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <ThemedView
+              style={{
+                flex: 1,
+                maxWidth: 900,
+                maxHeight: 600,
+                alignItems: 'center',
+              }}
+            >
               <ThemedText
                 style={{
                   fontSize: 20,
@@ -65,11 +112,35 @@ export default function Home() {
               >
                 See the whole landscape.
               </ThemedText>
-              <ThemedText style={{ fontSize: 16, textAlign: 'center' }}>
+              <ThemedText
+                style={{ fontSize: 16, textAlign: 'center', marginBottom: 20 }}
+              >
                 Explore the hidden geometry of neural networks with stunning 3D
                 loss landscape visualisations. Watch how different models learn,
                 converge, and navigate their optimisation paths.
               </ThemedText>
+              {/* Link to /landscape page */}
+              <Link href='/landscape'>
+                <ThemedView
+                  style={{
+                    marginTop: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    borderRadius: 10,
+                    backgroundColor: Colors[theme].button,
+                  }}
+                >
+                  <ThemedText
+                    style={{
+                      color: Colors[theme].text,
+                      fontSize: 16,
+                      fontWeight: '600',
+                    }}
+                  >
+                    View landscape
+                  </ThemedText>
+                </ThemedView>
+              </Link>
             </ThemedView>
             <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
               <Image
@@ -132,7 +203,7 @@ export default function Home() {
             © 2024 Discovering Dimensions. All rights reserved.
           </ThemedText>
         </ThemedView>
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
