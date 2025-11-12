@@ -281,8 +281,7 @@ export default function LandscapeWithPath() {
       scene.remove(meshRef.current);
       if (meshRef.current.children[0]) {
         (
-          (meshRef.current.children[0] as THREE.Mesh)
-            .material as THREE.Material
+          (meshRef.current.children[0] as THREE.Mesh).material as THREE.Material
         ).dispose();
       }
       meshRef.current.geometry.dispose();
@@ -676,7 +675,7 @@ export default function LandscapeWithPath() {
     { id: 1, label: '0.01', value: 0.01 },
     { id: 2, label: '0.02', value: 0.02 },
     { id: 3, label: '0.05', value: 0.05 },
-  ]
+  ];
 
   // --- Handler: when user changes z-value (slider) update mesh scale immediately ---
   const handleZChange = (val: number) => {
@@ -687,7 +686,6 @@ export default function LandscapeWithPath() {
 
     window.clearTimeout((handleZChange as any).__debounce);
     (handleZChange as any).__debounce = window.setTimeout(() => {
-      
       if (meshRef.current && path2DRef.current && pathLineRef.current) {
         // Pass 'false' because we don't need to re-create the ball
         updatePathGeometry(meshRef.current, false);
@@ -951,10 +949,10 @@ export default function LandscapeWithPath() {
           </View>
 
           <Button
-              title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
-              onPress={handleLoadLandscapeButtonClick}
-              disabled={isLandscapeLoading}
-            />
+            title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
+            onPress={handleLoadLandscapeButtonClick}
+            disabled={isLandscapeLoading}
+          />
 
           <View style={styles.param}>
             <Text>Select optimiser:</Text>
@@ -1001,11 +999,7 @@ export default function LandscapeWithPath() {
               }}
             >
               {lrs.map((lr) => (
-                <Picker.Item
-                  key={lr.id}
-                  label={lr.label}
-                  value={lr.value}
-                />
+                <Picker.Item key={lr.id} label={lr.label} value={lr.value} />
               ))}
             </Picker>
           </View>
@@ -1024,7 +1018,7 @@ export default function LandscapeWithPath() {
             />
           </View>
         </View>
-        
+
         {isPathLoaded && (
           <View
             style={{
