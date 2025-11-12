@@ -9,8 +9,10 @@ neural networks through loss landscape exploration.
 
 1. Install [Node.js (LTS)](https://nodejs.org/en/download) and Python
 2. Clone the repo locally
+
    `git clone https://github.com/petersalibi/group-project.git`
-3. Setup backend:
+
+3. Setup backend
 
    1. Create a Python virtual environment
 
