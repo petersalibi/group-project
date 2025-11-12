@@ -118,7 +118,7 @@ export default function TabLayout() {
               />
               <ThemedText
                 style={{
-                  fontSize: 20,
+                  fontSize: 25,
                   fontWeight: '700',
                 }}
               >
