@@ -47,7 +47,8 @@ export default function LandscapeWithPath() {
   const pathNormalsRef = useRef<THREE.Vector3[]>([]);
   const totalPathPointsRef = useRef<number>(0);
   const path2DRef = useRef<THREE.Vector2[] | null>(null);
-  const pathLengthRef = React.useRef(0);
+  const pathLengthRef = useRef<number>(0);
+  const animationDurationRef = useRef<number | null>(null);
   const ghostBallRef = useRef<THREE.Mesh | null>(null);
   const ghostLineRef = useRef<THREE.Line | null>(null);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
@@ -137,10 +138,9 @@ export default function LandscapeWithPath() {
         const pathLine = pathLineRef.current;
         const clock = clockRef.current;
         const totalPathPoints = totalPathPointsRef.current;
-        const totalPathLength = pathLengthRef.current;
+        const animationDuration = animationDurationRef.current;
 
-        if (pathLine && totalPathPoints > 0 && clock) {
-          const animationDuration = totalPathLength / animationSpeed;
+        if (pathLine && totalPathPoints > 0 && clock && animationDuration) {
           const progress = (clock.getElapsedTime() / animationDuration) % 1;
           setAnimationProgress(progress);
           const drawCount = Math.floor(progress * totalPathPoints);
@@ -498,11 +498,13 @@ export default function LandscapeWithPath() {
         return;
       }
 
-      const twoDPoints = arr.map(
-        (p: number[]) => new THREE.Vector2(p[0], p[1]),
-      );
+      const twoDPoints = arr.map((p: number[]) => new THREE.Vector2(p[0], p[1]),);
       const curve2D = new THREE.SplineCurve(twoDPoints);
-      const smoothPoints: THREE.Vector2[] = curve2D.getSpacedPoints(1000);
+      const smoothPoints: THREE.Vector2[] = curve2D.getSpacedPoints(500).map(p => {
+        p.x = Math.max(-1, Math.min(1, p.x));
+        p.y = Math.max(-1, Math.min(1, p.y));
+        return p;
+      });
       path2DRef.current = smoothPoints;
 
       updatePathGeometry(mesh, true);
@@ -544,7 +546,7 @@ export default function LandscapeWithPath() {
     const positions: number[] = [];
 
     for (const p of smoothPoints) {
-      RAY_ORIGIN.set(p.x, 1000, -p.y);
+      RAY_ORIGIN.set(p.x, 100, -p.y);
       RAYCASTER.set(RAY_ORIGIN, RAY_DIRECTION);
       const hit = RAYCASTER.intersectObject(mesh)[0];
 
@@ -569,6 +571,8 @@ export default function LandscapeWithPath() {
         newPathPoints.push(liftedPoint);
         newPathNormals.push(TEMP_WORLD_NORMAL.clone());
         positions.push(liftedPoint.x, liftedPoint.y, liftedPoint.z);
+      } else {
+        console.warn('Raycast did not hit the mesh for point:', p);
       }
     }
 
@@ -576,10 +580,17 @@ export default function LandscapeWithPath() {
       return; // Not enough points
     }
 
+    const curve3D = new THREE.CatmullRomCurve3(newPathPoints, false, 'centripetal');
+    const smooth3DPoints = curve3D.getPoints(1000);
+    for (const p of smooth3DPoints) {
+      positions.push(p.x, p.y, p.z);
+    }
+
     pathPointsRef.current = newPathPoints;
     pathNormalsRef.current = newPathNormals;
     totalPathPointsRef.current = Math.max(0, newPathPoints.length - 1);
     pathLengthRef.current = totalLength;
+    animationDurationRef.current = totalLength / animationSpeed;
 
     if (createBall) {
       // Remove old ball
@@ -846,13 +857,18 @@ export default function LandscapeWithPath() {
   };
 
   const handleProgressChange = (newProgress: number) => {
-    if (!clockRef.current) return;
+    const clock = clockRef.current;
+    const animationDuration = animationDurationRef.current;
 
+    if (!clock || !animationDuration) {
+        return;
+    }
+
+    console.log('Setting progress to:', newProgress);
     setAnimationProgress(newProgress);
-    const animationDuration = pathLengthRef.current / animationSpeed;
     const newElapsedTimeInSeconds = newProgress * animationDuration;
-    clockRef.current.elapsedTime = newElapsedTimeInSeconds;
-    clockRef.current.oldTime = performance.now();
+    clock.elapsedTime = newElapsedTimeInSeconds;
+    clock.oldTime = performance.now();
   };
 
   return (
@@ -1017,21 +1033,8 @@ export default function LandscapeWithPath() {
               disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
             />
           </View>
-        </View>
 
-        {isPathLoaded && (
           <View
-            style={{
-              backgroundColor: '#2a74874d',
-              padding: 10,
-              borderRadius: 5,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-            }}
-          >
-            <View
               style={{
                 width: 250,
                 flexDirection: 'row',
@@ -1068,6 +1071,20 @@ export default function LandscapeWithPath() {
               />
               <Text style={{ color: 'white' }}>{zValue.toFixed(3)}</Text>
             </View>
+        </View>
+
+        {isPathLoaded && (
+          <View
+            style={{
+              backgroundColor: '#2a74874d',
+              padding: 10,
+              borderRadius: 5,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
+          >
             <View
               style={{
                 flexDirection: 'row',
@@ -1086,8 +1103,8 @@ export default function LandscapeWithPath() {
               <Slider
                 style={{ height: 40, width: 200 }}
                 minimumValue={0}
-                maximumValue={1}
-                step={0.001}
+                maximumValue={0.99}
+                step={0.01}
                 value={animationProgress}
                 onValueChange={handleProgressChange}
                 minimumTrackTintColor={
