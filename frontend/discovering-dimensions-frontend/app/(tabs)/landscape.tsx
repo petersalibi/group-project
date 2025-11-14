@@ -704,47 +704,57 @@ export default function LandscapeWithPath() {
     }, 50); // 50ms debounce
   };
 
+ 
+  const MOUSE_VECTOR = new THREE.Vector2();
+  const TEMP_HIT_VECTOR = new THREE.Vector3();
+  const LINE_TOP_OFFSET = new THREE.Vector3(0, 0.2, 0);
+  const VIRTUAL_GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
   const handleCanvasMouseMove = useCallback((event: MouseEvent) => {
     if (
-      !rendererRef.current ||
-      !cameraRef.current ||
-      !meshRef.current ||
-      !ghostBallRef.current ||
-      !ghostLineRef.current ||
-      !raycasterRef.current
+        !rendererRef.current ||
+        !cameraRef.current ||
+        !meshRef.current ||
+        !ghostBallRef.current ||
+        !ghostLineRef.current ||
+        !raycasterRef.current
     ) {
-      return;
+        return;
     }
 
     const canvas = rendererRef.current.domElement;
     const rect = canvas.getBoundingClientRect();
-    const mouse = new THREE.Vector2();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-    raycasterRef.current.setFromCamera(mouse, cameraRef.current);
+    MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
     const intersects = raycasterRef.current.intersectObject(meshRef.current);
 
     if (intersects.length > 0) {
-      const hit = intersects[0];
-      ghostBallRef.current.visible = true;
-      ghostLineRef.current.visible = true;
+        const hit = intersects[0];
+        ghostBallRef.current.visible = true;
+        ghostLineRef.current.visible = true;
+        TEMP_HIT_VECTOR.copy(hit.point).add(LINE_TOP_OFFSET);
+        ghostBallRef.current.position.copy(TEMP_HIT_VECTOR);
 
-      // Vertical white dashed line (along world Y-axis)
-      const lineTopPosition = hit.point
-        .clone()
-        .add(new THREE.Vector3(0, 0.2, 0)); // 0.2 world units high
-      const lineBottomPosition = hit.point;
+        (ghostLineRef.current.geometry as THREE.BufferGeometry).setFromPoints([
+            hit.point,
+            TEMP_HIT_VECTOR,
+        ]);
+        ghostLineRef.current.computeLineDistances();
 
-      ghostBallRef.current.position.copy(lineTopPosition);
-      (ghostLineRef.current.geometry as THREE.BufferGeometry).setFromPoints([
-        lineBottomPosition,
-        lineTopPosition,
-      ]);
-      ghostLineRef.current.computeLineDistances();
     } else {
-      ghostBallRef.current.visible = false;
-      ghostLineRef.current.visible = false;
+        ghostLineRef.current.visible = false; 
+        const hitPlane = raycasterRef.current.ray.intersectPlane(
+            VIRTUAL_GROUND_PLANE,
+            TEMP_HIT_VECTOR
+        );
+
+        if (hitPlane) {
+            ghostBallRef.current.visible = true;
+            ghostBallRef.current.position.copy(TEMP_HIT_VECTOR).add(LINE_TOP_OFFSET);
+        } else {
+            ghostBallRef.current.visible = false;
+        }
     }
   }, []);
 
@@ -869,6 +879,30 @@ export default function LandscapeWithPath() {
     const newElapsedTimeInSeconds = newProgress * animationDuration;
     clock.elapsedTime = newElapsedTimeInSeconds;
     clock.oldTime = performance.now();
+  };
+
+  const handleRemovePathButtonClick = () => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    try {
+      if (pathLineRef.current) {
+          scene.remove(pathLineRef.current);
+          const geo = pathLineRef.current.geometry as any;
+          const mat = pathLineRef.current.material as any;
+          if (geo) geo.dispose?.();
+          if (mat) mat.dispose?.();
+          pathLineRef.current = null;
+      }
+      if (ballRef.current) {
+        scene.remove(ballRef.current);
+        ballRef.current.geometry.dispose();
+        (ballRef.current.material as THREE.Material).dispose();
+        ballRef.current = null;
+      }
+    } catch (error) {
+      console.error('Error removing path line:', error);
+    }
+    setIsPathLoaded(false);
   };
 
   return (
@@ -1032,6 +1066,13 @@ export default function LandscapeWithPath() {
               onPress={handleLoadPathButtonClick}
               disabled={isLandscapeLoading || isPathLoading || !meshRef.current}
             />
+
+            {isPathLoaded && (
+              <Button
+                title={'Remove Path'}
+                onPress={handleRemovePathButtonClick}
+              />
+            )}
           </View>
 
           <View
@@ -1051,22 +1092,22 @@ export default function LandscapeWithPath() {
                 value={zValue}
                 onValueChange={handleZChange}
                 minimumTrackTintColor={
-                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading || isPathLoaded
                     ? '#888888'
                     : '#00aaffff'
                 }
                 maximumTrackTintColor={
-                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading || isPathLoaded
                     ? '#444444'
                     : '#0052c4ff'
                 }
                 thumbTintColor={
-                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading || isPathLoaded
                     ? '#666666'
                     : '#00b9e2ff'
                 }
                 disabled={
-                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading
+                  isLandscapeLoading || !isLandscapeLoaded || isPathLoading || isPathLoaded
                 }
               />
               <Text style={{ color: 'white' }}>{zValue.toFixed(3)}</Text>
