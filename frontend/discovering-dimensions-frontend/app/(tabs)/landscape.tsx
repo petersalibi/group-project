@@ -1,24 +1,47 @@
 'use client';
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, Button } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Picker } from '@react-native-picker/picker';
 import { useLandscapeScene } from '@/hooks/use-landscape-scene';
 import { LandscapeControls } from '@/components/landscape-controls';
 import { AnimationControls } from '@/components/animation-controls';
+import {
+  PathConfigControls,
+  PathConfig,
+} from '@/components/path-config-controls';
+import { PATH_COLORS } from '@/constants/landscapeParams';
+
+// Helper to create a default config for a new path
+const createDefaultPathConfig = (id: number): PathConfig => {
+  const color = PATH_COLORS[id % PATH_COLORS.length];
+  return {
+    id: id,
+    colorName: color.name,
+    colorValue: color.value,
+    optim: 'Adam',
+    loss: 'MSELoss',
+    lr: 0.01,
+    startPoint: [0, 0],
+  };
+};
 
 export default function LandscapeWithPath() {
-  // --- UI Form State ---
+  // --- Shared Landscape State ---
   const [activation, setActivation] = useState<string>('ReLU');
   const [depth, setDepth] = useState<number>(2);
   const [width, setWidth] = useState<number>(10);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
-  const [optim, setOptim] = useState<string>('Adam');
-  const [loss, setLoss] = useState<string>('MSELoss');
-  const [lr, setLr] = useState<number>(0.01);
+  const [loss, setLoss] = useState<string>('MSELoss'); // Still needed for landscape
 
-  // --- Custom Hook ---
-  // The hook manages all Three.js logic and related state
+  // --- Path State ---
+  const [numPaths, setNumPaths] = useState<number>(1);
+  const [pathConfigs, setPathConfigs] = useState<PathConfig[]>([
+    createDefaultPathConfig(0),
+  ]);
+
+  // --- Landscape Scene Hook ---
   const {
     containerId,
     zValue,
@@ -27,13 +50,12 @@ export default function LandscapeWithPath() {
     isPathLoading,
     isPathLoaded,
     isPlaying,
-    animationProgress,
     isPlacingMode,
+    placingPathId,
     handleLoadLandscapeButtonClick,
-    handleLoadPathButtonClick,
-    handleRemovePathButtonClick,
+    handleLoadAllPathsButtonClick,
+    handleRemoveAllPaths,
     togglePlayPause,
-    handleProgressChange,
     handleZChange,
     togglePlacingMode,
   } = useLandscapeScene({
@@ -42,14 +64,50 @@ export default function LandscapeWithPath() {
     width,
     method,
     data,
-    optim,
     loss,
-    lr,
+    pathConfigs,
+    onPathConfigChange: (id, field, value) => {
+      // Callback for the hook to update the state
+      setPathConfigs((currentConfigs) =>
+        currentConfigs.map((config) =>
+          config.id === id ? { ...config, [field]: value } : config,
+        ),
+      );
+    },
   });
+
+  // --- UI Handlers ---
+
+  // Update path config array when user changes number of paths
+  const handleNumPathsChange = (num: number) => {
+    setNumPaths(num);
+    setPathConfigs((currentConfigs) => {
+      const newConfigs = [];
+      for (let i = 0; i < num; i++) {
+        // Keep existing config if available, otherwise create new
+        newConfigs.push(currentConfigs[i] || createDefaultPathConfig(i));
+      }
+      return newConfigs;
+    });
+  };
+
+  // Update a specific path's config
+  const handleConfigChange = (
+    id: number,
+    field: keyof PathConfig,
+    value: any,
+  ) => {
+    setPathConfigs((currentConfigs) =>
+      currentConfigs.map((config) =>
+        config.id === id ? { ...config, [field]: value } : config,
+      ),
+    );
+  };
+
+  const isLoading = isLandscapeLoading || isPathLoading;
 
   return (
     <SafeAreaView style={{ flex: 1, position: 'relative' }}>
-      {/* The Three.js canvas will be injected into this View by the hook */}
       <View id={containerId} style={{ flex: 1 }} />
 
       {/* UI Controls Container */}
@@ -61,47 +119,110 @@ export default function LandscapeWithPath() {
           right: 0,
           zIndex: 10,
           flexDirection: 'column',
+          gap: 5,
         }}
       >
-        {/* Main controls for landscape and path */}
+        {/* === Landscape Controls === */}
         <LandscapeControls
           data={data}
           depth={depth}
           width={width}
           activation={activation}
           method={method}
-          optim={optim}
-          loss={loss}
-          lr={lr}
           zValue={zValue}
           isLandscapeLoading={isLandscapeLoading}
           isLandscapeLoaded={isLandscapeLoaded}
-          isPathLoading={isPathLoading}
           isPathLoaded={isPathLoaded}
-          isPlacingMode={isPlacingMode}
           setData={setData}
           setDepth={setDepth}
           setWidth={setWidth}
           setActivation={setActivation}
           setMethod={setMethod}
-          setOptim={setOptim}
-          setLoss={setLoss}
-          setLr={setLr}
           onLoadLandscape={handleLoadLandscapeButtonClick}
-          onLoadPath={handleLoadPathButtonClick}
-          onRemovePath={handleRemovePathButtonClick}
-          onTogglePlacingMode={togglePlacingMode}
           onZChange={handleZChange}
         />
 
-        {/* Animation controls (play/pause, slider) */}
-        <AnimationControls
-          isPathLoaded={isPathLoaded}
-          isPlaying={isPlaying}
-          animationProgress={animationProgress}
-          onTogglePlayPause={togglePlayPause}
-          onProgressChange={handleProgressChange}
-        />
+        {/* === Path Controls === */}
+        <View style={{ paddingHorizontal: 10, gap: 5 }}>
+          {/* Path count selector and Path Configurations */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 10,
+              backgroundColor: '#0000004d',
+              padding: 5,
+              borderRadius: 5,
+            }}
+          >
+            {/* Left Column: Global Path Controls */}
+            <View
+              style={{
+                flexDirection: 'column',
+                gap: 10,
+                paddingTop: 5,
+                minWidth: 160,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                  Paths:
+                </Text>
+                <Picker
+                  selectedValue={numPaths}
+                  style={{ height: 30, width: 80, backgroundColor: 'white' }}
+                  onValueChange={(itemValue) =>
+                    handleNumPathsChange(Number(itemValue))
+                  }
+                >
+                  <Picker.Item label="1" value={1} />
+                  <Picker.Item label="2" value={2} />
+                  <Picker.Item label="3" value={3} />
+                </Picker>
+              </View>
+
+              <Button
+                title={isPathLoading ? 'Loading...' : 'Generate All Paths'}
+                onPress={handleLoadAllPathsButtonClick}
+                disabled={isLoading || !isLandscapeLoaded}
+              />
+              {isPathLoaded && (
+                <Button
+                  title={'Remove All Paths'}
+                  onPress={handleRemoveAllPaths}
+                />
+              )}
+
+              {/* === Animation Controls === */}
+              <AnimationControls
+                isPathLoaded={isPathLoaded}
+                isPlaying={isPlaying}
+                onTogglePlayPause={togglePlayPause}
+              />
+            </View>
+
+            {/* Right Column: Stacked PathConfigControls */}
+            <View style={{ flexDirection: 'column', gap: 5, flex: 1 }}>
+              {pathConfigs.map((config) => (
+                <PathConfigControls
+                  key={config.id}
+                  config={config}
+                  onConfigChange={handleConfigChange}
+                  onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                  isPlacing={isPlacingMode && placingPathId === config.id}
+                  isSceneLoading={isLoading}
+                  isLandscapeLoaded={isLandscapeLoaded}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );

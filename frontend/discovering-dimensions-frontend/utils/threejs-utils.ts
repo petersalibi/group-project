@@ -199,6 +199,7 @@ export function createOrUpdatePathLine(
   scene: THREE.Scene,
   positions: number[],
   existingLine: Line2 | null,
+  color: string,
 ) {
   if (existingLine) {
     (existingLine.geometry as LineGeometry).setPositions(positions);
@@ -208,7 +209,7 @@ export function createOrUpdatePathLine(
   const lineGeometry = new LineGeometry();
   lineGeometry.setPositions(positions);
   const lineMaterial = new LineMaterial({
-    color: 0xffff00,
+    color: new THREE.Color(color),
     linewidth: 3,
   }) as any;
   lineMaterial.resolution = new THREE.Vector2(
@@ -222,13 +223,14 @@ export function createOrUpdatePathLine(
 }
 
 /**
- * Creates the red animated ball.
+ * Creates the animated ball.
  */
 export function createBall(
   scene: THREE.Scene,
   mesh: THREE.Mesh,
   pathPoints: THREE.Vector3[],
   pathNormals: THREE.Vector3[],
+  color: string,
 ) {
   const TEMP_BBOX_SIZE = new THREE.Vector3();
   const TEMP_BALL_OFFSET = new THREE.Vector3();
@@ -241,8 +243,8 @@ export function createBall(
 
   const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
   const ballMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff0000,
-    emissive: 0xff0000,
+    color: new THREE.Color(color),
+    emissive: new THREE.Color(color),
     emissiveIntensity: 2,
     toneMapped: false,
   });
@@ -261,11 +263,11 @@ export function createBall(
 /**
  * Creates the ghost objects for placing mode.
  */
-export function createGhostObjects(scene: THREE.Scene, ballRadius: number) {
+export function createGhostObjects(scene: THREE.Scene, ballRadius: number, color: string) {
   const ballGeom = new THREE.SphereGeometry(ballRadius, 16, 16);
   const ballMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff0000,
-    emissive: 0xff0000,
+    color: new THREE.Color(color),
+    emissive: new THREE.Color(color),
     emissiveIntensity: 2,
     toneMapped: false,
   });

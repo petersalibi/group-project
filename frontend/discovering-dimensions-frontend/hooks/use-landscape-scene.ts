@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import api from '@/src/api';
 import {
   initScene,
@@ -13,12 +14,13 @@ import {
   handleResize,
   cleanupScene,
 } from '@/utils/threejs-utils';
+import { PathConfig } from '@/components/path-config-controls';
 
 // --- Constants ---
 const animationSpeed = 0.2;
 const containerId = 'container';
 
-// --- Reusable Three.js Vectors/Matrices (for loop/handlers) ---
+// --- Reusable Three.js Vectors/Matrices ---
 const TEMP_BALL_POS = new THREE.Vector3();
 const TEMP_BALL_NORM = new THREE.Vector3();
 const TEMP_BALL_OFFSET = new THREE.Vector3();
@@ -29,18 +31,28 @@ const VIRTUAL_GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // --- Hook Props ---
 export interface UseLandscapeSceneProps {
+  // Landscape props
   activation: string;
   depth: number;
   width: number;
   method: string;
   data: string;
-  optim: string;
   loss: string;
-  lr: number;
+  pathConfigs: PathConfig[];
+  onPathConfigChange: (id: number, field: keyof PathConfig, value: any) => void;
 }
 
 export function useLandscapeScene(props: UseLandscapeSceneProps) {
-  const { activation, depth, width, method, data, optim, loss, lr } = props;
+  const {
+    activation,
+    depth,
+    width,
+    method,
+    data,
+    loss,
+    pathConfigs,
+    onPathConfigChange,
+  } = props;
 
   // --- UI State ---
   const [zValue, setZValue] = useState<number>(1);
@@ -49,168 +61,207 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
   const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [animationProgress, setAnimationProgress] = useState<number>(0);
   const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
+  const [placingPathId, setPlacingPathId] = useState<number | null>(null);
 
   // --- Internal state refs ---
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
-  const startPointRef = useRef<[number, number]>([0, 0]);
-
+  
   // --- Three.js refs ---
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  const pathLineRef = useRef<Line2 | null>(null);
-  const ballRef = useRef<THREE.Mesh | null>(null);
-  const pathPointsRef = useRef<THREE.Vector3[]>([]);
-  const pathNormalsRef = useRef<THREE.Vector3[]>([]);
-  const totalPathPointsRef = useRef<number>(0);
-  const path2DRef = useRef<THREE.Vector2[] | null>(null);
-  const pathLengthRef = useRef<number>(0);
-  const animationDurationRef = useRef<number | null>(null);
-  const ghostBallRef = useRef<THREE.Mesh | null>(null);
-  const ghostLineRef = useRef<THREE.Line | null>(null);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const clockRef = useRef<THREE.Clock | null>(null);
+  const ghostBallRef = useRef<THREE.Mesh | null>(null);
+  const ghostLineRef = useRef<THREE.Line | null>(null);
+
+  // --- Refs for Animation Loop ---
+  // These refs will mirror the state, so the animate loop can read them
+  const isPlayingRef = useRef(isPlaying);
+  const isPathLoadedRef = useRef(isPathLoaded);
+  const animationTimeRef = useRef(0);
+
+  // --- Array refs for multiple paths ---
+  const pathLinesRef = useRef<Line2[]>([]);
+  const ballsRef = useRef<THREE.Mesh[]>([]);
+  const pathPointsArrayRef = useRef<THREE.Vector3[][]>([]);
+  const pathNormalsArrayRef = useRef<THREE.Vector3[][]>([]);
+  const totalPathPointsArrayRef = useRef<number[]>([]);
+  const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
+  const animationDurationsRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    isPathLoadedRef.current = isPathLoaded;
+  }, [isPathLoaded]);
 
   /**
-   * Disposes of a single Three.js object.
+   * Disposes of a single Three.js object from a ref array.
    */
-  const disposeObject = (objRef: React.MutableRefObject<any>) => {
-    if (!objRef.current) return;
+  const disposeObject = (obj: THREE.Object3D | null) => {
+    if (!obj) return;
     const scene = sceneRef.current;
-    if (scene) scene.remove(objRef.current);
+    if (scene) scene.remove(obj);
 
-    objRef.current.geometry?.dispose();
-    if (objRef.current.material) {
-      if (Array.isArray(objRef.current.material)) {
-        objRef.current.material.forEach((m: any) => m.dispose());
+    (obj as any).geometry?.dispose();
+    if ((obj as any).material) {
+      if (Array.isArray((obj as any).material)) {
+        (obj as any).material.forEach((m: any) => m.dispose());
       } else {
-        objRef.current.material.dispose();
+        (obj as any).material.dispose();
       }
     }
-    objRef.current = null;
   };
 
   /**
-   * Updates 3D path geometry from the cached 2D path.
-   * This is the core function for both creating a new path and updating it on z-scale.
+   * Removes all paths from the scene.
+   */
+  const handleRemoveAllPaths = useCallback(() => {
+    pathLinesRef.current.forEach(disposeObject);
+    ballsRef.current.forEach(disposeObject);
+    pathLinesRef.current = [];
+    ballsRef.current = [];
+    pathPointsArrayRef.current = [];
+    pathNormalsArrayRef.current = [];
+    totalPathPointsArrayRef.current = [];
+    path2DArrayRef.current = [];
+    animationDurationsRef.current = [];
+    setIsPathLoaded(false);
+    animationTimeRef.current = 0;
+    clockRef.current = new THREE.Clock();
+  }, []);
+
+  /**
+   * Updates 3D path geometry from a cached 2D path.
    */
   const updatePathGeometry = useCallback(
-    (mesh: THREE.Mesh, createBallFlag: boolean = false) => {
+    (mesh: THREE.Mesh, pathId: number, createBallFlag: boolean = false) => {
       const scene = sceneRef.current;
       const raycaster = raycasterRef.current;
-      const smoothPoints = path2DRef.current;
+      const smoothPoints = path2DArrayRef.current[pathId];
+      const config = pathConfigs[pathId];
 
-      if (!scene || !mesh || !raycaster || !smoothPoints) return;
+      if (!scene || !mesh || !raycaster || !smoothPoints || !config) return;
 
-      // 1. Project 2D points to 3D surface
       const { newPathPoints, newPathNormals, positions, totalLength } =
         project2DPathTo3D(mesh, smoothPoints, raycaster);
 
       if (newPathPoints.length < 2) return;
 
-      // 2. Store path data for animation
-      pathPointsRef.current = newPathPoints;
-      pathNormalsRef.current = newPathNormals;
-      totalPathPointsRef.current = Math.max(0, newPathPoints.length - 1);
-      pathLengthRef.current = totalLength;
-      animationDurationRef.current = totalLength / animationSpeed;
+      // Store path data for animation
+      pathPointsArrayRef.current[pathId] = newPathPoints;
+      pathNormalsArrayRef.current[pathId] = newPathNormals;
+      totalPathPointsArrayRef.current[pathId] = newPathPoints.length - 1;
+      animationDurationsRef.current[pathId] = totalLength / animationSpeed;
 
-      // 3. Create or update the visible line
-      pathLineRef.current = createOrUpdatePathLine(
+      // Create or update the visible line
+      pathLinesRef.current[pathId] = createOrUpdatePathLine(
         scene,
         positions,
-        pathLineRef.current,
+        pathLinesRef.current[pathId] || null,
+        config.colorValue,
       );
 
-      // 4. Create the ball (only on initial load)
       if (createBallFlag) {
-        disposeObject(ballRef);
-        ballRef.current = createBall(
+        disposeObject(ballsRef.current[pathId]);
+        ballsRef.current[pathId] = createBall(
           scene,
           mesh,
           newPathPoints,
           newPathNormals,
+          config.colorValue,
         );
       }
     },
-    [],
-  ); // Relies only on refs
+    [pathConfigs], // Depends on pathConfigs for colors
+  );
 
   /**
-   * Fetches path data and initiates path/ball creation.
+   * Fetches and renders all configured paths.
    */
-  const loadAndAnimatePath = useCallback(
-    async (mesh: THREE.Mesh | null) => {
-      setIsLandscapeLoaded(false); // Disable Z-slider during path load
-      if (!sceneRef.current) return;
+  const loadAndAnimateAllPaths = useCallback(async () => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
 
-      clockRef.current = new THREE.Clock();
-      setIsPlaying(true);
-      setAnimationProgress(0);
-      disposeObject(pathLineRef);
-      disposeObject(ballRef);
+    setIsLandscapeLoaded(false);
+    setIsPathLoading(true);
+    handleRemoveAllPaths();
+    setIsPlaying(true);
 
-      pathPointsRef.current = [];
-      pathNormalsRef.current = [];
-      totalPathPointsRef.current = 0;
-      path2DRef.current = null;
-      setIsPathLoaded(false);
-
-      if (!mesh) {
-        setIsLandscapeLoaded(true);
-        return;
-      }
-
-      setIsPathLoading(true);
-      try {
+    try {
+      // Create a fetch promise for each config
+      const pathPromises = pathConfigs.map((config) => {
         const paramString = `/animateminimiser/${JSON.stringify({
           network: { activation, depth, width },
           data,
           x_direction: xDirRef.current,
           y_direction: yDirRef.current,
           theta_0: originRef.current,
-          init_xy: startPointRef.current,
-          optimiser: optim,
-          learning_rate: lr,
-          loss,
+          init_xy: config.startPoint,
+          optimiser: config.optim,
+          learning_rate: config.lr,
+          loss: config.loss,
           lock_to_plane: true,
         })}`;
-        const resp = await api.get(paramString);
-        const pathData = await resp.data;
+        return api.get(paramString);
+      });
+
+      const responses = await Promise.all(pathPromises);
+
+      // Process all responses
+      responses.forEach((resp, index) => {
+        const pathData = resp.data;
         const arr = pathData.path?.data ?? pathData.path;
 
         if (!Array.isArray(arr) || arr.length < 2) {
-          throw new Error('Invalid path data');
+          throw new Error(`Invalid path data for path ${index + 1}`);
         }
 
         const twoDPoints = arr.map(
           (p: number[]) => new THREE.Vector2(p[0], p[1]),
         );
         const curve2D = new THREE.SplineCurve(twoDPoints);
-        path2DRef.current = curve2D.getSpacedPoints(500).map((p) => {
-          p.x = Math.max(-1, Math.min(1, p.x));
-          p.y = Math.max(-1, Math.min(1, p.y));
-          return p;
-        });
+        path2DArrayRef.current[index] = curve2D.getSpacedPoints(500).map((p) => {
+            p.x = Math.max(-1, Math.min(1, p.x));
+            p.y = Math.max(-1, Math.min(1, p.y));
+            return p;
+          });
 
-        updatePathGeometry(mesh, true);
-        setIsPathLoaded(true);
-      } catch (err) {
-        console.error('Failed to load or process path:', err);
-        setIsPathLoaded(false);
-      } finally {
-        setIsPathLoading(false);
-        setIsLandscapeLoaded(true); // Re-enable Z-slider
+        // Create the geometry, line, and ball for this path
+        updatePathGeometry(mesh, index, true);
+      });
+
+      setIsPathLoaded(true);
+      animationTimeRef.current = 0;
+
+      if (clockRef.current && !clockRef.current.running) {
+        clockRef.current.start();
       }
-    },
-    [activation, depth, width, data, optim, lr, loss, updatePathGeometry],
-  );
+
+    } catch (err) {
+      console.error('Failed to load one or more paths:', err);
+      setIsPathLoaded(false);
+    } finally {
+      setIsPathLoading(false);
+      setIsLandscapeLoaded(true);
+    }
+  }, [
+    activation,
+    depth,
+    width,
+    data,
+    pathConfigs,
+    handleRemoveAllPaths,
+    updatePathGeometry,
+  ]);
 
   /**
    * Fetches landscape data and builds the mesh.
@@ -220,10 +271,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     if (!scene) return;
 
     setIsLandscapeLoading(true);
-    disposeObject(meshRef);
-    disposeObject(pathLineRef);
-    disposeObject(ballRef);
-    setIsPathLoaded(false);
+    handleRemoveAllPaths();
+    disposeObject(meshRef.current);
+    meshRef.current = null;
 
     try {
       const paramString = `/generatelandscape/${JSON.stringify({
@@ -243,12 +293,10 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       xDirRef.current = dict.x_direction || null;
       yDirRef.current = dict.y_direction || null;
 
-      // Use utility to create the mesh
       const { mesh, geoWidth, geoHeight } = createLandscapeMesh(dict, zValue);
       scene.add(mesh);
       meshRef.current = mesh;
 
-      // Reposition camera
       const diag = Math.hypot(geoWidth, geoHeight);
       if (cameraRef.current && controlsRef.current) {
         cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
@@ -262,19 +310,12 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     } finally {
       setIsLandscapeLoading(false);
     }
-  }, [activation, depth, width, method, data, loss, zValue]);
+  }, [activation, depth, width, method, data, loss, zValue, handleRemoveAllPaths]);
 
   // --- Event Handlers ---
 
   const handleCanvasMouseMove = useCallback((event: MouseEvent) => {
-    const {
-      renderer,
-      camera,
-      mesh,
-      ghostBall,
-      ghostLine,
-      raycaster,
-    } = {
+    const { renderer, camera, mesh, ghostBall, ghostLine, raycaster } = {
       renderer: rendererRef.current,
       camera: cameraRef.current,
       mesh: meshRef.current,
@@ -325,7 +366,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         mesh: meshRef.current,
         raycaster: raycasterRef.current,
       };
-      if (!renderer || !camera || !mesh || !raycaster) return;
+      if (!renderer || !camera || !mesh || !raycaster || placingPathId === null)
+        return;
 
       const rect = renderer.domElement.getBoundingClientRect();
       MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -335,12 +377,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       const intersects = raycaster.intersectObject(mesh);
       if (intersects.length > 0) {
         const hit = intersects[0];
-        startPointRef.current = [hit.point.x, -hit.point.z];
-        loadAndAnimatePath(mesh);
+        const newStartPoint: [number, number] = [hit.point.x, -hit.point.z];
+        onPathConfigChange(placingPathId, 'startPoint', newStartPoint);
       }
       setIsPlacingMode(false);
+      setPlacingPathId(null);
     },
-    [loadAndAnimatePath],
+    [placingPathId, onPathConfigChange],
   );
 
   const handleLoadLandscapeButtonClick = useCallback(
@@ -348,37 +391,26 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [loadAndBuildLandscape],
   );
 
-  const handleLoadPathButtonClick = useCallback(
-    () => loadAndAnimatePath(meshRef.current),
-    [loadAndAnimatePath],
+  const handleLoadAllPathsButtonClick = useCallback(
+    () => loadAndAnimateAllPaths(),
+    [loadAndAnimateAllPaths],
   );
-
-  const handleRemovePathButtonClick = useCallback(() => {
-    disposeObject(pathLineRef);
-    disposeObject(ballRef);
-    setIsPathLoaded(false);
-  }, []);
 
   const togglePlayPause = useCallback(() => {
     if (!clockRef.current) return;
     if (isPlaying) {
       clockRef.current.stop();
     } else {
-      clockRef.current.oldTime = performance.now();
-      clockRef.current.running = true;
+      if (animationTimeRef.current > 0) {
+        clockRef.current.oldTime = performance.now();
+        clockRef.current.running = true;
+      } else {
+        animationTimeRef.current = 0;
+        clockRef.current.start();
+      }
     }
     setIsPlaying((prev) => !prev);
   }, [isPlaying]);
-
-  const handleProgressChange = useCallback((newProgress: number) => {
-    const clock = clockRef.current;
-    const animationDuration = animationDurationRef.current;
-    if (!clock || !animationDuration) return;
-
-    setAnimationProgress(newProgress);
-    clock.elapsedTime = newProgress * animationDuration;
-    clock.oldTime = performance.now();
-  }, []);
 
   const handleZChange = useCallback(
     (val: number) => {
@@ -389,78 +421,107 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Debounce the expensive path geometry update
       window.clearTimeout((handleZChange as any).__debounce);
       (handleZChange as any).__debounce = window.setTimeout(() => {
-        if (meshRef.current && path2DRef.current && pathLineRef.current) {
-          updatePathGeometry(meshRef.current, false);
+        if (!meshRef.current || !isPathLoaded) return;
+        
+        // Update all loaded paths
+        for (let i = 0; i < path2DArrayRef.current.length; i++) {
+          if (path2DArrayRef.current[i] && pathLinesRef.current[i]) {
+            updatePathGeometry(meshRef.current!, i, false);
+          }
         }
       }, 50);
     },
-    [updatePathGeometry],
+    [isPathLoaded, updatePathGeometry],
   );
 
-  const togglePlacingMode = useCallback(() => {
-    setIsPlacingMode((prev) => !prev);
-  }, []);
+  const togglePlacingMode = useCallback(
+    (id: number | null) => {
+      if (id === null || id === placingPathId) {
+        // Cancel placing
+        setIsPlacingMode(false);
+        setPlacingPathId(null);
+      } else {
+        // Start placing for a new path
+        setIsPlacingMode(true);
+        setPlacingPathId(id);
+      }
+    },
+    [placingPathId],
+  );
 
   // --- Scene Init Effect ---
   useEffect(() => {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // 1. Use util to setup scene
     const { scene, camera, renderer, controls } = initScene(container);
     sceneRef.current = scene;
     cameraRef.current = camera;
     rendererRef.current = renderer;
     controlsRef.current = controls;
 
-    // 2. Setup non-object refs
     clockRef.current = new THREE.Clock();
     raycasterRef.current = new THREE.Raycaster();
 
-    // 3. Render loop
     let rafId = 0;
     const animate = () => {
       rafId = requestAnimationFrame(animate);
 
-      const pathLine = pathLineRef.current;
       const clock = clockRef.current;
-      const animationDuration = animationDurationRef.current;
+      if (!clock) return;
 
-      if (
-        pathLine &&
-        clock &&
-        animationDuration &&
-        isPlaying
-      ) {
-        const progress = (clock.getElapsedTime() / animationDuration) % 1;
-        setAnimationProgress(progress);
-        
-        const lineGeom = pathLine.geometry;
+      controls.update();
+      renderer.render(scene, camera);
+
+			if (!isPlayingRef.current || !isPathLoadedRef.current) {
+        return;
+      }
+      
+      const delta = clock.getDelta(); 
+      animationTimeRef.current += delta;
+      const elapsedTime = animationTimeRef.current;
+
+      // Loop over all active paths and animate them
+      for (let i = 0; i < pathLinesRef.current.length; i++) {
+        const pathLine = pathLinesRef.current[i];
+        const ball = ballsRef.current[i];
+        const animationDuration = animationDurationsRef.current[i];
+        const pts = pathPointsArrayRef.current[i];
+        const norms = pathNormalsArrayRef.current[i];
+
+        if (!pathLine || !ball || !animationDuration || !pts || !norms) continue;
+
+        // Calculate this path's individual progress, stopping at 1.0
+        const pathProgress = (elapsedTime / animationDuration);
+        if (pathProgress > 1.0 && animationDuration >= Math.max(...animationDurationsRef.current)) {
+          if (animationDuration >= Math.max(...animationDurationsRef.current)){
+            setIsPlaying(false);
+            animationTimeRef.current = 0;
+          }
+          continue;
+        }
+        // Animate Line
+        const lineGeom = pathLine.geometry as LineGeometry;
         const totalLineSegments = lineGeom.attributes.instanceStart.count;
-        const drawCount = Math.floor(progress * totalLineSegments);
+        const drawCount = Math.floor(pathProgress * totalLineSegments);
         lineGeom.instanceCount = drawCount;
 
-        const ball = ballRef.current;
-        const pts = pathPointsRef.current;
-        const norms = pathNormalsRef.current;
+        // Animate Ball
+        const totalBallSegments = pts.length - 1;
+        const currentSegmentFloat = pathProgress * totalBallSegments;
+        const segmentIndex = Math.floor(currentSegmentFloat);
+        const segmentProgress = currentSegmentFloat - segmentIndex;
+        const i1 = Math.min(segmentIndex, totalBallSegments);
+        const i2 = Math.min(i1 + 1, totalBallSegments);
 
-        if (ball && pts.length > 0) {
-          const totalSegments = pts.length - 1;
-          const currentSegmentFloat = progress * totalSegments;
-          const segmentIndex = Math.floor(currentSegmentFloat);
-          const segmentProgress = currentSegmentFloat - segmentIndex;
-          const i1 = Math.min(segmentIndex, totalSegments);
-          const i2 = Math.min(i1 + 1, totalSegments);
-
-          if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-            TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-            TEMP_BALL_NORM.copy(norms[i1])
-              .lerp(norms[i2], segmentProgress)
-              .normalize();
-            const radius = (ball.geometry as any).parameters?.radius ?? 0;
-            TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-            ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
-          }
+        if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
+          TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
+          TEMP_BALL_NORM.copy(norms[i1])
+            .lerp(norms[i2], segmentProgress)
+            .normalize();
+          const radius = (ball.geometry as any).parameters?.radius ?? 0;
+          TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
+          ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
         }
       }
 
@@ -469,39 +530,56 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     };
     animate();
 
-    // 4. Resize listener
-    const onResize = () =>
-      handleResize(camera, renderer, pathLineRef.current);
+    const onResize = () => {
+      if (!cameraRef.current || !rendererRef.current) return;
+      // Handle resize for all lines
+      pathLinesRef.current.forEach(line => {
+        handleResize(camera, renderer, line);
+      })
+      // Handle case where no lines exist yet
+      if (pathLinesRef.current.length === 0) {
+        handleResize(camera, renderer, null);
+      }
+    };
     window.addEventListener('resize', onResize);
 
-    // 5. Cleanup
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', onResize);
       cleanupScene(scene, renderer);
     };
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
   // --- Placing Mode Effect ---
   useEffect(() => {
     const canvas = rendererRef.current?.domElement;
     if (!canvas) return;
 
-    if (isPlacingMode) {
-      if (!ghostBallRef.current && sceneRef.current) {
+    if (isPlacingMode && placingPathId !== null) {
+      // Get color for the path being placed
+      const color = pathConfigs[placingPathId]?.colorValue || '#FFFFFF';
+
+      // Dispose old ghost objects
+      disposeObject(ghostBallRef.current);
+      disposeObject(ghostLineRef.current);
+      
+      if (sceneRef.current) {
         const ballRadius =
-          (ballRef.current?.geometry as any)?.parameters?.radius || 0.01;
+          (ballsRef.current[0]?.geometry as any)?.parameters?.radius || 0.01;
         const { ghostBall, ghostLine } = createGhostObjects(
           sceneRef.current,
           ballRadius,
+          color,
         );
         ghostBallRef.current = ghostBall;
         ghostLineRef.current = ghostLine;
       }
+      
       canvas.addEventListener('mousemove', handleCanvasMouseMove);
       canvas.addEventListener('click', handleCanvasClick);
       canvas.style.cursor = 'none';
     } else {
+      // Cleanup
       if (ghostBallRef.current) ghostBallRef.current.visible = false;
       if (ghostLineRef.current) ghostLineRef.current.visible = false;
       canvas.style.cursor = 'auto';
@@ -512,9 +590,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       canvas.removeEventListener('click', handleCanvasClick);
       canvas.style.cursor = 'auto';
     };
-  }, [isPlacingMode, handleCanvasMouseMove, handleCanvasClick]);
+  }, [isPlacingMode, placingPathId, pathConfigs, handleCanvasMouseMove, handleCanvasClick]);
 
-  // --- Return values for the component ---
+  // --- Return values ---
   return {
     containerId,
     zValue,
@@ -523,13 +601,12 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     isPathLoading,
     isPathLoaded,
     isPlaying,
-    animationProgress,
     isPlacingMode,
+    placingPathId,
     handleLoadLandscapeButtonClick,
-    handleLoadPathButtonClick,
-    handleRemovePathButtonClick,
+    handleLoadAllPathsButtonClick,
+    handleRemoveAllPaths,
     togglePlayPause,
-    handleProgressChange,
     handleZChange,
     togglePlacingMode,
   };

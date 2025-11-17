@@ -1,5 +1,3 @@
-// frontend/components/LandscapeControls.tsx
-
 import React from 'react';
 import { Platform, StyleSheet, Text, View, Button } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -9,9 +7,6 @@ import {
   widths,
   activations,
   methods,
-  optimisers,
-  losses,
-  lrs,
 } from '@/constants/landscapeParams';
 import Slider from '@react-native-community/slider';
 
@@ -23,31 +18,20 @@ interface LandscapeControlsProps {
   width: number;
   activation: string;
   method: string;
-  optim: string;
-  loss: string;
-  lr: number;
   zValue: number;
   isLandscapeLoading: boolean;
   isLandscapeLoaded: boolean;
-  isPathLoading: boolean;
   isPathLoaded: boolean;
-  isPlacingMode: boolean;
-
+  
   // Setters
   setData: (value: string) => void;
   setDepth: (value: number) => void;
   setWidth: (value: number) => void;
   setActivation: (value: string) => void;
   setMethod: (value: string) => void;
-  setOptim: (value: string) => void;
-  setLoss: (value: string) => void;
-  setLr: (value: number) => void;
-
+  
   // Handlers
   onLoadLandscape: () => void;
-  onLoadPath: () => void;
-  onRemovePath: () => void;
-  onTogglePlacingMode: () => void;
   onZChange: (value: number) => void;
 }
 
@@ -58,35 +42,21 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     width,
     activation,
     method,
-    optim,
-    loss,
-    lr,
     zValue,
     isLandscapeLoading,
     isLandscapeLoaded,
-    isPathLoading,
     isPathLoaded,
-    isPlacingMode,
     setData,
     setDepth,
     setWidth,
     setActivation,
     setMethod,
-    setOptim,
-    setLoss,
-    setLr,
     onLoadLandscape,
-    onLoadPath,
-    onRemovePath,
-    onTogglePlacingMode,
     onZChange,
   } = props;
 
-  const zSliderDisabled =
-    isLandscapeLoading ||
-    !isLandscapeLoaded ||
-    isPathLoading ||
-    isPathLoaded;
+  // Z-slider is disabled if landscape isn't loaded OR is loading OR a path is loaded
+  const zSliderDisabled = isLandscapeLoading || !isLandscapeLoaded || isPathLoaded;
 
   return (
     <View
@@ -100,7 +70,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       }}
     >
       <View style={styles.param}>
-        <Text>Select data set:</Text>
+        <Text>Data Set:</Text>
         <Picker
           id="dataSelect"
           selectedValue={data}
@@ -114,7 +84,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       </View>
 
       <View style={styles.param}>
-        <Text>Select depth of network:</Text>
+        <Text>Depth:</Text>
         <Picker
           id="depthSelect"
           selectedValue={depth}
@@ -128,7 +98,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       </View>
 
       <View style={styles.param}>
-        <Text>Select width of hidden layers:</Text>
+        <Text>Width:</Text>
         <Picker
           id="widthSelect"
           selectedValue={width}
@@ -142,7 +112,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       </View>
 
       <View style={styles.param}>
-        <Text>Select activation function:</Text>
+        <Text>Activation:</Text>
         <Picker
           id="activationSelect"
           selectedValue={activation}
@@ -156,7 +126,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       </View>
 
       <View style={styles.param}>
-        <Text>Select visualisation method:</Text>
+        <Text>Method:</Text>
         <Picker
           id="methodSelect"
           selectedValue={method}
@@ -174,70 +144,6 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         onPress={onLoadLandscape}
         disabled={isLandscapeLoading}
       />
-
-      <View style={styles.param}>
-        <Text>Select optimiser:</Text>
-        <Picker
-          id="optimiserSelect"
-          selectedValue={optim}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => setOptim(String(itemValue))}
-        >
-          {optimisers.map((o) => (
-            <Picker.Item key={o.id} label={o.label} value={o.value} />
-          ))}
-        </Picker>
-      </View>
-
-      <View style={styles.param}>
-        <Text>Select loss:</Text>
-        <Picker
-          id="lossSelect"
-          selectedValue={loss}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => {
-            setLoss(String(itemValue));
-          }}
-        >
-          {losses.map((loss) => (
-            <Picker.Item key={loss.id} label={loss.label} value={loss.value} />
-          ))}
-        </Picker>
-      </View>
-
-      <View style={styles.param}>
-        <Text>Select learning rate:</Text>
-        <Picker
-          id="lrSelect"
-          selectedValue={lr}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => {
-            setLr(Number(itemValue));
-          }}
-        >
-          {lrs.map((lr) => (
-            <Picker.Item key={lr.id} label={lr.label} value={lr.value} />
-          ))}
-        </Picker>
-      </View>
-
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Button
-          title={isPlacingMode ? 'Cancel Placing' : 'Place Start Point'}
-          onPress={onTogglePlacingMode}
-          disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded}
-        />
-
-        <Button
-          title={isPathLoading ? 'Loading...' : 'Generate Path'}
-          onPress={onLoadPath}
-          disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded}
-        />
-
-        {isPathLoaded && (
-          <Button title={'Remove Path'} onPress={onRemovePath} />
-        )}
-      </View>
 
       <View
         style={{

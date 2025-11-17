@@ -44,3 +44,9 @@ export const lrs = [
   { id: 2, label: '0.02', value: 0.02 },
   { id: 3, label: '0.05', value: 0.05 },
 ];
+
+export const PATH_COLORS = [
+  { name: 'Red', value: '#ff0000' },
+  { name: 'Green', value: '#00ff00' },
+  { name: 'Yellow', value: '#ffff00' },
+];
