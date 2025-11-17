@@ -17,12 +17,7 @@ export function AnimationControls(props: AnimationControlsProps) {
   return (
     <View
       style={{
-        backgroundColor: '#2a74874d',
-        padding: 10,
-        borderRadius: 5,
-        flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
       }}
     >
       <View style={{ width: 70 }}>

@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useCallback } from 'react';
-import { View, Text, Button } from 'react-native';
+import { View, StyleSheet, Text, Button, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useLandscapeScene } from '@/hooks/use-landscape-scene';
@@ -33,7 +33,8 @@ export default function LandscapeWithPath() {
   const [width, setWidth] = useState<number>(10);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
-  const [loss, setLoss] = useState<string>('MSELoss'); // Still needed for landscape
+  const [loss, setLoss] = useState<string>('MSELoss');
+  const [pathControlsVisible, setPathControlsVisible] = useState(true);
 
   // --- Path State ---
   const [numPaths, setNumPaths] = useState<number>(1);
@@ -144,86 +145,119 @@ export default function LandscapeWithPath() {
 
         {/* === Path Controls === */}
         <View style={{ paddingHorizontal: 10, gap: 5 }}>
-          {/* Path count selector and Path Configurations */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-start',
-              gap: 10,
-              backgroundColor: '#0000004d',
-              padding: 5,
-              borderRadius: 5,
-            }}
-          >
-            {/* Left Column: Global Path Controls */}
+          {pathControlsVisible && (
             <View
               style={{
-                flexDirection: 'column',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
                 gap: 10,
-                paddingTop: 5,
-                minWidth: 160,
+                backgroundColor: '#d8eeff4d',
+                padding: 5,
+                borderRadius: 5,
               }}
             >
+              {/* Left Column: Global Path Controls */}
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: 'column',
                   gap: 10,
+                  paddingTop: 5,
                 }}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                  Paths:
-                </Text>
-                <Picker
-                  selectedValue={numPaths}
-                  style={{ height: 30, width: 80, backgroundColor: 'white' }}
-                  onValueChange={(itemValue) =>
-                    handleNumPathsChange(Number(itemValue))
-                  }
-                >
-                  <Picker.Item label="1" value={1} />
-                  <Picker.Item label="2" value={2} />
-                  <Picker.Item label="3" value={3} />
-                </Picker>
+                <View style={styles.param}>
+                  <Text>Paths: </Text>
+                  <Picker
+                    selectedValue={numPaths}
+                    style={{ height: 30 }}
+                    onValueChange={(itemValue) =>
+                      handleNumPathsChange(Number(itemValue))
+                    }
+                  >
+                    <Picker.Item label="1" value={1} />
+                    <Picker.Item label="2" value={2} />
+                    <Picker.Item label="3" value={3} />
+                  </Picker>
+                </View>
+
+                <Button
+                  title={isPathLoading ? 'Loading...' : 'Generate All Paths'}
+                  onPress={handleLoadAllPathsButtonClick}
+                  disabled={isLoading || !isLandscapeLoaded}
+                />
+                {isPathLoaded && (
+                  <Button
+                    title={'Remove All Paths'}
+                    onPress={handleRemoveAllPaths}
+                  />
+                )}
+
+                {/* === Animation Controls === */}
+                <AnimationControls
+                  isPathLoaded={isPathLoaded}
+                  isPlaying={isPlaying}
+                  onTogglePlayPause={togglePlayPause}
+                />
               </View>
 
-              <Button
-                title={isPathLoading ? 'Loading...' : 'Generate All Paths'}
-                onPress={handleLoadAllPathsButtonClick}
-                disabled={isLoading || !isLandscapeLoaded}
-              />
-              {isPathLoaded && (
-                <Button
-                  title={'Remove All Paths'}
-                  onPress={handleRemoveAllPaths}
-                />
-              )}
-
-              {/* === Animation Controls === */}
-              <AnimationControls
-                isPathLoaded={isPathLoaded}
-                isPlaying={isPlaying}
-                onTogglePlayPause={togglePlayPause}
-              />
+              {/* Right Column: Stacked PathConfigControls */}
+              <View style={{ flexDirection: 'column', gap: 5, flex: 1 }}>
+                {pathConfigs.map((config) => (
+                  <PathConfigControls
+                    key={config.id}
+                    config={config}
+                    onConfigChange={handleConfigChange}
+                    onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                    isPlacing={isPlacingMode && placingPathId === config.id}
+                    isSceneLoading={isLoading}
+                    isLandscapeLoaded={isLandscapeLoaded}
+                  />
+                ))}
+              </View>
             </View>
-
-            {/* Right Column: Stacked PathConfigControls */}
-            <View style={{ flexDirection: 'column', gap: 5, flex: 1 }}>
-              {pathConfigs.map((config) => (
-                <PathConfigControls
-                  key={config.id}
-                  config={config}
-                  onConfigChange={handleConfigChange}
-                  onPlaceStartPoint={() => togglePlacingMode(config.id)}
-                  isPlacing={isPlacingMode && placingPathId === config.id}
-                  isSceneLoading={isLoading}
-                  isLandscapeLoaded={isLandscapeLoaded}
-                />
-              ))}
-            </View>
-          </View>
+          )}
+          {/* === Path Controls Toggle Button === */}
+          <Pressable
+            onPress={() => setPathControlsVisible((prev) => !prev)}
+            style={styles.toggleButton}
+          >
+            <Text style={[
+              styles.toggleArrow,
+              { transform: [{ rotate: pathControlsVisible ? '0deg' : '180deg' }] }
+            ]}>
+              ^
+            </Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  param: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+    backgroundColor: '#90fbffd3',
+    padding: 5,
+    borderRadius: 5,
+  },
+  toggleButton: {
+    padding: 2,
+    alignSelf: 'center',
+    backgroundColor: '#d8eeff4d',
+    borderRadius: 20,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    //marginTop: -1,
+  },
+  toggleArrow: {
+    color: 'white',
+    fontSize: 14,
+    lineHeight: 18,
+    //transition: 'transform 0.2s ease-in-out'
+  },
+});
