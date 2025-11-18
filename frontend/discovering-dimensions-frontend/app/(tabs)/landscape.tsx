@@ -11,6 +11,7 @@ import {
   PathConfig,
 } from '@/components/path-config-controls';
 import { PATH_COLORS } from '@/constants/landscapeParams';
+import path from 'path';
 
 // Helper to create a default config for a new path
 const createDefaultPathConfig = (id: number): PathConfig => {
@@ -145,7 +146,7 @@ export default function LandscapeWithPath() {
 
         {/* === Path Controls === */}
         <View style={{ paddingHorizontal: 10, gap: 5 }}>
-          {pathControlsVisible && (
+          
             <View
               style={{
                 flexDirection: 'row',
@@ -156,6 +157,7 @@ export default function LandscapeWithPath() {
                 borderRadius: 5,
               }}
             >
+              
               {/* Left Column: Global Path Controls */}
               <View
                 style={{
@@ -164,33 +166,36 @@ export default function LandscapeWithPath() {
                   paddingTop: 5,
                 }}
               >
-                <View style={styles.param}>
-                  <Text>Paths: </Text>
-                  <Picker
-                    selectedValue={numPaths}
-                    style={{ height: 30 }}
-                    onValueChange={(itemValue) =>
-                      handleNumPathsChange(Number(itemValue))
-                    }
-                  >
-                    <Picker.Item label="1" value={1} />
-                    <Picker.Item label="2" value={2} />
-                    <Picker.Item label="3" value={3} />
-                  </Picker>
-                </View>
+                {pathControlsVisible && (
+                  <>
+                    <View style={styles.param}>
+                      <Text>Paths: </Text>
+                      <Picker
+                        selectedValue={numPaths}
+                        style={{ height: 30 }}
+                        onValueChange={(itemValue) =>
+                          handleNumPathsChange(Number(itemValue))
+                        }
+                      >
+                        <Picker.Item label="1" value={1} />
+                        <Picker.Item label="2" value={2} />
+                        <Picker.Item label="3" value={3} />
+                      </Picker>
+                    </View>
 
-                <Button
-                  title={isPathLoading ? 'Loading...' : 'Generate All Paths'}
-                  onPress={handleLoadAllPathsButtonClick}
-                  disabled={isLoading || !isLandscapeLoaded}
-                />
-                {isPathLoaded && (
-                  <Button
-                    title={'Remove All Paths'}
-                    onPress={handleRemoveAllPaths}
-                  />
+                    <Button
+                      title={isPathLoading ? 'Loading...' : 'Generate All Paths'}
+                      onPress={handleLoadAllPathsButtonClick}
+                      disabled={isLoading || !isLandscapeLoaded}
+                    />
+                    {isPathLoaded && (
+                      <Button
+                        title={'Remove All Paths'}
+                        onPress={handleRemoveAllPaths}
+                      />
+                    )}
+                  </>
                 )}
-
                 {/* === Animation Controls === */}
                 <AnimationControls
                   isPathLoaded={isPathLoaded}
@@ -200,6 +205,7 @@ export default function LandscapeWithPath() {
               </View>
 
               {/* Right Column: Stacked PathConfigControls */}
+              {pathControlsVisible && (
               <View style={{ flexDirection: 'column', gap: 5, flex: 1 }}>
                 {pathConfigs.map((config) => (
                   <PathConfigControls
@@ -213,8 +219,8 @@ export default function LandscapeWithPath() {
                   />
                 ))}
               </View>
+              )}
             </View>
-          )}
           {/* === Path Controls Toggle Button === */}
           <Pressable
             onPress={() => setPathControlsVisible((prev) => !prev)}
@@ -252,7 +258,7 @@ const styles = StyleSheet.create({
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    //marginTop: -1,
+    marginTop: 5,
   },
   toggleArrow: {
     color: 'white',
