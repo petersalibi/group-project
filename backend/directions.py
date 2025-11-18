@@ -94,7 +94,8 @@ def get_filterwise_directions(model):
 
 
 def ztransform(train : pd.DataFrame, test : pd.DataFrame, 
-               keep_non_numeric : bool = True, label_encode : bool = True ) -> tuple[pd.DataFrame, pd.DataFrame] :
+               keep_non_numeric : bool = True, 
+               label_encode : bool = True ) -> tuple[pd.DataFrame, pd.DataFrame] :
 
     newtrain = pd.DataFrame([])
     newtest = pd.DataFrame([])
@@ -132,14 +133,16 @@ def ztransform(train : pd.DataFrame, test : pd.DataFrame,
 
 
 def tensorisation(train : pd.DataFrame, test : pd.DataFrame,
-                  dependents : list[str], independents : list[str],) -> tuple[pd.DataFrame] :
+                  dependent : str, 
+                  independents : list[str],) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor] :
     
     # Convert into compatible pytorch format
     X_train = torch.tensor(train[independents].values, dtype = torch.float32)
-    Y_train = torch.tensor(train[dependents].values, dtype = torch.float32)
+    Y_train = torch.tensor(train[dependent].values, dtype = torch.long).squeeze(-1) # Remove the redundant dimension during tensorisation
 
     X_test = torch.tensor(test[independents].values, dtype = torch.float32)
-    Y_test = torch.tensor(test[dependents].values, dtype = torch.float32)
+    Y_test = torch.tensor(test[dependent].values, dtype = torch.long).squeeze(-1) # Ditto
+
 
     return X_train, Y_train, X_test, Y_test
 
@@ -163,26 +166,26 @@ def set_params_from_vector(model, vector):
         pointer += numel
         
 
-def get_trajectories(df : pd.DataFrame, independents : list[str], dependents : str, epochs : int = 200,
+def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : str, epochs : int = 200,
                      record_interval : int = 1, n_random_samples : int = 500, sigma : float = 0.02) :
     
-    all_vars = independents + dependents
+    all_vars = independents + [dependent]
     
     # Filter for only what we want
     ndf = df[all_vars]
     
     train, test = train_test_split(ndf, test_size = 0.2, random_state=42)
     
-    train, test = ztransform(train, test, keep_non_numeric= True, label_encode= True)
+    train, test = ztransform(train, test, keep_non_numeric = True, label_encode = True)
     
     # Don't technically need test data but include for generalisability
-    X_train, Y_train, X_test, Y_test = tensorisation(train, test, dependents, independents)
+    X_train, Y_train, X_test, Y_test = tensorisation(train, test, dependent, independents)
 
     # Initialising everything
     
     # Input-output shape of the network
     n_inputs = len(independents)
-    n_outputs = len(pd.unique(ndf[dependents]))
+    n_outputs = train[dependent].nunique()
     
     model = nn.Sequential(nn.Linear(n_inputs,5),
                     nn.Tanh(),
@@ -208,8 +211,8 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependents : s
         
         if step % record_interval == 0 :
             
+            # Stores the loss, need to use item so it doesn't get stored as tensor
             loss_vals.append(loss.item())
-            
             
             # Storing the parameters in vector format
             state = model.state_dict()
@@ -227,9 +230,8 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependents : s
             parameter_snapshots.append(param_vector)
 
 
-    # We will store all sampled parameter valuations here to feed into PCA
-    all_samples = []
-    
+    # Now we will fill the parameter snapshots with perturbations and their respective losses, to capture
+    # the loss landscape
     samples_per_snapshot = math.ceil(n_random_samples / len(parameter_snapshots))
     
     
@@ -238,7 +240,6 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependents : s
         
         # The actual snapshot for this value
         snapshot_i = parameter_snapshots[i]
-        
         
         # We use the norm to scale the perturbations so we get meaningful noise variation
         norm = torch.norm(snapshot_i)
@@ -251,7 +252,7 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependents : s
             
             changed_input = snapshot_i + perturbation
             
-            all_samples.append(changed_input.detach().cpu())
+            parameter_snapshots.append(changed_input.detach().cpu())
             
             # Set parameters into the network so we can sample the loss using it
             set_params_from_vector(model, changed_input)
@@ -266,10 +267,12 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependents : s
     return parameter_snapshots, loss_vals
 
 
-def get_pca_directions(minimiser_trajectories):
+def get_pca_directions(minimiser_trajectories) -> tuple[np.ndarray, np.ndarray, None]:
     
+    # We will not be using the loss values directly, we only need the PCA directions for this function
     all_samples, _ = minimiser_trajectories
     
+    # Convert into one matrix so we can use PCA on it
     X = torch.stack(all_samples).numpy()
     
     pca = PCA(n_components=2)
@@ -277,4 +280,5 @@ def get_pca_directions(minimiser_trajectories):
 
     x, y = X_pca[:, 0], X_pca[:, 1]
     
-    return x, y
+    # Let's also return the PCA object if we want to use it later
+    return x, y, pca
