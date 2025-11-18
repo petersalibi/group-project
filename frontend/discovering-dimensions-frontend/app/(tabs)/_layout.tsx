@@ -134,11 +134,6 @@ export default function TabLayout() {
               disabled={pathname === '/landscape'}
             />
             <HoverableTab
-              href='/neural-flow'
-              label='Neural flow'
-              disabled={pathname === '/neural-flow'}
-            />
-            <HoverableTab
               href='/how-to'
               label='How-to'
               disabled={pathname === '/how-to'}

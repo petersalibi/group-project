@@ -94,6 +94,7 @@ def animate_optimiser(params: MinimiserParams):
             preds = torch.func.functional_call(model, params_dict, (data.X,))
             loss = params.loss(preds, data.y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_([a, b], max_norm=1.0)
             optimiser.step()
 
             path.append((float(a.item()), float(b.item())))
@@ -128,6 +129,7 @@ def animate_optimiser(params: MinimiserParams):
             optimiser.zero_grad()
             loss = params.loss(model(data.X), data.y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimiser.step()
 
             theta_i = flatten_params(model.parameters())
