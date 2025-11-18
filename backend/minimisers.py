@@ -38,7 +38,12 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
     rhs = D.T @ v
 
     sol = torch.linalg.solve(lhs, rhs)
+
     return sol[0].item(), sol[1].item()
+
+
+def contains_nan(tensor):
+    return torch.isnan(tensor).any().item()
 
 def animate_optimiser(params: MinimiserParams):
     
@@ -94,6 +99,9 @@ def animate_optimiser(params: MinimiserParams):
 
         print()
         model.load_state_dict(saved)
+
+        
+
         return path
 
     else:
@@ -124,4 +132,9 @@ def animate_optimiser(params: MinimiserParams):
         print()
 
         model.load_state_dict(saved)
+
+        for p in path:
+            if contains_nan(torch.tensor(p)):
+                raise ValueError("NaN encountered in optimiser path")
+        
         return path

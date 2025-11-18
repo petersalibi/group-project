@@ -59,9 +59,11 @@ theta_0 = torch.tensor(landscape["theta_0"])
 minimiser_params = MinimiserParams(
     network=network,
     data=data,
-    directions=directions,
+    x_direction=directions[0],
+    y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
+    optimiser=optim.SGD,
     lock_to_plane=True
 )
 
