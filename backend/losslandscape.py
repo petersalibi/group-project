@@ -23,19 +23,13 @@ class LandscapeParams:
 def generate_loss_landscape(landscape_params: LandscapeParams):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
 
-    # Automatically infer input/output dimensions if not provided
-    if landscape_params.network.inputs is None or landscape_params.network.outputs is None:
-        landscape_params.network.inputs = data.inputs
-        landscape_params.network.outputs = data.outputs
-
-    model = Model(landscape_params.network)
+    model = Model(landscape_params.network, data.inputs, data.outputs)
     dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
 
     xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
                                                        dir1, dir2,
                                                        landscape_params.loss, 
-                                                       landscape_params.surface_samples,
-                                                       landscape_params.perspective)
+                                                       landscape_params.surface_samples)
 
     return {"surface": loss_surface.tolist(), 
             "x_axis": xAxis.tolist(), 
@@ -44,7 +38,7 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist()}
 
-def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, perspective=False, scale=1):
+def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1):
 
     print_progress_bar(0, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
 

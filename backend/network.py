@@ -35,9 +35,7 @@ class TrainingData:
                 num_classes = len(species_cat.cat.categories)
 
                 self.X = torch.tensor(X, dtype=torch.float32)
-                y_long = torch.tensor(codes, dtype=torch.long)
-                # one_hot returns LongTensor; convert to float for training
-                self.y = torch.nn.functional.one_hot(y_long, num_classes=num_classes).float()
+                self.y = torch.tensor(codes, dtype=torch.long)
 
                 # set input/output dimensions for this dataset
                 self.inputs = self.X.shape[1]
@@ -48,21 +46,19 @@ class TrainingData:
 
 class NetworkParams:
 
-    def __init__(self, activation=nn.Tanh(), depth=2, width=10, inputs=1, outputs=1):
+    def __init__(self, activation=nn.Tanh(), depth=2, width=10):
         self.activation = activation
         self.depth = depth
         self.width = width
-        self.inputs = inputs
-        self.outputs = outputs
 
 class Model(nn.Module):
-    def __init__(self, params: NetworkParams):
+    def __init__(self, params: NetworkParams, inputs, outputs):
         super(Model, self).__init__()
 
         layers = nn.Sequential(
-            nn.Linear(params.inputs, params.width),
+            nn.Linear(inputs, params.width),
             params.activation,
-            nn.Linear(params.width, params.outputs)
+            nn.Linear(params.width, outputs)
         )
 
         for _ in range(params.depth-1):

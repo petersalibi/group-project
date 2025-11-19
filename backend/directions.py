@@ -41,7 +41,7 @@ def get_two_parameter_directions(model, args):
             d = torch.zeros_like(p)
 
             if p is first_linear.weight:
-                d[:, target_idx] = 1.0
+                d[:, target_idx] = first_linear.weight[:, target_idx].clone()
 
             direction.append(d)
 

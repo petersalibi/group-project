@@ -23,7 +23,7 @@ def animate_landscape(landscape, minimiser_path=None):
     ax.set_ylabel('Direction 2')
     ax.set_zlabel('Loss')
 
-    surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis, alpha=0.9)]
+    surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis)]
 
     if minimiser_path is not None:
         path = np.array(minimiser_path)
@@ -47,9 +47,9 @@ def animate_landscape(landscape, minimiser_path=None):
     return ani
 
 network = NetworkParams()
-method = VisualisationMethod.RANDOMDIRS
-data = TrainingDataType.SINREGRESSION
-params = LandscapeParams(network, method, data)
+method = VisualisationMethod.TWOPARAMETERS
+data = TrainingDataType.PENGUINS
+params = LandscapeParams(network, method, data, args=[0,1], loss=nn.CrossEntropyLoss())
 
 landscape = generate_loss_landscape(params)
 lst_directions = (landscape["x_direction"], landscape["y_direction"])
@@ -63,6 +63,7 @@ minimiser_params = MinimiserParams(
     y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
+    loss=nn.CrossEntropyLoss(),
     lock_to_plane=True
 )
 
