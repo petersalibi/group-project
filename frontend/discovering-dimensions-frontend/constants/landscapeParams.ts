@@ -27,6 +27,11 @@ export const dataSets = [
   { id: 2, label: 'Penguins', value: 'PENGUINS' },
 ];
 
+export const datasetFeatures: Record<string, number> = {
+    'SINREGRESSION': 1,
+    'PENGUINS': 8,
+};
+
 export const optimisers = [
   { id: 1, label: 'SGD', value: 'SGD' },
   { id: 2, label: 'Adam', value: 'Adam' },
