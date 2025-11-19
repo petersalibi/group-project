@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Text, Button, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, Button, Pressable, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useLandscapeScene } from '@/hooks/use-landscape-scene';
@@ -11,7 +11,6 @@ import {
   PathConfig,
 } from '@/components/path-config-controls';
 import { PATH_COLORS } from '@/constants/landscapeParams';
-import path from 'path';
 
 // Helper to create a default config for a new path
 const createDefaultPathConfig = (id: number): PathConfig => {
@@ -35,7 +34,15 @@ export default function LandscapeWithPath() {
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
   const [loss, setLoss] = useState<string>('MSELoss');
-  const [pathControlsVisible, setPathControlsVisible] = useState(true);
+  const [pathControlsVisible, setPathControlsVisible] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+    }
+  }, [pathControlsVisible]);
 
   // --- Path State ---
   const [numPaths, setNumPaths] = useState<number>(1);
@@ -84,7 +91,7 @@ export default function LandscapeWithPath() {
   const handleNumPathsChange = (num: number) => {
     setNumPaths(num);
     setPathConfigs((currentConfigs) => {
-      const newConfigs = [];
+      const newConfigs: PathConfig[] = [];
       for (let i = 0; i < num; i++) {
         // Keep existing config if available, otherwise create new
         newConfigs.push(currentConfigs[i] || createDefaultPathConfig(i));
@@ -109,22 +116,10 @@ export default function LandscapeWithPath() {
   const isLoading = isLandscapeLoading || isPathLoading;
 
   return (
-    <SafeAreaView style={{ flex: 1, position: 'relative' }}>
-      <View id={containerId} style={{ flex: 1 }} />
-
-      {/* UI Controls Container */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          flexDirection: 'column',
-          gap: 5,
-        }}
-      >
-        {/* === Landscape Controls === */}
+    <SafeAreaView style={{ flex: 1, flexDirection: 'column', backgroundColor: '#1a1a1a' }}>
+      
+      {/* TOP BAR: Landscape Controls */}
+      <View style={styles.topBar}>
         <LandscapeControls
           data={data}
           depth={depth}
@@ -143,70 +138,81 @@ export default function LandscapeWithPath() {
           onLoadLandscape={handleLoadLandscapeButtonClick}
           onZChange={handleZChange}
         />
+      </View>
 
-        {/* === Path Controls === */}
-        <View style={{ paddingHorizontal: 10, gap: 5 }}>
+      {/* MAIN LAYOUT: Canvas + Sidebar */}
+      <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+        
+        {/* Canvas Container */}
+        <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
+
+        {/* Right Sidebar Container */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', zIndex: 20, height: '100%' }}>
           
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: 10,
-                backgroundColor: '#d8eeff4d',
-                padding: 5,
-                borderRadius: 5,
-              }}
-            >
+          {/* Toggle Button */}
+          <Pressable
+            onPress={() => setPathControlsVisible((prev) => !prev)}
+            style={styles.sidebarToggle}
+          >
+            <Text style={[
+              styles.toggleArrow,
+              { transform: [{ rotate: pathControlsVisible ? '0deg' : '180deg' }] }
+            ]}>
+              {'>'} 
+            </Text>
+          </Pressable>
+
+          {/* Scrollable Sidebar Content */}
+          {pathControlsVisible && (
+            <ScrollView style={styles.sidebar} contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
               
-              {/* Left Column: Global Path Controls */}
-              <View
-                style={{
-                  flexDirection: 'column',
-                  gap: 10,
-                  paddingTop: 5,
-                }}
-              >
-                {pathControlsVisible && (
-                  <>
-                    <View style={styles.param}>
-                      <Text>Paths: </Text>
-                      <Picker
-                        selectedValue={numPaths}
-                        style={{ height: 30 }}
-                        onValueChange={(itemValue) =>
-                          handleNumPathsChange(Number(itemValue))
-                        }
-                      >
-                        <Picker.Item label="1" value={1} />
-                        <Picker.Item label="2" value={2} />
-                        <Picker.Item label="3" value={3} />
-                      </Picker>
-                    </View>
+              {/* Path Count & Actions */}
+              <View style={styles.sidebarSection}>
+                <Text style={styles.headerText}>Configuration</Text>
+                
+                <View style={styles.row}>
+                  <Text style={{ color: '#eee', fontSize: 12 }}>Count:</Text>
+                  <Picker
+                    selectedValue={numPaths}
+                    style={{ height: 28, width: 60, backgroundColor: '#eee' }}
+                    onValueChange={(itemValue) => handleNumPathsChange(Number(itemValue))}
+                  >
+                    <Picker.Item label="1" value={1} />
+                    <Picker.Item label="2" value={2} />
+                    <Picker.Item label="3" value={3} />
+                  </Picker>
+                </View>
 
+                <View style={{ gap: 5 }}>
+                  <Button
+                    title={isPathLoading ? 'Loading...' : 'Generate Paths'}
+                    onPress={handleLoadAllPathsButtonClick}
+                    disabled={isLoading || !isLandscapeLoaded}
+                  />
+                  {isPathLoaded && (
                     <Button
-                      title={isPathLoading ? 'Loading...' : 'Generate All Paths'}
-                      onPress={handleLoadAllPathsButtonClick}
-                      disabled={isLoading || !isLandscapeLoaded}
+                      title={'Clear Paths'}
+                      onPress={handleRemoveAllPaths}
+                      color="#ff4444"
                     />
-                    {isPathLoaded && (
-                      <Button
-                        title={'Remove All Paths'}
-                        onPress={handleRemoveAllPaths}
-                      />
-                    )}
-                  </>
-                )}
-                {/* === Animation Controls === */}
-                <AnimationControls
-                  isPathLoaded={isPathLoaded}
-                  isPlaying={isPlaying}
-                  onTogglePlayPause={togglePlayPause}
-                />
+                  )}
+                </View>
               </View>
+              {/* Animation */}
+              {isPathLoaded && (
+               <View style={styles.sidebarSection}>
+                  <Text style={styles.headerText}>Animation</Text>
+                  <AnimationControls
+                    isPathLoaded={isPathLoaded}
+                    isPlaying={isPlaying}
+                    onTogglePlayPause={togglePlayPause}
+                  />
+               </View>
+              )}
 
-              {/* Right Column: Stacked PathConfigControls */}
-              {pathControlsVisible && (
-              <View style={{ flexDirection: 'column', gap: 5, flex: 1 }}>
+              {/* Individual Path Settings */}
+              <View style={{ gap: 8 }}>
+                <Text style={styles.headerText}>Path Details</Text>
                 {pathConfigs.map((config) => (
                   <PathConfigControls
                     key={config.id}
@@ -219,20 +225,9 @@ export default function LandscapeWithPath() {
                   />
                 ))}
               </View>
-              )}
-            </View>
-          {/* === Path Controls Toggle Button === */}
-          <Pressable
-            onPress={() => setPathControlsVisible((prev) => !prev)}
-            style={styles.toggleButton}
-          >
-            <Text style={[
-              styles.toggleArrow,
-              { transform: [{ rotate: pathControlsVisible ? '0deg' : '180deg' }] }
-            ]}>
-              ^
-            </Text>
-          </Pressable>
+
+            </ScrollView>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -249,21 +244,53 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 5,
   },
-  toggleButton: {
-    padding: 2,
-    alignSelf: 'center',
-    backgroundColor: '#d8eeff4d',
-    borderRadius: 20,
-    width: 30,
-    height: 30,
+  topBar: {
+    backgroundColor: '#1c1c1c',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    zIndex: 30,
+    flexGrow: 0,
+    padding: 5,
+  },
+  sidebar: {
+    width: 280,
+    backgroundColor: '#1c1c1cf0',
+    borderLeftWidth: 1,
+    borderLeftColor: '#333',
+    height: '100%',
+    padding: 10,
+  },
+  sidebarToggle: {
+    width: 24,
+    height: 50,
+    backgroundColor: '#333',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 5,
+    marginTop: 10, 
   },
   toggleArrow: {
-    color: 'white',
-    fontSize: 14,
-    lineHeight: 18,
-    //transition: 'transform 0.2s ease-in-out'
+    color: '#00aaff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  sidebarSection: {
+    backgroundColor: '#2a2a2a',
+    padding: 10,
+    borderRadius: 6,
+    gap: 8,
+  },
+  headerText: {
+    color: '#888',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 });
