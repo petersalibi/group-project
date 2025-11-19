@@ -18,6 +18,9 @@ class TrainingData:
             case TrainingDataType.SINREGRESSION:
                 self.X = torch.unsqueeze(torch.linspace(-2, 2, n_samples), 1)
                 self.y = torch.sin(3*self.X) + 0.3*torch.randn_like(self.X)
+
+                self.inputs = 1
+                self.outputs = 1
             case TrainingDataType.PENGUINS:
 
                 import pandas as pd
@@ -26,9 +29,19 @@ class TrainingData:
                 df = pd.read_csv(url).dropna()
             
                 X = df[['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']].values
-                self.y = df['species'].astype('category').cat.codes.values
+                # Convert species to categorical codes, then to one-hot vectors
+                species_cat = df['species'].astype('category')
+                codes = species_cat.cat.codes.values
+                num_classes = len(species_cat.cat.categories)
+
                 self.X = torch.tensor(X, dtype=torch.float32)
-                self.y = torch.tensor(self.y, dtype=torch.long).unsqueeze(1)
+                y_long = torch.tensor(codes, dtype=torch.long)
+                # one_hot returns LongTensor; convert to float for training
+                self.y = torch.nn.functional.one_hot(y_long, num_classes=num_classes).float()
+
+                # set input/output dimensions for this dataset
+                self.inputs = self.X.shape[1]
+                self.outputs = num_classes
 
             case _:
                 raise ValueError("Training Data Type Not Found!")

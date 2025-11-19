@@ -49,7 +49,7 @@ def animate_landscape(landscape, minimiser_path=None):
 network = NetworkParams()
 method = VisualisationMethod.RANDOMDIRS
 data = TrainingDataType.SINREGRESSION
-params = LandscapeParams(network, method, data, perspective=False)
+params = LandscapeParams(network, method, data)
 
 landscape = generate_loss_landscape(params)
 lst_directions = (landscape["x_direction"], landscape["y_direction"])

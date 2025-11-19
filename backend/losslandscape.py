@@ -8,7 +8,6 @@ class LandscapeParams:
                  method: VisualisationMethod, 
                  data: TrainingDataType,
                  args=[],
-                 perspective: bool=False,
                  loss=nn.MSELoss(), 
                  training_samples=128,
                  surface_samples=100):
@@ -18,7 +17,6 @@ class LandscapeParams:
         self.loss = loss
         self.args = args
         self.data = data
-        self.perspective = perspective
         self.training_samples = training_samples
         self.surface_samples = surface_samples
 
@@ -27,8 +25,8 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
 
     # Automatically infer input/output dimensions if not provided
     if landscape_params.network.inputs is None or landscape_params.network.outputs is None:
-        landscape_params.network.inputs = data.X.shape[1]
-        landscape_params.network.outputs = data.y.shape[1]
+        landscape_params.network.inputs = data.inputs
+        landscape_params.network.outputs = data.outputs
 
     model = Model(landscape_params.network)
     dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
@@ -68,14 +66,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, perspective
             print_progress_bar(i, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
             for j, b in enumerate(betas):
 
-                if perspective:
-                    norm = (1 + (a*a + b*b).sqrt())
-                    aw = aw / norm
-                    bw = bw / norm
-                else:
-                    aw, bw = a, b
-
-                new_params = params + aw * dir1 + bw * dir2
+                new_params = params + a * dir1 + b * dir2
 
                 # update parameters by copying in new_params manually
                 index = 0
@@ -84,7 +75,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, perspective
                     p.copy_(new_params[index:index + numel].view_as(p))
                     index += numel
 
-                loss_surface[i, j] = loss(model(X), y) / ((1+(aw*aw+bw*bw).sqrt().item()) if perspective else 1.0)
+                loss_surface[i, j] = loss(model(X), y)
     print()
     model.load_state_dict(saved)
     return alphas, betas, loss_surface
