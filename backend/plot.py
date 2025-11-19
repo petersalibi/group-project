@@ -23,7 +23,7 @@ def animate_landscape(landscape, minimiser_path=None):
     ax.set_ylabel('Direction 2')
     ax.set_zlabel('Loss')
 
-    surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis, alpha=0.7)]
+    surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis, alpha=0.9)]
 
     if minimiser_path is not None:
         path = np.array(minimiser_path)
@@ -49,7 +49,7 @@ def animate_landscape(landscape, minimiser_path=None):
 network = NetworkParams()
 method = VisualisationMethod.RANDOMDIRS
 data = TrainingDataType.SINREGRESSION
-params = LandscapeParams(network, method, data)
+params = LandscapeParams(network, method, data, perspective=False)
 
 landscape = generate_loss_landscape(params)
 lst_directions = (landscape["x_direction"], landscape["y_direction"])
@@ -59,7 +59,8 @@ theta_0 = torch.tensor(landscape["theta_0"])
 minimiser_params = MinimiserParams(
     network=network,
     data=data,
-    directions=directions,
+    x_direction=directions[0],
+    y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
     lock_to_plane=True

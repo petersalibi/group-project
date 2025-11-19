@@ -6,8 +6,9 @@ class LandscapeParams:
     def __init__(self, 
                  network: NetworkParams, 
                  method: VisualisationMethod, 
-                 data: TrainingDataType, 
-                 args=[], 
+                 data: TrainingDataType,
+                 args=[],
+                 perspective: bool=False,
                  loss=nn.MSELoss(), 
                  training_samples=128,
                  surface_samples=100):
@@ -17,6 +18,7 @@ class LandscapeParams:
         self.loss = loss
         self.args = args
         self.data = data
+        self.perspective = perspective
         self.training_samples = training_samples
         self.surface_samples = surface_samples
 
@@ -34,7 +36,8 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
     xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
                                                        dir1, dir2,
                                                        landscape_params.loss, 
-                                                       landscape_params.surface_samples)
+                                                       landscape_params.surface_samples,
+                                                       landscape_params.perspective)
 
     return {"surface": loss_surface.tolist(), 
             "x_axis": xAxis.tolist(), 
@@ -43,7 +46,8 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist()}
 
-def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, max_loss=300):
+def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, perspective=False, scale=1):
+
     print_progress_bar(0, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
     # save state (clone tensors so we won't share memory)
@@ -55,6 +59,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, ma
 
     alphas = torch.linspace(-scale, scale, samples)
     betas = torch.linspace(-scale, scale, samples)
+
     loss_surface = torch.zeros(samples, samples)
 
     # Torch.no_grad makes the nn not waste computation by calculating gradients
@@ -62,7 +67,15 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, ma
         for i, a in enumerate(alphas):
             print_progress_bar(i, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
             for j, b in enumerate(betas):
-                new_params = params + a * dir1 + b * dir2
+
+                if perspective:
+                    norm = (1 + (a*a + b*b).sqrt())
+                    aw = aw / norm
+                    bw = bw / norm
+                else:
+                    aw, bw = a, b
+
+                new_params = params + aw * dir1 + bw * dir2
 
                 # update parameters by copying in new_params manually
                 index = 0
@@ -71,7 +84,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, ma
                     p.copy_(new_params[index:index + numel].view_as(p))
                     index += numel
 
-                loss_surface[i, j] = min(loss(model(X), y), max_loss)
+                loss_surface[i, j] = loss(model(X), y) / ((1+(aw*aw+bw*bw).sqrt().item()) if perspective else 1.0)
     print()
     model.load_state_dict(saved)
     return alphas, betas, loss_surface
