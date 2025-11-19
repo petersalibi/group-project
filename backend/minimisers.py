@@ -86,7 +86,7 @@ def animate_optimiser(params: MinimiserParams):
             loss.backward()
             optimiser.step()
 
-            path.append((float(a.item()), float(b.item())))
+            path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
 
         print()
         model.load_state_dict(saved)
