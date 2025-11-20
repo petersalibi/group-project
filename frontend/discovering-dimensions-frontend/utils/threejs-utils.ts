@@ -275,14 +275,18 @@ export function createBall(
  * Creates the ghost objects for placing mode.
  */
 export function createGhostObjects(scene: THREE.Scene, ballRadius: number, color: string) {
-  const ballGeom = new THREE.SphereGeometry(ballRadius, 16, 16);
-  const ballMaterial = new THREE.MeshStandardMaterial({
+  const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+  const ballMaterial = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
     emissive: new THREE.Color(color),
-    emissiveIntensity: 2,
-    toneMapped: false,
+    emissiveIntensity: 0.5,
+    metalness: 0.1,
+    roughness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    reflectivity: 1.0,
   });
-  const ghostBall = new THREE.Mesh(ballGeom, ballMaterial);
+  const ghostBall = new THREE.Mesh(ballGeometry, ballMaterial);
   ghostBall.visible = false;
   scene.add(ghostBall);
 

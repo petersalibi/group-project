@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TextStyle, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Platform, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
   optimisers,
@@ -38,102 +38,158 @@ export function PathConfigControls(props: PathConfigControlsProps) {
   } = props;
 
   const { id, colorName, colorValue, optim, loss, lr, startPoint } = config;
-  const titleStyle: TextStyle = {
-    color: colorValue,
-    fontWeight: 'bold',
-    fontSize: 14,
-  };
 
   return (
-    <View style={[styles.container, { borderColor: colorValue }]}>
-      <Text style={titleStyle}>
+    <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
+      
+      {/* Header: Title */}
+      <Text style={[styles.pathTitle, { color: colorValue }]}>
         Path {id + 1} ({colorName})
       </Text>
 
-        <View style={styles.param}>
-          <Text>Optimiser:</Text>
-          <Picker
-            selectedValue={optim}
-            style={{ height: 28, width: 110 }}
-            onValueChange={(itemValue) =>
-              onConfigChange(id, 'optim', String(itemValue))
-            }
-          >
-            {optimisers.map((o) => (
-              <Picker.Item key={o.id} label={o.label} value={o.value} />
-            ))}
-          </Picker>
+      {/* Parameters Row */}
+      <View style={styles.paramsGrid}>
+        
+        <View style={styles.paramGroup}>
+          <Text style={styles.paramLabel}>Optimiser:</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={optim}
+              style={styles.pickerStyle}
+              onValueChange={(val) => onConfigChange(id, 'optim', String(val))}
+            >
+              {optimisers.map((o) => <Picker.Item key={o.id} label={o.label} value={o.value} />)}
+            </Picker>
+          </View>
         </View>
 
-        <View style={styles.param}>
-          <Text>Loss:</Text>
-          <Picker
-            selectedValue={loss}
-            style={{ height: 28, width: 130 }}
-            onValueChange={(itemValue) => {
-              onConfigChange(id, 'loss', String(itemValue));
-            }}
-          >
-            {losses.map((loss) => (
-              <Picker.Item
-                key={loss.id}
-                label={loss.label}
-                value={loss.value}
-              />
-            ))}
-          </Picker>
+        <View style={styles.paramGroup}>
+          <Text style={styles.paramLabel}>Loss:</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={loss}
+              style={styles.pickerStyle}
+              onValueChange={(val) => onConfigChange(id, 'loss', String(val))}
+            >
+              {losses.map((l) => <Picker.Item key={l.id} label={l.label} value={l.value} />)}
+            </Picker>
+          </View>
         </View>
 
-        <View style={styles.param}>
-          <Text>Learning Rate:</Text>
-          <Picker
-            selectedValue={lr}
-            style={{ height: 28, width: 80 }} // Reduced
-            onValueChange={(itemValue) => {
-              onConfigChange(id, 'lr', Number(itemValue));
-            }}
-          >
-            {lrs.map((lr) => (
-              <Picker.Item key={lr.id} label={lr.label} value={lr.value} />
-            ))}
-          </Picker>
+        <View style={styles.paramGroup}>
+          <Text style={styles.paramLabel}>Learning Rate:</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={lr}
+              style={styles.pickerStyle}
+              onValueChange={(val) => onConfigChange(id, 'lr', Number(val))}
+            >
+              {lrs.map((l) => <Picker.Item key={l.id} label={l.label} value={l.value} />)}
+            </Picker>
+          </View>
         </View>
 
-        <Button
-          title={isPlacing ? 'Cancel' : 'Place Start Point'}
+      </View>
+
+      {/* Footer: Action & Status */}
+      <View style={styles.cardFooter}>
+        <Pressable
           onPress={() => onPlaceStartPoint(id)}
           disabled={isSceneLoading || !isLandscapeLoaded}
-        />
-        <Text style={styles.startPointText}>
+          style={({ pressed }) => [
+            styles.actionButton,
+            { 
+              backgroundColor: isPlacing ? '#8B0000' : '#333', 
+              opacity: pressed || isSceneLoading ? 0.7 : 1 
+            }
+          ]}
+        >
+          <Text style={styles.buttonText}>
+            {isPlacing ? 'Cancel' : 'Place Start Point'}
+          </Text>
+        </Pressable>
+
+        <Text style={styles.coordsText}>
           Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]
         </Text>
       </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  pathCard: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  pathTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  paramsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 4,
-    backgroundColor: '#1c1c1c99',
-    borderRadius: 5,
-    borderWidth: 1,
-    gap: 6,
-    flex: 1,
     flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
   },
-  param: {
+  paramGroup: {
+    flexDirection: 'column',
+    gap: 2,
+    flexGrow: 1,
+    minWidth: '30%',
+  },
+  paramLabel: {
+    color: '#888',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  pickerContainer: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 4,
+    height: 26,
+    justifyContent: 'center',
+  },
+  pickerStyle: {
+    color: '#fff',
+    backgroundColor: '#2a2a2a',
+    height: 26,
+    fontSize: 11,
+    borderWidth: 0,
+    paddingLeft: 4,
+  },
+  cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#90fbffd3',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 5,
+    justifyContent: 'space-between',
+    marginTop: 4,
+    gap: 10,
   },
-  startPointText: {
-    color: '#ffffff',
-    fontSize: 14,
+  actionButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#444',
+    alignItems: 'center',
   },
+  buttonText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  coordsText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  }
 });

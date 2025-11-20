@@ -77,8 +77,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const meshRef = useRef<THREE.Mesh | null>(null);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const clockRef = useRef<THREE.Clock | null>(null);
-  const ghostBallRef = useRef<THREE.Mesh | null>(null);
-  const ghostLineRef = useRef<THREE.Line | null>(null);
+  const markersRef = useRef<{ [id: number]: { ball: THREE.Mesh; line: THREE.Line } }>({});
 
   // --- Refs for Animation Loop ---
   // These refs will mirror the state, so the animate loop can read them
@@ -133,6 +132,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     pathNormalsArrayRef.current = [];
     totalPathPointsArrayRef.current = [];
     path2DArrayRef.current = [];
+    Object.values(markersRef.current).forEach(({ ball, line }) => {
+        disposeObject(ball);
+        disposeObject(line);
+    });
+    markersRef.current = {};
     animationDurationsRef.current = [];
     setIsPathLoaded(false);
     animationTimeRef.current = 0;
@@ -184,6 +188,24 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [pathConfigs], // Depends on pathConfigs for colors
   );
 
+  const getOrCreateMarker = useCallback((id: number) => {
+    if (!sceneRef.current) return null;
+
+    // If it exists, return it
+    if (markersRef.current[id]) {
+      return markersRef.current[id];
+    }
+
+    // Create new if not exists
+    const config = pathConfigs.find(c => c.id === id);
+    const color = config?.colorValue || '#ffffff';
+    
+    const { ghostBall, ghostLine } = createGhostObjects(sceneRef.current, 0.02, color);
+    
+    markersRef.current[id] = { ball: ghostBall, line: ghostLine };
+    return markersRef.current[id];
+  }, [pathConfigs]);
+
   /**
    * Fetches and renders all configured paths.
    */
@@ -193,6 +215,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     setIsLandscapeLoaded(false);
     setIsPathLoading(true);
+    // === NEW: Clear all markers on generation ===
+    Object.values(markersRef.current).forEach(({ ball, line }) => {
+        ball.visible = false;
+        line.visible = false;
+    });
     handleRemoveAllPaths();
     setIsPlaying(true);
 
@@ -315,75 +342,90 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   // --- Event Handlers ---
 
   const handleCanvasMouseMove = useCallback((event: MouseEvent) => {
-    const { renderer, camera, mesh, ghostBall, ghostLine, raycaster } = {
-      renderer: rendererRef.current,
-      camera: cameraRef.current,
-      mesh: meshRef.current,
-      ghostBall: ghostBallRef.current,
-      ghostLine: ghostLineRef.current,
-      raycaster: raycasterRef.current,
-    };
-    if (!renderer || !camera || !mesh || !ghostBall || !ghostLine || !raycaster)
+    if (!rendererRef.current || !cameraRef.current || !meshRef.current || !raycasterRef.current || placingPathId === null)
       return;
 
-    const rect = renderer.domElement.getBoundingClientRect();
+    const marker = getOrCreateMarker(placingPathId);
+    if (!marker) return;
+    const { ball, line } = marker;
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
     MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(MOUSE_VECTOR, camera);
+    raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
 
-    const intersects = raycaster.intersectObject(mesh);
+    const intersects = raycasterRef.current.intersectObject(meshRef.current);
     if (intersects.length > 0) {
       const hit = intersects[0];
-      ghostBall.visible = true;
-      ghostLine.visible = true;
+      
+      ball.visible = true;
+      line.visible = true;
+      
       TEMP_HIT_VECTOR.copy(hit.point).add(LINE_TOP_OFFSET);
-      ghostBall.position.copy(TEMP_HIT_VECTOR);
-      (ghostLine.geometry as THREE.BufferGeometry).setFromPoints([
+      ball.position.copy(TEMP_HIT_VECTOR);
+      
+      (line.geometry as THREE.BufferGeometry).setFromPoints([
         hit.point,
         TEMP_HIT_VECTOR,
       ]);
-      ghostLine.computeLineDistances();
+      line.computeLineDistances();
     } else {
-      ghostLine.visible = false;
-      const hitPlane = raycaster.ray.intersectPlane(
+      line.visible = false;
+
+      const hitPlane = raycasterRef.current.ray.intersectPlane(
         VIRTUAL_GROUND_PLANE,
         TEMP_HIT_VECTOR,
       );
+
       if (hitPlane) {
-        ghostBall.visible = true;
-        ghostBall.position.copy(TEMP_HIT_VECTOR).add(LINE_TOP_OFFSET);
+        ball.visible = true;
+        ball.position.copy(TEMP_HIT_VECTOR).add(LINE_TOP_OFFSET);
       } else {
-        ghostBall.visible = false;
+        ball.visible = false;
       }
     }
-  }, []);
+  }, [placingPathId, getOrCreateMarker]);
 
   const handleCanvasClick = useCallback(
     (event: MouseEvent) => {
-      const { renderer, camera, mesh, raycaster } = {
-        renderer: rendererRef.current,
-        camera: cameraRef.current,
-        mesh: meshRef.current,
-        raycaster: raycasterRef.current,
-      };
-      if (!renderer || !camera || !mesh || !raycaster || placingPathId === null)
+      if (!rendererRef.current || !cameraRef.current || !meshRef.current || !raycasterRef.current || placingPathId === null)
         return;
 
-      const rect = renderer.domElement.getBoundingClientRect();
+      // Get the marker for the CURRENT placing ID
+      const marker = getOrCreateMarker(placingPathId);
+      if (!marker) return;
+
+      const rect = rendererRef.current.domElement.getBoundingClientRect();
       MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(MOUSE_VECTOR, camera);
+      raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
 
-      const intersects = raycaster.intersectObject(mesh);
+      const intersects = raycasterRef.current.intersectObject(meshRef.current);
       if (intersects.length > 0) {
         const hit = intersects[0];
         const newStartPoint: [number, number] = [hit.point.x, -hit.point.z];
         onPathConfigChange(placingPathId, 'startPoint', newStartPoint);
+
+        // Make the ghost line solid for THIS path
+        const mat = marker.line.material as THREE.LineDashedMaterial;
+        mat.dashSize = 1000;
+        mat.gapSize = 0;
+        
+        // Snap line to exact click point
+        const lineGeo = marker.line.geometry as THREE.BufferGeometry;
+        const positions = lineGeo.attributes.position.array as Float32Array;
+        const topPt = hit.point.clone().add(new THREE.Vector3(0, 0.2, 0));
+        positions[0] = hit.point.x; positions[1] = hit.point.y; positions[2] = hit.point.z;
+        positions[3] = topPt.x; positions[4] = topPt.y; positions[5] = topPt.z;
+        lineGeo.attributes.position.needsUpdate = true;
+        marker.line.computeLineDistances();
       }
+      
+      // Exit placing mode
       setIsPlacingMode(false);
       setPlacingPathId(null);
     },
-    [placingPathId, onPathConfigChange],
+    [placingPathId, onPathConfigChange, getOrCreateMarker],
   );
 
   const handleLoadLandscapeButtonClick = useCallback(
@@ -556,32 +598,22 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     if (!canvas) return;
 
     if (isPlacingMode && placingPathId !== null) {
-      // Get color for the path being placed
-      const color = pathConfigs[placingPathId]?.colorValue || '#FFFFFF';
-
-      // Dispose old ghost objects
-      disposeObject(ghostBallRef.current);
-      disposeObject(ghostLineRef.current);
+      const marker = getOrCreateMarker(placingPathId);
       
-      if (sceneRef.current) {
-        const ballRadius =
-          (ballsRef.current[0]?.geometry as any)?.parameters?.radius || 0.01;
-        const { ghostBall, ghostLine } = createGhostObjects(
-          sceneRef.current,
-          ballRadius,
-          color,
-        );
-        ghostBallRef.current = ghostBall;
-        ghostLineRef.current = ghostLine;
+      if (marker && sceneRef.current) {
+        // Reset to Dashed
+        const mat = marker.line.material as THREE.LineDashedMaterial;
+        mat.dashSize = 0.01;
+        mat.gapSize = 0.01;
+        
+        marker.ball.visible = false;
+        marker.line.visible = false;
       }
-      
+
       canvas.addEventListener('mousemove', handleCanvasMouseMove);
       canvas.addEventListener('click', handleCanvasClick);
       canvas.style.cursor = 'none';
     } else {
-      // Cleanup
-      if (ghostBallRef.current) ghostBallRef.current.visible = false;
-      if (ghostLineRef.current) ghostLineRef.current.visible = false;
       canvas.style.cursor = 'auto';
     }
 
@@ -590,7 +622,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       canvas.removeEventListener('click', handleCanvasClick);
       canvas.style.cursor = 'auto';
     };
-  }, [isPlacingMode, placingPathId, pathConfigs, handleCanvasMouseMove, handleCanvasClick]);
+  }, [isPlacingMode, placingPathId, getOrCreateMarker, handleCanvasMouseMove, handleCanvasClick]);
 
   // --- Return values ---
   return {

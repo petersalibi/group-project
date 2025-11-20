@@ -8,7 +8,7 @@ import { LandscapeControls } from '@/components/landscape-controls';
 import { AnimationControls } from '@/components/animation-controls';
 import { PathConfigControls, PathConfig } from '@/components/path-config-controls';
 import NetworkVis from '@/components/network-vis';
-import { PATH_COLORS, datasetFeatures } from '@/constants/landscapeParams';
+import { PATH_COLORS, datasetFeatures, datasetOutputs } from '@/constants/landscapeParams';
 
 // Helper to create a default config for a new path
 const createDefaultPathConfig = (id: number): PathConfig => {
@@ -30,6 +30,7 @@ export default function LandscapeWithPath() {
   const [inputs, setInputs] = useState<number>(1);
   const [depth, setDepth] = useState<number>(2);
   const [width, setWidth] = useState<number>(10);
+  const [outputs, setOutputs] = useState<number>(1);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
   const [loss, setLoss] = useState<string>('MSELoss');
@@ -45,6 +46,7 @@ export default function LandscapeWithPath() {
 
   useEffect(() => {
     setInputs(datasetFeatures[data] || 1);
+    setOutputs(datasetOutputs[data] || 1);
   }, [data]);
 
   useEffect(() => {
@@ -139,7 +141,7 @@ export default function LandscapeWithPath() {
 
         {/* === Network Visualisation === */}
         <View style={{ height: 400, width: '100%' }}>
-          <NetworkVis inputCount={inputs} depth={depth} width={width} activation={activation} />
+          <NetworkVis inputCount={inputs} depth={depth} width={width} activation={activation} outputCount={outputs} />
         </View>
         
         {/* TOP BAR: Landscape Controls */}
@@ -202,7 +204,7 @@ export default function LandscapeWithPath() {
                   <Text style={styles.headerText}>Configuration</Text>
                   
                   <View style={styles.row}>
-                    <Text style={{ color: '#eee', fontSize: 12 }}>Count:</Text>
+                    <Text style={{ color: '#eee', fontSize: 12 }}>Number of Paths:</Text>
                     <Picker
                       selectedValue={numPaths}
                       style={{ height: 28, width: 60, backgroundColor: '#eee' }}

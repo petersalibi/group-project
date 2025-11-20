@@ -32,6 +32,11 @@ export const datasetFeatures: Record<string, number> = {
     'PENGUINS': 8,
 };
 
+export const datasetOutputs: Record<string, number> = {
+    'SINREGRESSION': 1,
+    'PENGUINS': 3,
+};
+
 export const optimisers = [
   { id: 1, label: 'SGD', value: 'SGD' },
   { id: 2, label: 'Adam', value: 'Adam' },

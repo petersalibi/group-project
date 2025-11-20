@@ -7,6 +7,7 @@ interface NetworkVisProps {
   depth: number;
   width: number;
   activation: string;
+  outputCount: number;
 }
 
 interface NodeData {
@@ -42,7 +43,7 @@ const getActivationPath = (type: string) => {
   }
 };
 
-export default function NetworkVis({ inputCount, depth, width, activation }: NetworkVisProps) {
+export default function NetworkVis({ inputCount, depth, width, activation, outputCount }: NetworkVisProps) {
   const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
   
   // The nodes currently being rendered
@@ -61,7 +62,6 @@ export default function NetworkVis({ inputCount, depth, width, activation }: Net
     if (dimensions.w === 0 || dimensions.h === 0) return [];
 
     const { w, h } = dimensions;
-    const outputCount = 1;
     const totalLayers = 1 + depth + 1; // Input + Hidden + Output
     
     const paddingX = 40;
@@ -87,10 +87,12 @@ export default function NetworkVis({ inputCount, depth, width, activation }: Net
     }
 
     // Output Layer
-    nodes.push({ id: `out`, x: getX(depth + 1), y: getY(0, outputCount), type: 'output', label: '', opacity: 1 });
+    for (let i = 0; i < outputCount; i++) {
+      nodes.push({ id: `out-${i}`, x: getX(depth + 1), y: getY(i, outputCount), type: 'output', label: '', opacity: 1 });
+    }
 
     return nodes;
-  }, [depth, width, inputCount, dimensions]);
+  }, [depth, width, inputCount, outputCount, dimensions]);
 
   // Animation Loop: Interpolate from Prev Layout to Target Layout
   useEffect(() => {
