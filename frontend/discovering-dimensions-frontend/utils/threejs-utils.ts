@@ -209,8 +209,13 @@ export function createOrUpdatePathLine(
   const lineGeometry = new LineGeometry();
   lineGeometry.setPositions(positions);
   const lineMaterial = new LineMaterial({
-    color: new THREE.Color(color),
-    linewidth: 3,
+    color: new THREE.Color(color).getHex(),
+    linewidth: 5,
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false, // Prevents z-fighting with the terrain
+    toneMapped: false,
   }) as any;
   lineMaterial.resolution = new THREE.Vector2(
     window.innerWidth,
@@ -218,6 +223,7 @@ export function createOrUpdatePathLine(
   );
   const line2 = new Line2(lineGeometry as any, lineMaterial);
   (line2.geometry as any).instanceCount = 0;
+  line2.renderOrder = 1;
   scene.add(line2);
   return line2;
 }
@@ -239,17 +245,22 @@ export function createBall(
   mesh.geometry.boundingBox!.getSize(TEMP_BBOX_SIZE);
   const geoWidth = TEMP_BBOX_SIZE.x || 1;
   const geoHeight = TEMP_BBOX_SIZE.z || 1;
-  const ballRadius = Math.hypot(geoWidth, geoHeight) * 0.005;
+  const ballRadius = Math.hypot(geoWidth, geoHeight) * 0.01;
 
-  const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
-  const ballMaterial = new THREE.MeshStandardMaterial({
+  const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+  const ballMaterial = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
     emissive: new THREE.Color(color),
-    emissiveIntensity: 2,
-    toneMapped: false,
+    emissiveIntensity: 0.5,
+    metalness: 0.1,
+    roughness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    reflectivity: 1.0,
   });
   const ball = new THREE.Mesh(ballGeometry, ballMaterial);
   ball.castShadow = true;
+  ball.receiveShadow = true;
 
   if (pathPoints.length > 0 && pathNormals.length > 0) {
     TEMP_BALL_OFFSET.copy(pathNormals[0]).multiplyScalar(ballRadius);

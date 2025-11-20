@@ -278,11 +278,8 @@ const styles = StyleSheet.create({
   },
   topBar: {
     backgroundColor: '#1c1c1c',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
     zIndex: 30,
     flexGrow: 0,
-    padding: 5,
   },
   sidebar: {
     width: 280,
