@@ -92,6 +92,7 @@ export default function TabLayout() {
             width: '100%',
             flexDirection: 'row',
             borderBottomWidth: 1,
+            borderBottomColor: '#888888ff',
             gap: 16,
             maxHeight: 56,
             position: 'sticky',
