@@ -55,7 +55,7 @@ export default function LandscapeWithPath() {
   const [outputs, setOutputs] = useState<number>(1);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
-  const [loss, setLoss] = useState<string>('MSELoss');
+  const [loss] = useState<string>('MSELoss');
   const [pathControlsVisible, setPathControlsVisible] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
