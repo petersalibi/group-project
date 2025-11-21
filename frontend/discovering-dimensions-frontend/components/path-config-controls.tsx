@@ -123,10 +123,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
     borderLeftWidth: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
+    boxShadow: '0px 2px 2px rgba(0,0,0,0.3)',
   },
   pathTitle: {
     fontSize: 13,
