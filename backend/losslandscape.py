@@ -1,6 +1,6 @@
-from network import *
-from directions import *
-from utils import *
+from network import TrainingDataType, TrainingData, NetworkParams, Model
+from directions import VisualisationMethod, get_directions, nn, torch
+from utils import print_progress_bar, flatten_params
 
 class LandscapeParams:
     def __init__(self, 

@@ -2,8 +2,10 @@ from __future__ import annotations
 import numpy as np
 from matplotlib import cm
 from matplotlib.animation import FuncAnimation
-from losslandscape import *
-from minimisers import *
+from losslandscape import generate_loss_landscape, LandscapeParams, VisualisationMethod, TrainingDataType
+from minimisers import animate_optimiser, MinimiserParams
+from network import NetworkParams
+import torch
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
@@ -59,7 +61,8 @@ theta_0 = torch.tensor(landscape["theta_0"])
 minimiser_params = MinimiserParams(
     network=network,
     data=data,
-    directions=directions,
+    x_direction=directions[0],
+    y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
     lock_to_plane=True

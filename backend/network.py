@@ -26,9 +26,9 @@ class TrainingData:
                 df = pd.read_csv(url).dropna()
             
                 X = df[['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']].values
-                self.y = df['species'].astype('category').cat.codes.values
+                y = df['species'].astype('category').cat.codes.values
                 self.X = torch.tensor(X, dtype=torch.float32)
-                self.y = torch.tensor(self.y, dtype=torch.long).unsqueeze(1)
+                self.y = torch.tensor(y, dtype=torch.long).unsqueeze(1)
 
             case _:
                 raise ValueError("Training Data Type Not Found!")

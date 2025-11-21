@@ -40,7 +40,7 @@ def get_two_parameter_directions(model, args):
         for p in model.parameters():
             d = torch.zeros_like(p)
 
-            if p is first_linear.weight:
+            if first_linear and p is first_linear.weight:
                 d[:, target_idx] = 1.0
 
             direction.append(d)
