@@ -523,6 +523,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       if (id === null || id === placingPathId) {
         // Cancel placing
         setIsPlacingMode(false);
+        // Destroy the marker for this path
+        if (placingPathId !== null && markersRef.current[placingPathId]) {
+          const { ball, line } = markersRef.current[placingPathId];
+          disposeObject(ball);
+          disposeObject(line);
+          delete markersRef.current[placingPathId];
+        }
         setPlacingPathId(null);
       } else {
         // Start placing for a new path
