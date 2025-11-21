@@ -1,8 +1,22 @@
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
+import Markdown from 'react-native-markdown-display';
 
-export default function HelpScreen() {
+const content = `
+# Curriculum
+
+Here you can find the curriculum content for Discovering Dimensions.
+
+## Chapters
+
+1. Beginner
+2. Intermediate
+3. Advanced
+
+`;
+
+export default function CurriculumScreen() {
   return (
     <ThemedBackground style={{ flex: 1, alignItems: 'center' }}>
       <ThemedView
@@ -13,18 +27,9 @@ export default function HelpScreen() {
           borderRadius: 10,
         }}
       >
-        <ThemedView style={{ marginBottom: 10 }}>
-          <ThemedText
-            style={{ fontWeight: '700', fontSize: 40, textAlign: 'center' }}
-          >
-            Curriculum
-          </ThemedText>
-        </ThemedView>
-        <ThemedView style={{ marginTop: 10 }}>
-          <ThemedText>
-            Here you can find the curriculum content for Discovering Dimensions.
-          </ThemedText>
-        </ThemedView>
+        <ThemedText style={{ fontSize: 16, lineHeight: 24 }}>
+          <Markdown>{content}</Markdown>
+        </ThemedText>
       </ThemedView>
     </ThemedBackground>
   );
