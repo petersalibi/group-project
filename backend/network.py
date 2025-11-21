@@ -72,17 +72,23 @@ class Model(nn.Module):
     def __init__(self, params: NetworkParams, inputs, outputs):
         super(Model, self).__init__()
 
-        layers = nn.Sequential(
-            nn.Linear(inputs, params.width),
-            params.activation,
-            nn.Linear(params.width, outputs)
-        )
+        if params.depth == 1:
+            layers = nn.Sequential(
+                nn.Linear(inputs, outputs)
+            )
+            self.net = layers
+        else:
+            layers = nn.Sequential(
+                nn.Linear(inputs, params.width),
+                params.activation,
+                nn.Linear(params.width, outputs)
+            )
 
-        for _ in range(params.depth-1):
-            layers.insert(1, nn.Linear(params.width, params.width))
-            layers.insert(1, params.activation)
-        
-        self.net = layers
+            for _ in range(params.depth-1):
+                layers.insert(1, nn.Linear(params.width, params.width))
+                layers.insert(1, params.activation)
+            
+            self.net = layers
 
     def forward(self, x):
         return self.net(x)

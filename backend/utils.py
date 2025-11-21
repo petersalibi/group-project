@@ -7,6 +7,7 @@ def parse_loss(loss: str):
     loss_mapping = {
         "MSELoss": nn.MSELoss(),
         "CrossEntropyLoss": nn.CrossEntropyLoss(),
+        "BCELoss": nn.BCEWithLogitsLoss(), # WITH LOGITS - to apply sigmoid internally for prob. distributions
         "L1Loss": nn.L1Loss()
     }
 

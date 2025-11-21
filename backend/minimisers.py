@@ -43,6 +43,9 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
 def animate_optimiser(params: MinimiserParams):
     
     data = TrainingData(params.data)
+    if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
+        if data.y.ndim == 1:
+            data.y = data.y.view(-1, 1).float()
     model = Model(params.network, data.inputs, data.outputs)
 
     dir1, dir2 = params.directions

@@ -46,10 +46,12 @@ def animate_landscape(landscape, minimiser_path=None):
     plt.show()
     return ani
 
-network = NetworkParams()
+loss = nn.BCEWithLogitsLoss()
+
+network = NetworkParams(depth=1, activation=nn.Tanh(), width=0)
 method = VisualisationMethod.FILTERNORM
-data = TrainingDataType.SINREGRESSION
-params = LandscapeParams(network, method, data, loss=nn.MSELoss())
+data = TrainingDataType.PURPLECOLOURS
+params = LandscapeParams(network, method, data, loss=loss)
 
 landscape = generate_loss_landscape(params, verbose=True)
 lst_directions = (landscape["x_direction"], landscape["y_direction"])
@@ -63,7 +65,7 @@ minimiser_params = MinimiserParams(
     y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
-    loss=nn.MSELoss(),
+    loss=loss,
     lock_to_plane=True
 )
 

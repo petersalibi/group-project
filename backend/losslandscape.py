@@ -64,6 +64,10 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, ve
 
     model_jit = torch.jit.trace(model, X)
     new_params = torch.empty_like(base_params)
+
+    if isinstance(loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
+        if y.ndim == 1:
+            y = y.view(-1, 1).float()
     
     for i, a in enumerate(alphas):
         if verbose:
