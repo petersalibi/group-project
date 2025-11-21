@@ -25,6 +25,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const systemScheme = useColorScheme();
   const [theme, setTheme] = useState<Theme>(systemScheme ?? 'light');
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load stored theme preference
   useEffect(() => {
@@ -35,14 +36,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       } else if (systemScheme) {
         setTheme(systemScheme);
       }
+      setIsLoaded(true);
     };
     loadTheme();
   }, [systemScheme]);
 
   // Persist theme on change
   useEffect(() => {
+    if (!isLoaded) return; // Avoid saving before initial load
+    console.log('Saving theme:', theme);
     AsyncStorage.setItem('appTheme', theme);
-  }, [theme]);
+  }, [theme, isLoaded]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
