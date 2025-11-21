@@ -49,9 +49,10 @@ def animate_landscape(landscape, minimiser_path=None):
 loss = nn.BCEWithLogitsLoss()
 
 network = NetworkParams(depth=1, activation=nn.Tanh(), width=0)
-method = VisualisationMethod.FILTERNORM
+method = VisualisationMethod.TWOPARAMETERS
+args = [0, 1]
 data = TrainingDataType.PURPLECOLOURS
-params = LandscapeParams(network, method, data, loss=loss)
+params = LandscapeParams(network, method, data, args=args, loss=loss)
 
 landscape = generate_loss_landscape(params, verbose=True)
 lst_directions = (landscape["x_direction"], landscape["y_direction"])

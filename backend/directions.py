@@ -41,12 +41,13 @@ def get_two_parameter_directions(model, args):
             d = torch.zeros_like(p)
 
             if p is first_linear.weight:
-                d[:, target_idx] = first_linear.weight[:, target_idx].clone()
+                d[:, target_idx] = 1.0
 
             direction.append(d)
 
         dirs.append(direction)
 
+    print("Two Parameter Directions Selected:", dirs[0], dirs[1])
     return dirs[0], dirs[1]
 
 def get_random_directions(model):
