@@ -26,6 +26,7 @@ const MAPPING = {
   'gearshape.fill': 'settings',
   'sun.max.fill': 'wb-sunny',
   'moon.fill': 'nights-stay',
+  'book.fill': 'book',
 } as IconMapping;
 
 /**

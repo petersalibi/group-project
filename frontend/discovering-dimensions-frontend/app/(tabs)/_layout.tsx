@@ -129,14 +129,19 @@ export default function TabLayout() {
           {/* Navigation links */}
           <header style={{ display: 'flex', gap: 20 }}>
             <HoverableTab
+              href='/curriculum'
+              label='Curriculum'
+              disabled={pathname === '/curriculum'}
+            />
+            <HoverableTab
               href='/landscape'
               label='Loss landscape'
               disabled={pathname === '/landscape'}
             />
             <HoverableTab
-              href='/how-to'
-              label='How-to'
-              disabled={pathname === '/how-to'}
+              href='/help'
+              label='Help'
+              disabled={pathname === '/help'}
             />
             <HoverableTab
               href='/about'
@@ -173,8 +178,9 @@ export default function TabLayout() {
           }}
         >
           <Tabs.Screen name='index' options={{ title: 'Home' }} />
+          <Tabs.Screen name='curriculum' options={{ title: 'Curriculum' }} />
           <Tabs.Screen name='landscape' options={{ title: 'Loss landscape' }} />
-          <Tabs.Screen name='neural-flow' options={{ title: 'Neural flow' }} />
+          <Tabs.Screen name='help' options={{ title: 'Help' }} />
           <Tabs.Screen name='about' options={{ title: 'About' }} />
         </Tabs>
       </>
@@ -194,6 +200,15 @@ export default function TabLayout() {
             title: 'Home',
             tabBarIcon: ({ color }) => (
               <IconSymbol size={28} name='house.fill' color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='curriculum'
+          options={{
+            title: 'Curriculum',
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name='book.fill' color={color} />
             ),
           }}
         />

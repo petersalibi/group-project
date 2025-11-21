@@ -13,8 +13,9 @@ export default function RootLayout() {
   const path: string = usePathname();
   const titleMap: { [key: string]: string } = {
     '/': 'Home',
+    '/curriculum': 'Curriculum',
     '/landscape': 'Landscape Viewer',
-    '/neural-flow': 'Neural Net Viewer',
+    '/help': 'Help',
     '/about': 'About',
     '/settings': 'Settings',
   };
