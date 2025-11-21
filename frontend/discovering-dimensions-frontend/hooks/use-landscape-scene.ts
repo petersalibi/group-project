@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -68,7 +68,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
-  
+
   // --- Three.js refs ---
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -77,7 +77,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const meshRef = useRef<THREE.Mesh | null>(null);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const clockRef = useRef<THREE.Clock | null>(null);
-  const markersRef = useRef<{ [id: number]: { ball: THREE.Mesh; line: THREE.Line } }>({});
+  const markersRef = useRef<{
+    [id: number]: { ball: THREE.Mesh; line: THREE.Line };
+  }>({});
 
   // --- Refs for Animation Loop ---
   // These refs will mirror the state, so the animate loop can read them
@@ -133,8 +135,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     totalPathPointsArrayRef.current = [];
     path2DArrayRef.current = [];
     Object.values(markersRef.current).forEach(({ ball, line }) => {
-        disposeObject(ball);
-        disposeObject(line);
+      disposeObject(ball);
+      disposeObject(line);
     });
     markersRef.current = {};
     animationDurationsRef.current = [];
@@ -188,23 +190,30 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [pathConfigs], // Depends on pathConfigs for colors
   );
 
-  const getOrCreateMarker = useCallback((id: number) => {
-    if (!sceneRef.current) return null;
+  const getOrCreateMarker = useCallback(
+    (id: number) => {
+      if (!sceneRef.current) return null;
 
-    // If it exists, return it
-    if (markersRef.current[id]) {
+      // If it exists, return it
+      if (markersRef.current[id]) {
+        return markersRef.current[id];
+      }
+
+      // Create new if not exists
+      const config = pathConfigs.find((c) => c.id === id);
+      const color = config?.colorValue || '#ffffff';
+
+      const { ghostBall, ghostLine } = createGhostObjects(
+        sceneRef.current,
+        0.02,
+        color,
+      );
+
+      markersRef.current[id] = { ball: ghostBall, line: ghostLine };
       return markersRef.current[id];
-    }
-
-    // Create new if not exists
-    const config = pathConfigs.find(c => c.id === id);
-    const color = config?.colorValue || '#ffffff';
-    
-    const { ghostBall, ghostLine } = createGhostObjects(sceneRef.current, 0.02, color);
-    
-    markersRef.current[id] = { ball: ghostBall, line: ghostLine };
-    return markersRef.current[id];
-  }, [pathConfigs]);
+    },
+    [pathConfigs],
+  );
 
   /**
    * Fetches and renders all configured paths.
@@ -217,8 +226,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     setIsPathLoading(true);
     // === NEW: Clear all markers on generation ===
     Object.values(markersRef.current).forEach(({ ball, line }) => {
-        ball.visible = false;
-        line.visible = false;
+      ball.visible = false;
+      line.visible = false;
     });
     handleRemoveAllPaths();
     setIsPlaying(true);
@@ -256,7 +265,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           (p: number[]) => new THREE.Vector2(p[0], p[1]),
         );
         const curve2D = new THREE.SplineCurve(twoDPoints);
-        path2DArrayRef.current[index] = curve2D.getSpacedPoints(500).map((p) => {
+        path2DArrayRef.current[index] = curve2D
+          .getSpacedPoints(500)
+          .map((p) => {
             p.x = Math.max(-1, Math.min(1, p.x));
             p.y = Math.max(-1, Math.min(1, p.y));
             return p;
@@ -272,7 +283,6 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       if (clockRef.current && !clockRef.current.running) {
         clockRef.current.start();
       }
-
     } catch (err) {
       console.error('Failed to load one or more paths:', err);
       setIsPathLoaded(false);
@@ -337,58 +347,82 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     } finally {
       setIsLandscapeLoading(false);
     }
-  }, [activation, depth, width, method, data, loss, zValue, handleRemoveAllPaths]);
+  }, [
+    activation,
+    depth,
+    width,
+    method,
+    data,
+    loss,
+    zValue,
+    handleRemoveAllPaths,
+  ]);
 
   // --- Event Handlers ---
 
-  const handleCanvasMouseMove = useCallback((event: MouseEvent) => {
-    if (!rendererRef.current || !cameraRef.current || !meshRef.current || !raycasterRef.current || placingPathId === null)
-      return;
+  const handleCanvasMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (
+        !rendererRef.current ||
+        !cameraRef.current ||
+        !meshRef.current ||
+        !raycasterRef.current ||
+        placingPathId === null
+      )
+        return;
 
-    const marker = getOrCreateMarker(placingPathId);
-    if (!marker) return;
-    const { ball, line } = marker;
+      const marker = getOrCreateMarker(placingPathId);
+      if (!marker) return;
+      const { ball, line } = marker;
 
-    const rect = rendererRef.current.domElement.getBoundingClientRect();
-    MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
+      const rect = rendererRef.current.domElement.getBoundingClientRect();
+      MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
 
-    const intersects = raycasterRef.current.intersectObject(meshRef.current);
-    if (intersects.length > 0) {
-      const hit = intersects[0];
-      
-      ball.visible = true;
-      line.visible = true;
-      
-      TEMP_HIT_VECTOR.copy(hit.point).add(LINE_TOP_OFFSET);
-      ball.position.copy(TEMP_HIT_VECTOR);
-      
-      (line.geometry as THREE.BufferGeometry).setFromPoints([
-        hit.point,
-        TEMP_HIT_VECTOR,
-      ]);
-      line.computeLineDistances();
-    } else {
-      line.visible = false;
+      const intersects = raycasterRef.current.intersectObject(meshRef.current);
+      if (intersects.length > 0) {
+        const hit = intersects[0];
 
-      const hitPlane = raycasterRef.current.ray.intersectPlane(
-        VIRTUAL_GROUND_PLANE,
-        TEMP_HIT_VECTOR,
-      );
-
-      if (hitPlane) {
         ball.visible = true;
-        ball.position.copy(TEMP_HIT_VECTOR).add(LINE_TOP_OFFSET);
+        line.visible = true;
+
+        TEMP_HIT_VECTOR.copy(hit.point).add(LINE_TOP_OFFSET);
+        ball.position.copy(TEMP_HIT_VECTOR);
+
+        (line.geometry as THREE.BufferGeometry).setFromPoints([
+          hit.point,
+          TEMP_HIT_VECTOR,
+        ]);
+        line.computeLineDistances();
       } else {
-        ball.visible = false;
+        line.visible = false;
+
+        const hitPlane = raycasterRef.current.ray.intersectPlane(
+          VIRTUAL_GROUND_PLANE,
+          TEMP_HIT_VECTOR,
+        );
+
+        if (hitPlane) {
+          ball.visible = true;
+          ball.position.copy(TEMP_HIT_VECTOR).add(LINE_TOP_OFFSET);
+        } else {
+          ball.visible = false;
+        }
       }
-    }
-  }, [placingPathId, getOrCreateMarker]);
+    },
+    [placingPathId, getOrCreateMarker],
+  );
 
   const handleCanvasClick = useCallback(
     (event: MouseEvent) => {
-      if (!rendererRef.current || !cameraRef.current || !meshRef.current || !raycasterRef.current || placingPathId === null)
+      if (
+        !rendererRef.current ||
+        !cameraRef.current ||
+        !meshRef.current ||
+        !raycasterRef.current ||
+        placingPathId === null
+      )
         return;
 
       // Get the marker for the CURRENT placing ID
@@ -410,17 +444,21 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         const mat = marker.line.material as THREE.LineDashedMaterial;
         mat.dashSize = 1000;
         mat.gapSize = 0;
-        
+
         // Snap line to exact click point
         const lineGeo = marker.line.geometry as THREE.BufferGeometry;
         const positions = lineGeo.attributes.position.array as Float32Array;
         const topPt = hit.point.clone().add(new THREE.Vector3(0, 0.2, 0));
-        positions[0] = hit.point.x; positions[1] = hit.point.y; positions[2] = hit.point.z;
-        positions[3] = topPt.x; positions[4] = topPt.y; positions[5] = topPt.z;
+        positions[0] = hit.point.x;
+        positions[1] = hit.point.y;
+        positions[2] = hit.point.z;
+        positions[3] = topPt.x;
+        positions[4] = topPt.y;
+        positions[5] = topPt.z;
         lineGeo.attributes.position.needsUpdate = true;
         marker.line.computeLineDistances();
       }
-      
+
       // Exit placing mode
       setIsPlacingMode(false);
       setPlacingPathId(null);
@@ -464,7 +502,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       window.clearTimeout((handleZChange as any).__debounce);
       (handleZChange as any).__debounce = window.setTimeout(() => {
         if (!meshRef.current || !isPathLoaded) return;
-        
+
         // Update all loaded paths
         for (let i = 0; i < path2DArrayRef.current.length; i++) {
           if (path2DArrayRef.current[i] && pathLinesRef.current[i]) {
@@ -515,11 +553,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       controls.update();
       renderer.render(scene, camera);
 
-			if (!isPlayingRef.current || !isPathLoadedRef.current) {
+      if (!isPlayingRef.current || !isPathLoadedRef.current) {
         return;
       }
-      
-      const delta = clock.getDelta(); 
+
+      const delta = clock.getDelta();
       animationTimeRef.current += delta;
       const elapsedTime = animationTimeRef.current;
 
@@ -531,12 +569,16 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         const pts = pathPointsArrayRef.current[i];
         const norms = pathNormalsArrayRef.current[i];
 
-        if (!pathLine || !ball || !animationDuration || !pts || !norms) continue;
+        if (!pathLine || !ball || !animationDuration || !pts || !norms)
+          continue;
 
         // Calculate this path's individual progress, stopping at 1.0
-        const pathProgress = (elapsedTime / animationDuration);
-        if (pathProgress > 1.0 && animationDuration >= Math.max(...animationDurationsRef.current)) {
-          if (animationDuration >= Math.max(...animationDurationsRef.current)){
+        const pathProgress = elapsedTime / animationDuration;
+        if (
+          pathProgress > 1.0 &&
+          animationDuration >= Math.max(...animationDurationsRef.current)
+        ) {
+          if (animationDuration >= Math.max(...animationDurationsRef.current)) {
             setIsPlaying(false);
             animationTimeRef.current = 0;
           }
@@ -575,9 +617,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     const onResize = () => {
       if (!cameraRef.current || !rendererRef.current) return;
       // Handle resize for all lines
-      pathLinesRef.current.forEach(line => {
+      pathLinesRef.current.forEach((line) => {
         handleResize(camera, renderer, line);
-      })
+      });
       // Handle case where no lines exist yet
       if (pathLinesRef.current.length === 0) {
         handleResize(camera, renderer, null);
@@ -599,13 +641,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     if (isPlacingMode && placingPathId !== null) {
       const marker = getOrCreateMarker(placingPathId);
-      
+
       if (marker && sceneRef.current) {
         // Reset to Dashed
         const mat = marker.line.material as THREE.LineDashedMaterial;
         mat.dashSize = 0.01;
         mat.gapSize = 0.01;
-        
+
         marker.ball.visible = false;
         marker.line.visible = false;
       }
@@ -622,7 +664,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       canvas.removeEventListener('click', handleCanvasClick);
       canvas.style.cursor = 'auto';
     };
-  }, [isPlacingMode, placingPathId, getOrCreateMarker, handleCanvasMouseMove, handleCanvasClick]);
+  }, [
+    isPlacingMode,
+    placingPathId,
+    getOrCreateMarker,
+    handleCanvasMouseMove,
+    handleCanvasClick,
+  ]);
 
   // --- Return values ---
   return {

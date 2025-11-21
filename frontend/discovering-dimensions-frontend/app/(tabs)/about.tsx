@@ -4,7 +4,6 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
 
 export default function About() {
   return (
@@ -21,11 +20,7 @@ export default function About() {
     >
       <ThemedView style={styles.contentContainer}>
         <View style={styles.titleContainer}>
-          <ThemedText
-            type='title'
-          >
-            About Us
-          </ThemedText>
+          <ThemedText type='title'>About Us</ThemedText>
         </View>
         <ThemedText style={styles.paragraph}>
           Discovering Dimensions is an open-source project aimed at providing

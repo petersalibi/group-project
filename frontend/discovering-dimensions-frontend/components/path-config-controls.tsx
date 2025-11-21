@@ -1,11 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, Platform, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import {
-  optimisers,
-  losses,
-  lrs,
-} from '@/constants/landscapeParams';
+import { optimisers, losses, lrs } from '@/constants/landscapeParams';
 
 // Define the shape of a single path's configuration
 export interface PathConfig {
@@ -41,7 +37,6 @@ export function PathConfigControls(props: PathConfigControlsProps) {
 
   return (
     <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
-      
       {/* Header: Title */}
       <Text style={[styles.pathTitle, { color: colorValue }]}>
         Path {id + 1} ({colorName})
@@ -49,7 +44,6 @@ export function PathConfigControls(props: PathConfigControlsProps) {
 
       {/* Parameters Row */}
       <View style={styles.paramsGrid}>
-        
         <View style={styles.paramGroup}>
           <Text style={styles.paramLabel}>Optimiser:</Text>
           <View style={styles.pickerContainer}>
@@ -58,7 +52,9 @@ export function PathConfigControls(props: PathConfigControlsProps) {
               style={styles.pickerStyle}
               onValueChange={(val) => onConfigChange(id, 'optim', String(val))}
             >
-              {optimisers.map((o) => <Picker.Item key={o.id} label={o.label} value={o.value} />)}
+              {optimisers.map((o) => (
+                <Picker.Item key={o.id} label={o.label} value={o.value} />
+              ))}
             </Picker>
           </View>
         </View>
@@ -71,7 +67,9 @@ export function PathConfigControls(props: PathConfigControlsProps) {
               style={styles.pickerStyle}
               onValueChange={(val) => onConfigChange(id, 'loss', String(val))}
             >
-              {losses.map((l) => <Picker.Item key={l.id} label={l.label} value={l.value} />)}
+              {losses.map((l) => (
+                <Picker.Item key={l.id} label={l.label} value={l.value} />
+              ))}
             </Picker>
           </View>
         </View>
@@ -84,11 +82,12 @@ export function PathConfigControls(props: PathConfigControlsProps) {
               style={styles.pickerStyle}
               onValueChange={(val) => onConfigChange(id, 'lr', Number(val))}
             >
-              {lrs.map((l) => <Picker.Item key={l.id} label={l.label} value={l.value} />)}
+              {lrs.map((l) => (
+                <Picker.Item key={l.id} label={l.label} value={l.value} />
+              ))}
             </Picker>
           </View>
         </View>
-
       </View>
 
       {/* Footer: Action & Status */}
@@ -98,10 +97,10 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           disabled={isSceneLoading || !isLandscapeLoaded}
           style={({ pressed }) => [
             styles.actionButton,
-            { 
-              backgroundColor: isPlacing ? '#8B0000' : '#333', 
-              opacity: pressed || isSceneLoading ? 0.7 : 1 
-            }
+            {
+              backgroundColor: isPlacing ? '#8B0000' : '#333',
+              opacity: pressed || isSceneLoading ? 0.7 : 1,
+            },
           ]}
         >
           <Text style={styles.buttonText}>
@@ -124,7 +123,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
     borderLeftWidth: 3,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
@@ -191,5 +190,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  }
+  },
 });

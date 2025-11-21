@@ -14,7 +14,11 @@ export default function HelpScreen() {
         }}
       >
         <ThemedView style={{ marginBottom: 10 }}>
-          <ThemedText style={{ fontWeight: '700', fontSize: 40, textAlign: 'center' }}>Curriculum</ThemedText>
+          <ThemedText
+            style={{ fontWeight: '700', fontSize: 40, textAlign: 'center' }}
+          >
+            Curriculum
+          </ThemedText>
         </ThemedView>
         <ThemedView style={{ marginTop: 10 }}>
           <ThemedText>

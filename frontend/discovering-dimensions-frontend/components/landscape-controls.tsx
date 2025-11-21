@@ -22,14 +22,14 @@ interface LandscapeControlsProps {
   isLandscapeLoading: boolean;
   isLandscapeLoaded: boolean;
   isPathLoaded: boolean;
-  
+
   // Setters
   setData: (value: string) => void;
   setDepth: (value: number) => void;
   setWidth: (value: number) => void;
   setActivation: (value: string) => void;
   setMethod: (value: string) => void;
-  
+
   // Handlers
   onLoadLandscape: () => void;
   onZChange: (value: number) => void;
@@ -56,7 +56,8 @@ export function LandscapeControls(props: LandscapeControlsProps) {
   } = props;
 
   // Z-slider is disabled if landscape isn't loaded OR is loading OR a path is loaded
-  const zSliderDisabled = isLandscapeLoading || !isLandscapeLoaded || isPathLoaded;
+  const zSliderDisabled =
+    isLandscapeLoading || !isLandscapeLoaded || isPathLoaded;
 
   return (
     <View
@@ -72,7 +73,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       <View style={styles.param}>
         <Text>Data Set:</Text>
         <Picker
-          id="dataSelect"
+          id='dataSelect'
           selectedValue={data}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setData(String(itemValue))}
@@ -86,7 +87,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       <View style={styles.param}>
         <Text>Depth:</Text>
         <Picker
-          id="depthSelect"
+          id='depthSelect'
           selectedValue={depth}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setDepth(Number(itemValue))}
@@ -100,7 +101,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       <View style={styles.param}>
         <Text>Width:</Text>
         <Picker
-          id="widthSelect"
+          id='widthSelect'
           selectedValue={width}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setWidth(Number(itemValue))}
@@ -114,7 +115,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       <View style={styles.param}>
         <Text>Activation:</Text>
         <Picker
-          id="activationSelect"
+          id='activationSelect'
           selectedValue={activation}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setActivation(String(itemValue))}
@@ -128,7 +129,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       <View style={styles.param}>
         <Text>Method:</Text>
         <Picker
-          id="methodSelect"
+          id='methodSelect'
           selectedValue={method}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setMethod(String(itemValue))}
@@ -161,12 +162,8 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           maximumValue={5}
           value={zValue}
           onValueChange={onZChange}
-          minimumTrackTintColor={
-            zSliderDisabled ? '#888888' : '#00aaffff'
-          }
-          maximumTrackTintColor={
-            zSliderDisabled ? '#444444' : '#0052c4ff'
-          }
+          minimumTrackTintColor={zSliderDisabled ? '#888888' : '#00aaffff'}
+          maximumTrackTintColor={zSliderDisabled ? '#444444' : '#0052c4ff'}
           thumbTintColor={zSliderDisabled ? '#666666' : '#00b9e2ff'}
           disabled={zSliderDisabled}
         />
