@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, View, Button } from 'react-native';
+import { Platform, StyleSheet, View, Button } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
   dataSets,
@@ -9,6 +9,8 @@ import {
   methods,
 } from '@/constants/landscapeParams';
 import Slider from '@react-native-community/slider';
+import { ThemedText } from './themed-text';
+import { ThemedView } from './themed-view';
 
 // --- Component Props ---
 interface LandscapeControlsProps {
@@ -70,8 +72,8 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         flexWrap: 'wrap',
       }}
     >
-      <View style={styles.param}>
-        <Text>Data Set:</Text>
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Data Set:</ThemedText>
         <Picker
           id='dataSelect'
           selectedValue={data}
@@ -82,10 +84,10 @@ export function LandscapeControls(props: LandscapeControlsProps) {
             <Picker.Item key={d.id} label={d.label} value={d.value} />
           ))}
         </Picker>
-      </View>
+      </ThemedView>
 
-      <View style={styles.param}>
-        <Text>Depth:</Text>
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Depth:</ThemedText>
         <Picker
           id='depthSelect'
           selectedValue={depth}
@@ -96,10 +98,10 @@ export function LandscapeControls(props: LandscapeControlsProps) {
             <Picker.Item key={d.id} label={d.label} value={d.value} />
           ))}
         </Picker>
-      </View>
+      </ThemedView>
 
-      <View style={styles.param}>
-        <Text>Width:</Text>
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Width:</ThemedText>
         <Picker
           id='widthSelect'
           selectedValue={width}
@@ -110,10 +112,10 @@ export function LandscapeControls(props: LandscapeControlsProps) {
             <Picker.Item key={w.id} label={w.label} value={w.value} />
           ))}
         </Picker>
-      </View>
+      </ThemedView>
 
-      <View style={styles.param}>
-        <Text>Activation:</Text>
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Activation:</ThemedText>
         <Picker
           id='activationSelect'
           selectedValue={activation}
@@ -124,10 +126,10 @@ export function LandscapeControls(props: LandscapeControlsProps) {
             <Picker.Item key={a.id} label={a.label} value={a.value} />
           ))}
         </Picker>
-      </View>
+      </ThemedView>
 
-      <View style={styles.param}>
-        <Text>Method:</Text>
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Method:</ThemedText>
         <Picker
           id='methodSelect'
           selectedValue={method}
@@ -138,13 +140,17 @@ export function LandscapeControls(props: LandscapeControlsProps) {
             <Picker.Item key={m.id} label={m.label} value={m.value} />
           ))}
         </Picker>
-      </View>
+      </ThemedView>
 
-      <Button
-        title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
-        onPress={onLoadLandscape}
-        disabled={isLandscapeLoading}
-      />
+      {/* View prevents shrinking */}
+      <View style={{ width: 180 }}>
+        <Button
+          title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
+          onPress={onLoadLandscape}
+          disabled={isLandscapeLoading}
+          color='#00aaff'
+        />
+      </View>
 
       <View
         style={{
@@ -155,7 +161,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           marginRight: 10,
         }}
       >
-        <Text style={{ color: 'white' }}>Z scale:</Text>
+        <ThemedText type='default'>Z scale:</ThemedText>
         <Slider
           style={{ width: 150, height: 40 }}
           minimumValue={0.001}
@@ -167,7 +173,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           thumbTintColor={zSliderDisabled ? '#666666' : '#00b9e2ff'}
           disabled={zSliderDisabled}
         />
-        <Text style={{ color: 'white' }}>{zValue.toFixed(3)}</Text>
+        <ThemedText type='default'>{zValue.toFixed(3)}</ThemedText>
       </View>
     </View>
   );
@@ -178,8 +184,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginBottom: 5,
-    backgroundColor: '#90fbffd3',
     padding: 5,
     borderRadius: 5,
   },
