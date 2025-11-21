@@ -1,6 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, G, Text as SvgText, Path } from 'react-native-svg';
+import { ThemedView } from './themed-view';
+import { Colors } from '@/constants/theme';
+import { useTheme } from '@/components/theme-provider';
 
 interface NetworkVisProps {
   inputCount: number;
@@ -51,6 +54,9 @@ export default function NetworkVis({
   activation,
   outputCount,
 }: NetworkVisProps) {
+  const { theme } = useTheme();
+
+  // Current dimensions of the SVG container
   const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
 
   // The nodes currently being rendered
@@ -241,7 +247,11 @@ export default function NetworkVis({
   }, [displayNodes]);
 
   return (
-    <View style={styles.container} onLayout={onLayout}>
+    <ThemedView
+      style={styles.container}
+      onLayout={onLayout}
+      lightColor='#cbcbcbff'
+    >
       <Svg width='100%' height='100%'>
         <G>
           {displayEdges.map((e, i) => (
@@ -251,7 +261,7 @@ export default function NetworkVis({
               y1={e.y1}
               x2={e.x2}
               y2={e.y2}
-              stroke='#555'
+              stroke={Colors[theme].line}
               strokeWidth='1'
               opacity='0.3'
             />
@@ -260,7 +270,7 @@ export default function NetworkVis({
         {displayNodes.map((n) => {
           let fill = '#00aaff';
           if (n.type === 'input') fill = '#ff00aa';
-          if (n.type === 'output') fill = '#00ffaa';
+          if (n.type === 'output') fill = '#00c482ff';
 
           const showIcon = n.type === 'hidden' || n.type === 'output';
           const iconPath = showIcon ? getActivationPath(activation) : '';
@@ -313,14 +323,13 @@ export default function NetworkVis({
           {activation} • {depth} Hidden • {width} Width
         </Text>
       </View>
-    </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
     position: 'relative',
