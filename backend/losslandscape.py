@@ -1,6 +1,7 @@
 from network import *
 from directions import *
 from utils import *
+import time
 
 class LandscapeParams:
     def __init__(self, 
@@ -20,16 +21,19 @@ class LandscapeParams:
         self.training_samples = training_samples
         self.surface_samples = surface_samples
 
-def generate_loss_landscape(landscape_params: LandscapeParams):
+def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
 
     model = Model(landscape_params.network, data.inputs, data.outputs)
     dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
 
-    xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
-                                                       dir1, dir2,
-                                                       landscape_params.loss, 
-                                                       landscape_params.surface_samples)
+    # Torch.no_grad makes the nn not waste computation by calculating gradients
+    with torch.inference_mode():
+        xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
+                                                        dir1, dir2,
+                                                        landscape_params.loss, 
+                                                        landscape_params.surface_samples,
+                                                        verbose=verbose)
 
     return {"surface": loss_surface.tolist(), 
             "x_axis": xAxis.tolist(), 
@@ -38,14 +42,18 @@ def generate_loss_landscape(landscape_params: LandscapeParams):
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist()}
 
-def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1):
+def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, verbose=False):
 
-    print_progress_bar(0, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    if verbose:
+        start = time.time()
+        print_progress_bar(0, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
     # save state (clone tensors so we won't share memory)
     saved = {k: v.clone() for k, v in model.state_dict().items()}
 
-    params = flatten_params(list(model.parameters()))
+    params_list, _, param_slices = prepare_param_structure(model)
+    base_params = flatten_params(params_list)
+
     dir1 = flatten_params(dir1)
     dir2 = flatten_params(dir2)
 
@@ -54,22 +62,42 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1):
 
     loss_surface = torch.zeros(samples, samples)
 
-    # Torch.no_grad makes the nn not waste computation by calculating gradients
-    with torch.no_grad():
-        for i, a in enumerate(alphas):
+    model_jit = torch.jit.trace(model, X)
+    new_params = torch.empty_like(base_params)
+    
+    for i, a in enumerate(alphas):
+        if verbose:
             print_progress_bar(i, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
-            for j, b in enumerate(betas):
+        for j, b in enumerate(betas):
 
-                new_params = params + a * dir1 + b * dir2
+            # set new params with faster tensor ops
+            new_params.copy_(base_params)
+            new_params.add_(dir1, alpha=a)
+            new_params.add_(dir2, alpha=b)
 
-                # update parameters by copying in new_params manually
-                index = 0
-                for p in model.parameters():
-                    numel = p.numel()
-                    p.copy_(new_params[index:index + numel].view_as(p))
-                    index += numel
+            # faster way to load flattened params back into model
+            for p, (s0, s1) in zip(params_list, param_slices):
+                p.copy_(new_params[s0:s1].view_as(p))
 
-                loss_surface[i, j] = loss(model(X), y)
-    print()
+            loss_surface[i, j] = loss(model_jit(X), y).item()
+
+    if verbose:
+        print()
+        print(f"Loss landscape computed in {time.time() - start:.2f} seconds.")
+
     model.load_state_dict(saved)
     return alphas, betas, loss_surface
+
+def prepare_param_structure(model):
+    params = list(model.parameters())
+    shapes = [p.shape for p in params]
+
+    # Compute flat slices
+    sizes = [p.numel() for p in params]
+    slices = []
+    start = 0
+    for sz in sizes:
+        slices.append((start, start + sz))
+        start += sz
+
+    return params, shapes, slices

@@ -47,11 +47,11 @@ def animate_landscape(landscape, minimiser_path=None):
     return ani
 
 network = NetworkParams()
-method = VisualisationMethod.TWOPARAMETERS
-data = TrainingDataType.PENGUINS
-params = LandscapeParams(network, method, data, args=[0,1], loss=nn.CrossEntropyLoss())
+method = VisualisationMethod.FILTERNORM
+data = TrainingDataType.SINREGRESSION
+params = LandscapeParams(network, method, data, loss=nn.MSELoss())
 
-landscape = generate_loss_landscape(params)
+landscape = generate_loss_landscape(params, verbose=True)
 lst_directions = (landscape["x_direction"], landscape["y_direction"])
 directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
 theta_0 = torch.tensor(landscape["theta_0"])
@@ -63,7 +63,7 @@ minimiser_params = MinimiserParams(
     y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
-    loss=nn.CrossEntropyLoss(),
+    loss=nn.MSELoss(),
     lock_to_plane=True
 )
 
