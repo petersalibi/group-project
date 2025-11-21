@@ -5,7 +5,8 @@ from enum import Enum
 
 class TrainingDataType(Enum):
     SINREGRESSION = 0
-    PENGUINS = 1
+    PENGUINS      = 1
+    PURPLECOLOURS = 2
 
 class TrainingData:
 
@@ -40,6 +41,22 @@ class TrainingData:
                 # set input/output dimensions for this dataset
                 self.inputs = self.X.shape[1]
                 self.outputs = num_classes
+            
+            case TrainingDataType.PURPLECOLOURS:
+
+                import pandas as pd
+                from pathlib import Path
+                url = str(Path(__file__).resolve().parent.joinpath("data", "training", "purple_colours.csv"))
+                df = pd.read_csv(url).dropna()
+
+                X = df[['R', 'G', 'B']].values
+                y = df['is_purple'].values
+
+                self.X = torch.tensor(X, dtype=torch.float32)
+                self.y = torch.tensor(y, dtype=torch.long)
+
+                self.inputs = self.X.shape[1]
+                self.outputs = 1
 
             case _:
                 raise ValueError("Training Data Type Not Found!")
@@ -69,3 +86,23 @@ class Model(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+def generate_purple_colours_data(n_samples=100):
+    # Generate random RGB colours
+    X = torch.rand(n_samples, 3)
+    # Define purple as having high red and blue, low green
+    y = ((X[:, 0] > 0.5) & (X[:, 2] > 0.5) & (X[:, 1] < 0.5)).long()
+    return X, y
+
+def generate_purples_csv(n_samples=100):
+    import pandas as pd
+    from pathlib import Path
+
+    X, y = generate_purple_colours_data(n_samples)
+    df = pd.DataFrame(X.numpy(), columns=['R', 'G', 'B'])
+    df['is_purple'] = y.numpy()
+
+    url = str(Path(__file__).resolve().parent.joinpath("data", "training", "purple_colours.csv"))
+    df.to_csv(url, index=False)
+
+# generate_purples_csv(100)
