@@ -10,7 +10,6 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 export function initScene(container: HTMLElement) {
   // Scene
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a1a);
 
   // Camera
   const camera = new THREE.PerspectiveCamera(
@@ -23,7 +22,7 @@ export function initScene(container: HTMLElement) {
   camera.updateProjectionMatrix();
 
   // Renderer
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setSize(window.innerWidth, window.innerHeight);

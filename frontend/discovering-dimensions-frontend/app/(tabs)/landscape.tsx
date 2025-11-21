@@ -26,6 +26,10 @@ import {
   datasetFeatures,
   datasetOutputs,
 } from '@/constants/landscapeParams';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { useTheme } from '@/components/theme-provider';
 
 // Helper to create a default config for a new path
 const createDefaultPathConfig = (id: number): PathConfig => {
@@ -42,6 +46,7 @@ const createDefaultPathConfig = (id: number): PathConfig => {
 };
 
 export default function LandscapeWithPath() {
+  const { theme } = useTheme();
   // --- Shared Landscape State ---
   const [activation, setActivation] = useState<string>('ReLU');
   const [inputs, setInputs] = useState<number>(1);
@@ -147,7 +152,7 @@ export default function LandscapeWithPath() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#1a1a1a' }}
+      style={{ flex: 1, backgroundColor: Colors[theme].landscapeBackground }}
       onLayout={(event: LayoutChangeEvent) =>
         setViewportHeight(event.nativeEvent.layout.height)
       }
@@ -196,7 +201,7 @@ export default function LandscapeWithPath() {
         </View>
 
         {/* MAIN LAYOUT: Canvas + Sidebar */}
-        <View
+        <ThemedView
           style={{
             flexDirection: 'row',
             overflow: 'hidden',
@@ -205,6 +210,7 @@ export default function LandscapeWithPath() {
                 ? viewportHeight - headerHeight
                 : Dimensions.get('window').height - 100,
           }}
+          lightColor={Colors['light'].background}
         >
           {/* Canvas Container */}
           <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
@@ -223,9 +229,8 @@ export default function LandscapeWithPath() {
               onPress={() => setPathControlsVisible((prev) => !prev)}
               style={styles.sidebarToggle}
             >
-              <Text
+              <View
                 style={[
-                  styles.toggleArrow,
                   {
                     transform: [
                       { rotate: pathControlsVisible ? '0deg' : '180deg' },
@@ -233,8 +238,8 @@ export default function LandscapeWithPath() {
                   },
                 ]}
               >
-                {'>'}
-              </Text>
+                <IconSymbol name='chevron.right' size={30} color='white' />
+              </View>
             </Pressable>
 
             {/* Scrollable Sidebar Content */}
@@ -309,7 +314,7 @@ export default function LandscapeWithPath() {
               </ScrollView>
             )}
           </View>
-        </View>
+        </ThemedView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -326,9 +331,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   topBar: {
-    backgroundColor: '#1c1c1c',
     zIndex: 30,
     flexGrow: 0,
+    borderBottomWidth: 1,
   },
   sidebar: {
     width: 280,
@@ -339,7 +344,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   sidebarToggle: {
-    width: 24,
+    width: 30,
     height: 50,
     backgroundColor: '#333',
     borderTopLeftRadius: 8,
@@ -347,11 +352,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
-  },
-  toggleArrow: {
-    color: '#00aaff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   sidebarSection: {
     backgroundColor: '#2a2a2a',

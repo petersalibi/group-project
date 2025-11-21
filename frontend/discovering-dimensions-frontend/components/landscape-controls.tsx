@@ -62,15 +62,16 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     isLandscapeLoading || !isLandscapeLoaded || isPathLoaded;
 
   return (
-    <View
+    <ThemedView
       style={{
         flexDirection: Platform.OS === 'web' ? 'row' : 'column',
         alignItems: 'center',
         padding: 10,
         gap: 10,
-        backgroundColor: '#d8eeff4d',
         flexWrap: 'wrap',
       }}
+      lightColor='#ecececff'
+      darkColor='#2a2828ff'
     >
       <ThemedView style={styles.param}>
         <ThemedText type='default'>Data Set:</ThemedText>
@@ -175,7 +176,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         />
         <ThemedText type='default'>{zValue.toFixed(3)}</ThemedText>
       </View>
-    </View>
+    </ThemedView>
   );
 }
 
