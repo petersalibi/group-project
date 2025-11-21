@@ -434,6 +434,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
 
+      // Check for intersection with landscape mesh
       const intersects = raycasterRef.current.intersectObject(meshRef.current);
       if (intersects.length > 0) {
         const hit = intersects[0];
@@ -457,6 +458,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         positions[5] = topPt.z;
         lineGeo.attributes.position.needsUpdate = true;
         marker.line.computeLineDistances();
+      } else {
+        // Clicked outside mesh, do nothing
+        return;
       }
 
       // Exit placing mode
