@@ -17,6 +17,7 @@ export const Colors = {
     tint: tintColorLight,
     icon: '#687076',
     button: '#15e0ebff',
+    line: '#000000ff',
   },
   dark: {
     text: '#ECEDEE',
@@ -26,6 +27,7 @@ export const Colors = {
     tint: tintColorDark,
     icon: '#9BA1A6',
     button: '#fff',
+    line: '#FFFFFFFF',
   },
 };
 
