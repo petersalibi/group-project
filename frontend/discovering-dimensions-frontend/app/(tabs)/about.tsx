@@ -23,9 +23,6 @@ export default function About() {
         <View style={styles.titleContainer}>
           <ThemedText
             type='title'
-            style={{
-              fontFamily: Fonts.rounded,
-            }}
           >
             About Us
           </ThemedText>
