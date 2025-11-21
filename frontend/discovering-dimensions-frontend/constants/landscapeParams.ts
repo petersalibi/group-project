@@ -28,13 +28,13 @@ export const dataSets = [
 ];
 
 export const datasetFeatures: Record<string, number> = {
-    'SINREGRESSION': 1,
-    'PENGUINS': 8,
+  SINREGRESSION: 1,
+  PENGUINS: 8,
 };
 
 export const datasetOutputs: Record<string, number> = {
-    'SINREGRESSION': 1,
-    'PENGUINS': 3,
+  SINREGRESSION: 1,
+  PENGUINS: 3,
 };
 
 export const optimisers = [
