@@ -122,4 +122,4 @@ def generate_purples_csv(n_samples=100):
     url = str(Path(__file__).resolve().parent.joinpath("data", "training", "purple_colours.csv"))
     df.to_csv(url, index=False)
 
-generate_purples_csv(100)
+# generate_purples_csv(100)

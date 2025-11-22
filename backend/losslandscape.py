@@ -52,6 +52,10 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
     if verbose:
         start = time.time()
 
+    # set all parameters to zero
+    for p in model.parameters():
+        p.data.zero_()
+
     # backup original state
     saved = {k: v.clone() for k,v in model.state_dict().items()}
 

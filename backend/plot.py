@@ -76,5 +76,6 @@ minimiser_params = MinimiserParams(
     lock_to_plane=True
 )
 
-minimiser_path = animate_optimiser(minimiser_params)
+paths = animate_optimiser(minimiser_params)
+minimiser_path = paths["minimiser_path"]
 animate_landscape([landscape["surface"], landscape["surface_log"]], landscape["x_axis"], landscape["y_axis"], minimiser_path)
