@@ -46,8 +46,6 @@ def get_two_parameter_directions(model, args):
             direction.append(d)
 
         dirs.append(direction)
-
-    print("Two Parameter Directions Selected:", dirs[0], dirs[1])
     return dirs[0], dirs[1]
 
 def get_random_directions(model):

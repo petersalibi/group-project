@@ -9,49 +9,54 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 from collections import OrderedDict
 
-def animate_landscape(landscape, minimiser_path=None):
-    surface = np.array(landscape["surface"])
-    xAxis = np.array(landscape["x_axis"])
-    yAxis = np.array(landscape["y_axis"])
-    
-    X, Y = np.meshgrid(xAxis, yAxis)
-    Z = surface
+def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None):
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlabel('Direction 1')
-    ax.set_ylabel('Direction 2')
-    ax.set_zlabel('Loss')
+    # Horizontal Layout
+    fig, axs = plt.subplots(1, len(landscapes), subplot_kw={'projection': '3d'}, figsize=(16, 6))
 
-    surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis)]
+    xAxis = np.array(x_axis)
+    yAxis = np.array(y_axis)
 
-    if minimiser_path is not None:
-        path = np.array(minimiser_path)
-        line, = ax.plot([], [], [], color='r', marker='o')
+    for landscape in landscapes:
+        surface = np.array(landscape)
+        
+        X, Y = np.meshgrid(xAxis, yAxis)
+        Z = surface
+        
+        ax = axs if len(landscapes) == 1 else axs[landscapes.index(landscape)]
+        ax.set_xlabel('Direction 1')
+        ax.set_ylabel('Direction 2')
+        ax.set_zlabel('Loss')
 
-        def update(num):
-            line.set_data(np.array([path[num, 0]]), np.array([path[num, 1]]))
-            zx = surface.shape[0] * (path[num, 0] - xAxis[0]) / (xAxis[-1] - xAxis[0])
-            zy = surface.shape[1] * (path[num, 1] - yAxis[0]) / (yAxis[-1] - yAxis[0])
-            zx = int(np.clip(zx, 0, surface.shape[0]-1))
-            zy = int(np.clip(zy, 0, surface.shape[1]-1))
-            z_value = surface[zx, zy]
-            line.set_3d_properties(np.array([z_value]))  # Dummy z-values
-            return line,
+        surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis)]
 
-        ani = FuncAnimation(fig, update, frames=len(path), interval=30, blit=True)
-    else:
-        ani = None
+        if minimiser_path is not None:
+            path = np.array(minimiser_path)
+            line, = ax.plot([], [], [], color='r', marker='o')
+
+            def update(num):
+                line.set_data(np.array([path[num, 0]]), np.array([path[num, 1]]))
+                zx = surface.shape[0] * (path[num, 0] - xAxis[0]) / (xAxis[-1] - xAxis[0])
+                zy = surface.shape[1] * (path[num, 1] - yAxis[0]) / (yAxis[-1] - yAxis[0])
+                zx = int(np.clip(zx, 0, surface.shape[0]-1))
+                zy = int(np.clip(zy, 0, surface.shape[1]-1))
+                z_value = surface[zx, zy]
+                line.set_3d_properties(np.array([z_value]))  # Dummy z-values
+                return line,
+
+            ani = FuncAnimation(fig, update, frames=len(path), interval=30, blit=True)
+        else:
+            ani = None
 
     plt.show()
     return ani
 
-loss = nn.BCEWithLogitsLoss()
+loss = nn.MSELoss()
 
-network = NetworkParams(depth=1, activation=nn.Tanh(), width=0)
-method = VisualisationMethod.TWOPARAMETERS
+network = NetworkParams(depth=5, activation=nn.Tanh(), width=2)
+method = VisualisationMethod.FILTERNORM
 args = [0, 1]
-data = TrainingDataType.PURPLECOLOURS
+data = TrainingDataType.SINREGRESSION
 params = LandscapeParams(network, method, data, args=args, loss=loss)
 
 landscape = generate_loss_landscape(params, verbose=True)
@@ -71,4 +76,4 @@ minimiser_params = MinimiserParams(
 )
 
 minimiser_path = animate_optimiser(minimiser_params)
-animate_landscape(landscape, minimiser_path)
+animate_landscape([landscape["surface"], landscape["surface_log"]], landscape["x_axis"], landscape["y_axis"], minimiser_path)

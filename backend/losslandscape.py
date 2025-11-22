@@ -9,15 +9,17 @@ class LandscapeParams:
                  method: VisualisationMethod, 
                  data: TrainingDataType,
                  args=[],
-                 loss=nn.MSELoss(), 
+                 loss=nn.MSELoss(),
+                 scale=1, 
                  training_samples=128,
-                 surface_samples=100):
+                 surface_samples=50):
         
         self.network = network
         self.method = method
         self.loss = loss
         self.args = args
         self.data = data
+        self.scale = scale
         self.training_samples = training_samples
         self.surface_samples = surface_samples
 
@@ -27,22 +29,24 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     model = Model(landscape_params.network, data.inputs, data.outputs)
     dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
 
-    # Torch.no_grad makes the nn not waste computation by calculating gradients
+    # Torch.inference_mode makes the nn not waste computation by calculating gradients
     with torch.inference_mode():
-        xAxis, yAxis, loss_surface = compute_loss_surface(model, data.X, data.y,
+        xAxis, yAxis, loss_surface, loss_surface_log = compute_loss_surface(model, data.X, data.y,
                                                         dir1, dir2,
                                                         landscape_params.loss, 
                                                         landscape_params.surface_samples,
+                                                        landscape_params.scale,
                                                         verbose=verbose)
 
-    return {"surface": loss_surface.tolist(), 
+    return {"surface": loss_surface.tolist(),
+            "surface_log": loss_surface_log.tolist(),
             "x_axis": xAxis.tolist(), 
             "y_axis": yAxis.tolist(),
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist()}
 
-def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, verbose=False):
+def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False):
 
     if verbose:
         start = time.time()
@@ -89,8 +93,10 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=100, scale=1, ve
         print()
         print(f"Loss landscape computed in {time.time() - start:.2f} seconds.")
 
+    loss_surface_log = torch.log1p(loss_surface)
+
     model.load_state_dict(saved)
-    return alphas, betas, loss_surface
+    return alphas, betas, loss_surface, loss_surface_log
 
 def prepare_param_structure(model):
     params = list(model.parameters())

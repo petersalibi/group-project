@@ -75,6 +75,7 @@ def parse_landscape_params(params: dict):
         data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
         args = params.get("args", [])
         loss = parse_loss(params.get("loss", "MSELoss"))
+        scale = params.get("scale", 1)
         training_samples = params.get("training_samples", 128)
         surface_samples = params.get("surface_samples", 100)
         
@@ -84,6 +85,7 @@ def parse_landscape_params(params: dict):
             data=data_type,
             args=args,
             loss=loss,
+            scale=scale,
             training_samples=training_samples,
             surface_samples=surface_samples
         )
