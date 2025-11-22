@@ -75,7 +75,7 @@ class Model(nn.Module):
     def __init__(self, params: NetworkParams, inputs, outputs):
         # set seeds for reproducibility
         torch.manual_seed(1066)
-        
+
         super(Model, self).__init__()
 
         if params.depth == 1:
@@ -99,22 +99,27 @@ class Model(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-def generate_purple_colours_data(n_samples=100):
+def generate_purple_colours_data(n_samples=100, zero_centered=False):
     # Generate random RGB colours
-    X = torch.rand(n_samples, 3)
+    X_purple = torch.rand(n_samples // 2, 3) * torch.tensor([0.5, 0.5, 0.5]) + torch.tensor([0.5, 0.0, 0.5])
+    X_non_purple = torch.rand(n_samples // 2, 3) * torch.tensor([0.5, 1, 0.5])
+    X = torch.cat([X_purple, X_non_purple], dim=0)
     # Define purple as having high red and blue, low green
-    y = ((X[:, 0] > 0.5) & (X[:, 2] > 0.5) & (X[:, 1] < 0.5)).long()
+    if zero_centered:
+        y = ((X[:, 0] > 0.5) & (X[:, 2] > 0.5) & (X[:, 1] < 0.5)).float() * 2 - 1
+    else:
+        y = ((X[:, 0] > 0.5) & (X[:, 2] > 0.5) & (X[:, 1] < 0.5)).long()
     return X, y
 
 def generate_purples_csv(n_samples=100):
     import pandas as pd
     from pathlib import Path
 
-    X, y = generate_purple_colours_data(n_samples)
+    X, y = generate_purple_colours_data(n_samples, zero_centered=False)
     df = pd.DataFrame(X.numpy(), columns=['R', 'G', 'B'])
     df['is_purple'] = y.numpy()
 
     url = str(Path(__file__).resolve().parent.joinpath("data", "training", "purple_colours.csv"))
     df.to_csv(url, index=False)
 
-# generate_purples_csv(100)
+generate_purples_csv(100)

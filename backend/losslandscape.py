@@ -1,6 +1,7 @@
 from network import *
 from directions import *
 from utils import *
+import numpy as np
 import time
 
 class LandscapeParams:
@@ -50,52 +51,37 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
 
     if verbose:
         start = time.time()
-        print_progress_bar(0, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
-    # save state (clone tensors so we won't share memory)
-    saved = {k: v.clone() for k, v in model.state_dict().items()}
-
-    params_list, _, param_slices = prepare_param_structure(model)
-    base_params = flatten_params(params_list)
-
-    dir1 = flatten_params(dir1)
-    dir2 = flatten_params(dir2)
+    # backup original state
+    saved = {k: v.clone() for k,v in model.state_dict().items()}
 
     alphas = torch.linspace(-scale, scale, samples)
-    betas = torch.linspace(-scale, scale, samples)
-
+    betas  = torch.linspace(-scale, scale, samples)
     loss_surface = torch.zeros(samples, samples)
 
-    model_jit = torch.jit.trace(model, X)
-    new_params = torch.empty_like(base_params)
+    if y.ndim==1 and isinstance(loss, (torch.nn.BCELoss, torch.nn.BCEWithLogitsLoss)):
+        y = y.view(-1,1).float()
 
-    if isinstance(loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
-        if y.ndim == 1:
-            y = y.view(-1, 1).float()
-    
+    params_list = list(model.parameters())
+
     for i, a in enumerate(alphas):
         if verbose:
-            print_progress_bar(i, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
+            print_progress_bar(i, samples, prefix='Progress:', suffix='Complete', length=50)
+
         for j, b in enumerate(betas):
 
-            # set new params with faster tensor ops
-            new_params.copy_(base_params)
-            new_params.add_(dir1, alpha=a)
-            new_params.add_(dir2, alpha=b)
+            for p, d1, d2 in zip(params_list, dir1, dir2):
+                p.data.copy_(a*d1 + b*d2)
 
-            # faster way to load flattened params back into model
-            for p, (s0, s1) in zip(params_list, param_slices):
-                p.copy_(new_params[s0:s1].view_as(p))
-
-            loss_surface[i, j] = loss(model_jit(X), y).item()
+            loss_surface[i,j] = loss(model(X), y).item()
 
     if verbose:
-        print()
-        print(f"Loss landscape computed in {time.time() - start:.2f} seconds.")
+        print_progress_bar(samples, samples, prefix='Progress:', suffix='Complete', length=50)
+        print(f"\nLoss landscape computed in {time.time()-start:.2f} s.")
 
-    loss_surface_log = torch.log1p(loss_surface)
-
+    loss_surface_log = torch.log1p(loss_surface - loss_surface.min() + 1e-8)
     model.load_state_dict(saved)
+
     return alphas, betas, loss_surface, loss_surface_log
 
 def prepare_param_structure(model):

@@ -21,9 +21,9 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, copies=1)
         for landscape in landscapes:
             surface = np.array(landscape)
             
-            X, Y = np.meshgrid(xAxis, yAxis)
+            X, Y = np.meshgrid(xAxis, yAxis, indexing='ij')
             Z = surface
-            
+
             ax = axs[c, landscapes.index(landscape)] if copies > 1 else axs[landscapes.index(landscape)]
             ax.set_xlabel('Direction 1')
             ax.set_ylabel('Direction 2')
@@ -53,14 +53,14 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, copies=1)
     return ani
 
 loss = nn.BCEWithLogitsLoss()
-
-network = NetworkParams(depth=1, activation=nn.ReLU(), width=2)
+network = NetworkParams(depth=1, activation=nn.Sigmoid(), width=1)
 method = VisualisationMethod.TWOPARAMETERS
-args = [0, 2]
+args = [1, 2]
 data = TrainingDataType.PURPLECOLOURS
-params = LandscapeParams(network, method, data, args=args, loss=loss)
+params = LandscapeParams(network, method, data, args=args, loss=loss, scale=1)
 
 landscape = generate_loss_landscape(params, verbose=True)
+# print(print_landscape(landscape["surface"]))
 lst_directions = (landscape["x_direction"], landscape["y_direction"])
 directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
 theta_0 = torch.tensor(landscape["theta_0"])
