@@ -15,6 +15,9 @@ class TrainingData:
         self.y = y
     
     def __init__(self, type: TrainingDataType, n_samples=128):
+        # set seeds for reproducibility
+        torch.manual_seed(1066)
+
         match type:
             case TrainingDataType.SINREGRESSION:
                 self.X = torch.unsqueeze(torch.linspace(-2, 2, n_samples), 1)
@@ -70,6 +73,9 @@ class NetworkParams:
 
 class Model(nn.Module):
     def __init__(self, params: NetworkParams, inputs, outputs):
+        # set seeds for reproducibility
+        torch.manual_seed(1066)
+        
         super(Model, self).__init__()
 
         if params.depth == 1:

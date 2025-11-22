@@ -42,6 +42,9 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
 
 def animate_optimiser(params: MinimiserParams):
     
+    # set seeds for reproducibility
+    torch.manual_seed(1066)
+    
     data = TrainingData(params.data)
     if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
         if data.y.ndim == 1:

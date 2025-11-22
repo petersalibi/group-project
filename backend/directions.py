@@ -10,6 +10,9 @@ class VisualisationMethod(Enum):
     PCAMINIMISER    = 3
 
 def get_directions(model, method: VisualisationMethod, args=None):
+    # set seeds for reproducibility
+    torch.manual_seed(1066)
+
     match method:
         case VisualisationMethod.TWOPARAMETERS:
             return get_two_parameter_directions(model, args)

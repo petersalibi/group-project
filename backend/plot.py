@@ -9,54 +9,55 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 from collections import OrderedDict
 
-def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None):
+def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, copies=1):
 
     # Horizontal Layout
-    fig, axs = plt.subplots(1, len(landscapes), subplot_kw={'projection': '3d'}, figsize=(16, 6))
+    fig, axs = plt.subplots(copies, len(landscapes), subplot_kw={'projection': '3d'}, figsize=(10, 6))
 
     xAxis = np.array(x_axis)
     yAxis = np.array(y_axis)
 
-    for landscape in landscapes:
-        surface = np.array(landscape)
-        
-        X, Y = np.meshgrid(xAxis, yAxis)
-        Z = surface
-        
-        ax = axs if len(landscapes) == 1 else axs[landscapes.index(landscape)]
-        ax.set_xlabel('Direction 1')
-        ax.set_ylabel('Direction 2')
-        ax.set_zlabel('Loss')
+    for c in range(copies):
+        for landscape in landscapes:
+            surface = np.array(landscape)
+            
+            X, Y = np.meshgrid(xAxis, yAxis)
+            Z = surface
+            
+            ax = axs[c, landscapes.index(landscape)] if copies > 1 else axs[landscapes.index(landscape)]
+            ax.set_xlabel('Direction 1')
+            ax.set_ylabel('Direction 2')
+            ax.set_zlabel('Loss')
 
-        surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis)]
+            surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis)]
 
-        if minimiser_path is not None:
-            path = np.array(minimiser_path)
-            line, = ax.plot([], [], [], color='r', marker='o')
+            if minimiser_path is not None:
+                path = np.array(minimiser_path)
+                line, = ax.plot([], [], [], color='r', marker='o')
 
-            def update(num):
-                line.set_data(np.array([path[num, 0]]), np.array([path[num, 1]]))
-                zx = surface.shape[0] * (path[num, 0] - xAxis[0]) / (xAxis[-1] - xAxis[0])
-                zy = surface.shape[1] * (path[num, 1] - yAxis[0]) / (yAxis[-1] - yAxis[0])
-                zx = int(np.clip(zx, 0, surface.shape[0]-1))
-                zy = int(np.clip(zy, 0, surface.shape[1]-1))
-                z_value = surface[zx, zy]
-                line.set_3d_properties(np.array([z_value]))  # Dummy z-values
-                return line,
+                def update(num):
+                    line.set_data(np.array([path[num, 0]]), np.array([path[num, 1]]))
+                    zx = surface.shape[0] * (path[num, 0] - xAxis[0]) / (xAxis[-1] - xAxis[0])
+                    zy = surface.shape[1] * (path[num, 1] - yAxis[0]) / (yAxis[-1] - yAxis[0])
+                    zx = int(np.clip(zx, 0, surface.shape[0]-1))
+                    zy = int(np.clip(zy, 0, surface.shape[1]-1))
+                    z_value = surface[zx, zy]
+                    line.set_3d_properties(np.array([z_value]))  # Dummy z-values
+                    return line,
 
-            ani = FuncAnimation(fig, update, frames=len(path), interval=30, blit=True)
-        else:
-            ani = None
+                ani = FuncAnimation(fig, update, frames=len(path), interval=30, blit=True)
+            else:
+                ani = None
 
     plt.show()
     return ani
 
-loss = nn.MSELoss()
+loss = nn.BCEWithLogitsLoss()
 
-network = NetworkParams(depth=5, activation=nn.Tanh(), width=2)
-method = VisualisationMethod.FILTERNORM
-args = [0, 1]
-data = TrainingDataType.SINREGRESSION
+network = NetworkParams(depth=1, activation=nn.ReLU(), width=2)
+method = VisualisationMethod.TWOPARAMETERS
+args = [0, 2]
+data = TrainingDataType.PURPLECOLOURS
 params = LandscapeParams(network, method, data, args=args, loss=loss)
 
 landscape = generate_loss_landscape(params, verbose=True)
