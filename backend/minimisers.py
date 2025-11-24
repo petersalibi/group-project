@@ -41,17 +41,20 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
     return sol[0].item(), sol[1].item()
 
 def animate_optimiser(params: MinimiserParams):
+
+    # set seeds for reproducibility
+    torch.manual_seed(1066)
     
     data = TrainingData(params.data)
-    # Automatically infer input/output dimensions if not provided
-    if params.network.inputs is None or params.network.outputs is None:
-        params.network.inputs = data.X.shape[1]
-        params.network.outputs = data.y.shape[1]
-    model = Model(params.network)
+    if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
+        if data.y.ndim == 1:
+            data.y = data.y.view(-1, 1).float()
+    model = Model(params.network, data.inputs, data.outputs)
 
     dir1, dir2 = params.directions
     x, y = params.init_xy
-    path = []
+    minimiser_path = []
+    parameters_path = []
 
     # save state (clone tensors so we won't share memory)
     saved = {k: v.clone() for k, v in model.state_dict().items()}
@@ -90,11 +93,8 @@ def animate_optimiser(params: MinimiserParams):
             loss.backward()
             optimiser.step()
 
-            path.append((float(a.item()), float(b.item())))
-
-        print()
-        model.load_state_dict(saved)
-        return path
+            minimiser_path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
+            parameters_path.append(flatten_params(model.parameters()).tolist())
 
     else:
         new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2
@@ -119,9 +119,12 @@ def animate_optimiser(params: MinimiserParams):
 
             theta_i = flatten_params(model.parameters())
             a, b = project_to_plane(theta_i, params.theta_0, dir1, dir2)
-            path.append((a,b))
+            minimiser_path.append((a,b))
+            parameters_path.append(theta_i.tolist())
 
-        print()
-
-        model.load_state_dict(saved)
-        return path
+    print()
+    model.load_state_dict(saved)
+    return {
+        "minimiser_path": minimiser_path,
+        "parameters_path": parameters_path
+    }
