@@ -1,37 +1,28 @@
-import { Stack, usePathname } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from '@react-navigation/native';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform } from 'react-native';
-import Head from 'expo-router/head';
+import 'react-native-reanimated';
 
-import { ThemeProvider } from '@/components/theme-provider';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
 export default function RootLayout() {
-  const path: string = usePathname();
-  const titleMap: { [key: string]: string } = {
-    '/': 'Home',
-    '/curriculum': 'Curriculum',
-    '/landscape': 'Landscape Viewer',
-    '/help': 'Help',
-    '/about': 'About',
-    '/settings': 'Settings',
-  };
+  const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider>
-      {Platform.OS === 'web' && (
-        <Head>
-          <title>{titleMap[path] + ' | Discovering Dimensions'}</title>
-        </Head>
-      )}
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
         <Stack.Screen
           name='modal'
-          options={{ presentation: 'modal', title: 'modal' }}
+          options={{ presentation: 'modal', title: 'Modal' }}
         />
       </Stack>
       <StatusBar style='auto' />

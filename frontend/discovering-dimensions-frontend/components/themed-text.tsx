@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, type TextProps } from 'react-native';
-import { useTheme } from '@/components/theme-provider';
+import { StyleSheet, Text, type TextProps } from 'react-native';
+
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -10,42 +10,22 @@ export type ThemedTextProps = TextProps & {
 
 export function ThemedText({
   style,
-  lightColor = '#000',
-  darkColor = '#fff',
+  lightColor,
+  darkColor,
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const { theme } = useTheme();
-
-  // Animated value for color interpolation
-  const animation = useRef(
-    new Animated.Value(theme === 'light' ? 0 : 1),
-  ).current;
-
-  // Animate whenever theme changes
-  useEffect(() => {
-    Animated.timing(animation, {
-      toValue: theme === 'light' ? 0 : 1,
-      duration: 400,
-      useNativeDriver: false, // colors require false
-    }).start();
-  }, [theme, animation]);
-
-  // Interpolate text color
-  const animatedColor = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [lightColor, darkColor],
-  });
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
   return (
-    <Animated.Text
+    <Text
       style={[
-        { color: animatedColor },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'defaultSemiBold' && styles.defaultSemiBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
+        { color },
+        type === 'default' ? styles.default : undefined,
+        type === 'title' ? styles.title : undefined,
+        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
+        type === 'subtitle' ? styles.subtitle : undefined,
+        type === 'link' ? styles.link : undefined,
         style,
       ]}
       {...rest}
@@ -55,11 +35,11 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 24,
   },
   defaultSemiBold: {
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 24,
     fontWeight: '600',
   },
