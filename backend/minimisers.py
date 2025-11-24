@@ -13,7 +13,7 @@ class MinimiserParams:
                  theta_0: torch.Tensor,
                  init_xy=(0.0, 0.0),
                  optimiser=optim.Adam,
-                 learning_rate=0.1,
+                 learning_rate=0.01,
                  loss=nn.MSELoss(), 
                  epochs=300,
                  lock_to_plane=False):
@@ -40,6 +40,9 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
     sol = torch.linalg.solve(lhs, rhs)
     return sol[0].item(), sol[1].item()
 
+def contains_nan(tensor):
+    return torch.isnan(tensor).any().item()
+
 def animate_optimiser(params: MinimiserParams):
 
     # set seeds for reproducibility
@@ -55,6 +58,9 @@ def animate_optimiser(params: MinimiserParams):
     x, y = params.init_xy
     minimiser_path = []
     parameters_path = []
+
+    # Add initial position
+    path.append((x, y))
 
     # save state (clone tensors so we won't share memory)
     saved = {k: v.clone() for k, v in model.state_dict().items()}
@@ -91,6 +97,7 @@ def animate_optimiser(params: MinimiserParams):
             preds = torch.func.functional_call(model, params_dict, (data.X,))
             loss = params.loss(preds, data.y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_([a, b], max_norm=1.0)
             optimiser.step()
 
             minimiser_path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
@@ -109,12 +116,16 @@ def animate_optimiser(params: MinimiserParams):
 
         optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
 
+        # Add initial position
+        path.append((x, y))
+
         for i in range(params.epochs):
             print_progress_bar(i, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
             optimiser.zero_grad()
             loss = params.loss(model(data.X), data.y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimiser.step()
 
             theta_i = flatten_params(model.parameters())

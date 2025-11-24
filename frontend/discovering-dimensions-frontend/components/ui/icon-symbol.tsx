@@ -23,6 +23,10 @@ const MAPPING = {
   'mountain.2.fill': 'landscape',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'gearshape.fill': 'settings',
+  'sun.max.fill': 'wb-sunny',
+  'moon.fill': 'nights-stay',
+  'book.fill': 'book',
 } as IconMapping;
 
 /**
