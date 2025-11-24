@@ -65,6 +65,10 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const [placingPathId, setPlacingPathId] = useState<number | null>(null);
 
   // --- Internal state refs ---
+  const dataRef = useRef<string>(data);
+  const activationRef = useRef<string>(activation);
+  const depthRef = useRef<number>(depth);
+  const widthRef = useRef<number>(width);
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
@@ -233,6 +237,10 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     setIsPlaying(true);
 
     try {
+      const data = dataRef.current;
+      const activation = activationRef.current;
+      const depth = depthRef.current;
+      const width = widthRef.current;
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config) => {
         const paramString = `/animateminimiser/${JSON.stringify({
@@ -321,6 +329,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       })}`;
       const resp = await api.get(paramString);
       const dict = resp.data;
+
+      dataRef.current = data;
+      activationRef.current = activation;
+      depthRef.current = depth;
+      widthRef.current = width;
 
       if (!dict?.surface || !dict.x_axis || !dict.y_axis) {
         throw new Error('Invalid data received from API');
