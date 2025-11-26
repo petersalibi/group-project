@@ -298,15 +298,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       setIsPathLoading(false);
       setIsLandscapeLoaded(true);
     }
-  }, [
-    activation,
-    depth,
-    width,
-    data,
-    pathConfigs,
-    handleRemoveAllPaths,
-    updatePathGeometry,
-  ]);
+  }, [pathConfigs, handleRemoveAllPaths, updatePathGeometry]);
 
   /**
    * Fetches landscape data and builds the mesh.
