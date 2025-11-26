@@ -127,15 +127,16 @@ export default function Home() {
                     paddingVertical: 10,
                     paddingHorizontal: 20,
                     borderRadius: 10,
-                    backgroundColor: Colors[theme].button,
                   }}
+                  lightColor={Colors['light'].button}
+                  darkColor={Colors['dark'].button}
                 >
                   <ThemedText
                     style={{
-                      color: Colors[theme].text,
                       fontSize: 16,
                       fontWeight: '600',
                     }}
+                    darkColor='#000'
                   >
                     View landscape
                   </ThemedText>
