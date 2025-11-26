@@ -113,9 +113,6 @@ def animate_optimiser(params: MinimiserParams):
 
         optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
 
-        # Add initial position
-        path.append((x, y))
-
         for i in range(params.epochs):
             print_progress_bar(i, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
 

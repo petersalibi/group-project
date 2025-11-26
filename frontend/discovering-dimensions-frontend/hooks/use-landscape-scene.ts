@@ -263,7 +263,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Process all responses
       responses.forEach((resp, index) => {
         const pathData = resp.data;
-        const arr = pathData.path?.data ?? pathData.path;
+        const arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
 
         if (!Array.isArray(arr) || arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);

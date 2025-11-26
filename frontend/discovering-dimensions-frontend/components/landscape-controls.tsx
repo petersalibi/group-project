@@ -7,6 +7,7 @@ import {
   widths,
   activations,
   methods,
+  losses,
 } from '@/constants/landscapeParams';
 import Slider from '@react-native-community/slider';
 import { ThemedText } from './themed-text';
@@ -20,6 +21,7 @@ interface LandscapeControlsProps {
   width: number;
   activation: string;
   method: string;
+  loss: string;
   zValue: number;
   isLandscapeLoading: boolean;
   isLandscapeLoaded: boolean;
@@ -31,6 +33,7 @@ interface LandscapeControlsProps {
   setWidth: (value: number) => void;
   setActivation: (value: string) => void;
   setMethod: (value: string) => void;
+  setLoss: (value: string) => void;
 
   // Handlers
   onLoadLandscape: () => void;
@@ -44,6 +47,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     width,
     activation,
     method,
+    loss,
     zValue,
     isLandscapeLoading,
     isLandscapeLoaded,
@@ -53,6 +57,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     setWidth,
     setActivation,
     setMethod,
+    setLoss,
     onLoadLandscape,
     onZChange,
   } = props;
@@ -125,6 +130,20 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         >
           {activations.map((a) => (
             <Picker.Item key={a.id} label={a.label} value={a.value} />
+          ))}
+        </Picker>
+      </ThemedView>
+
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Loss:</ThemedText>
+        <Picker
+          id='lossSelect'
+          selectedValue={loss}
+          style={{ height: 30 }}
+          onValueChange={(itemValue) => setLoss(String(itemValue))}
+        >
+          {losses.map((l) => (
+            <Picker.Item key={l.id} label={l.label} value={l.value} />
           ))}
         </Picker>
       </ThemedView>

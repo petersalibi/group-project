@@ -28,7 +28,7 @@ def get_directions(model, method: VisualisationMethod, args=None):
         case VisualisationMethod.FILTERNORM:
             return get_filterwise_directions(model)
         case VisualisationMethod.PCAMINIMISER:
-            return get_pca_directions(model, args)
+            return get_pca_directions(model)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
