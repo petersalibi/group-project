@@ -56,6 +56,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   // --- UI State ---
   const [zValue, setZValue] = useState<number>(1);
+  const [isLogPlot, setIsLogPlot] = useState<boolean>(false);
   const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
   const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
   const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
@@ -66,9 +67,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   // --- Internal state refs ---
   const dataRef = useRef<string>(data);
+  const lossRef = useRef<string>(loss);
   const activationRef = useRef<string>(activation);
   const depthRef = useRef<number>(depth);
   const widthRef = useRef<number>(width);
+  const dictRef = useRef<any>(null);
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
@@ -241,6 +244,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       const activation = activationRef.current;
       const depth = depthRef.current;
       const width = widthRef.current;
+      const loss = lossRef.current;
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config) => {
         const paramString = `/animateminimiser/${JSON.stringify({
@@ -252,7 +256,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           init_xy: config.startPoint,
           optimiser: config.optim,
           learning_rate: config.lr,
-          loss: config.loss,
+          loss: loss,
           lock_to_plane: true,
         })}`;
         return api.get(paramString);
@@ -323,6 +327,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       const dict = resp.data;
 
       dataRef.current = data;
+      lossRef.current = loss;
       activationRef.current = activation;
       depthRef.current = depth;
       widthRef.current = width;
@@ -331,11 +336,12 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         throw new Error('Invalid data received from API');
       }
 
+      dictRef.current = dict;
       originRef.current = dict.theta_0 || null;
       xDirRef.current = dict.x_direction || null;
       yDirRef.current = dict.y_direction || null;
 
-      const { mesh, geoWidth, geoHeight } = createLandscapeMesh(dict, zValue);
+      const { mesh, geoWidth, geoHeight } = createLandscapeMesh(isLogPlot, dict, zValue);
       scene.add(mesh);
       meshRef.current = mesh;
 
@@ -359,6 +365,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     method,
     data,
     loss,
+    isLogPlot,
     zValue,
     handleRemoveAllPaths,
   ]);
@@ -500,6 +507,30 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     }
     setIsPlaying((prev) => !prev);
   }, [isPlaying]);
+
+  const handleLogPlotToggle = useCallback(
+    () => {
+      console.log('Toggling log plot. Current value:', isLogPlot);
+      if (!sceneRef.current) return;
+      setIsLandscapeLoading(true);
+      handleRemoveAllPaths();
+      disposeObject(meshRef.current);
+      meshRef.current = null;
+      const { mesh, geoWidth, geoHeight } = createLandscapeMesh(!isLogPlot, dictRef.current, zValue);
+      sceneRef.current.add(mesh);
+      meshRef.current = mesh;
+
+      const diag = Math.hypot(geoWidth, geoHeight);
+      if (cameraRef.current && controlsRef.current) {
+        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+      setIsLogPlot((prev) => !prev);
+      setIsLandscapeLoading(false);
+    },
+    [isLogPlot, zValue, handleRemoveAllPaths],
+  );
 
   const handleZChange = useCallback(
     (val: number) => {
@@ -692,6 +723,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   return {
     containerId,
     zValue,
+    isLogPlot,
     isLandscapeLoading,
     isLandscapeLoaded,
     isPathLoading,
@@ -703,6 +735,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     handleLoadAllPathsButtonClick,
     handleRemoveAllPaths,
     togglePlayPause,
+    handleLogPlotToggle,
     handleZChange,
     togglePlacingMode,
   };

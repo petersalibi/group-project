@@ -39,7 +39,6 @@ const createDefaultPathConfig = (id: number): PathConfig => {
     colorName: color.name,
     colorValue: color.value,
     optim: 'Adam',
-    loss: 'MSELoss',
     lr: 0.01,
     startPoint: [0, 0],
   };
@@ -89,6 +88,7 @@ export default function LandscapeWithPath() {
   const {
     containerId,
     zValue,
+    isLogPlot,
     isLandscapeLoading,
     isLandscapeLoaded,
     isPathLoading,
@@ -101,6 +101,7 @@ export default function LandscapeWithPath() {
     handleRemoveAllPaths,
     togglePlayPause,
     handleZChange,
+    handleLogPlotToggle,
     togglePlacingMode,
   } = useLandscapeScene({
     activation,
@@ -188,6 +189,7 @@ export default function LandscapeWithPath() {
             method={method}
             loss={loss}
             zValue={zValue}
+            isLogPlot={isLogPlot}
             isLandscapeLoading={isLandscapeLoading}
             isLandscapeLoaded={isLandscapeLoaded}
             isPathLoaded={isPathLoaded}
@@ -197,6 +199,7 @@ export default function LandscapeWithPath() {
             setActivation={setActivation}
             setMethod={setMethod}
             setLoss={setLoss}
+            onLogPlotChange={handleLogPlotToggle}
             onLoadLandscape={handleLoadLandscapeButtonClick}
             onZChange={handleZChange}
           />

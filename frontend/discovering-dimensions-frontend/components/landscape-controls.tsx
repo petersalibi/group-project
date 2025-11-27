@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, View, Button } from 'react-native';
+import { Platform, StyleSheet, View, Button, Switch } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
   dataSets,
@@ -7,7 +7,9 @@ import {
   widths,
   activations,
   methods,
-  losses,
+  regLosses,
+  ceLoss,
+  bceLoss,
 } from '@/constants/landscapeParams';
 import Slider from '@react-native-community/slider';
 import { ThemedText } from './themed-text';
@@ -23,6 +25,7 @@ interface LandscapeControlsProps {
   method: string;
   loss: string;
   zValue: number;
+  isLogPlot: boolean;
   isLandscapeLoading: boolean;
   isLandscapeLoaded: boolean;
   isPathLoaded: boolean;
@@ -38,6 +41,7 @@ interface LandscapeControlsProps {
   // Handlers
   onLoadLandscape: () => void;
   onZChange: (value: number) => void;
+  onLogPlotChange: (value: boolean) => void;
 }
 
 export function LandscapeControls(props: LandscapeControlsProps) {
@@ -49,6 +53,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     method,
     loss,
     zValue,
+    isLogPlot,
     isLandscapeLoading,
     isLandscapeLoaded,
     isPathLoaded,
@@ -60,7 +65,30 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     setLoss,
     onLoadLandscape,
     onZChange,
+    onLogPlotChange
   } = props;
+
+  const handleDataChange = (itemValue: string) => {
+    if (itemValue === data) return;
+    setData(itemValue);
+
+    switch (itemValue) {
+      case 'SINREGRESSION':
+        setLosses(regLosses);
+        setLoss(regLosses[0].value);
+        break;
+      case 'PENGUINS':
+        setLosses(ceLoss);
+        setLoss(ceLoss[0].value);
+        break;
+      case 'PURPLECOLOURS':
+        setLosses(bceLoss);
+        setLoss(bceLoss[0].value);
+        break;
+    }
+  };
+
+  const [losses, setLosses] = React.useState(regLosses);
 
   // Z-slider is disabled if landscape isn't loaded OR is loading OR a path is loaded
   const zSliderDisabled =
@@ -84,7 +112,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           id='dataSelect'
           selectedValue={data}
           style={{ height: 30 }}
-          onValueChange={(itemValue) => setData(String(itemValue))}
+          onValueChange={(itemValue) => handleDataChange(String(itemValue))}
         >
           {dataSets.map((d) => (
             <Picker.Item key={d.id} label={d.label} value={d.value} />
@@ -172,19 +200,28 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         />
       </View>
 
+      <ThemedView style={styles.param}>
+        <ThemedText type='default'>Log Plot:</ThemedText>
+        <Switch
+          value={isLogPlot}
+          onValueChange={onLogPlotChange}
+          disabled={zSliderDisabled}
+        />
+      </ThemedView>
+
       <View
         style={{
-          width: 250,
+          width: 150,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 5,
-          marginRight: 10,
         }}
       >
-        <ThemedText type='default'>Z scale:</ThemedText>
+        <ThemedText type='default'>Z Scale:</ThemedText>
         <Slider
-          style={{ width: 150, height: 40 }}
+          style={{ width: 70, height: 40 }}
           minimumValue={0.001}
+          step={0.1}
           maximumValue={5}
           value={zValue}
           onValueChange={onZChange}
@@ -193,7 +230,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           thumbTintColor={zSliderDisabled ? '#666666' : '#00b9e2ff'}
           disabled={zSliderDisabled}
         />
-        <ThemedText type='default'>{zValue.toFixed(3)}</ThemedText>
+        <ThemedText type='default'>{zValue.toFixed(1)}</ThemedText>
       </View>
     </ThemedView>
   );
