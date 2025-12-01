@@ -14,6 +14,10 @@ export default function RootLayout() {
   const titleMap: { [key: string]: string } = {
     '/': 'Home',
     '/curriculum': 'Curriculum',
+    '/curriculum/stage-1': 'Introducing loss | Curriculum',
+    '/curriculum/stage-2': 'Features of loss landscapes | Curriculum',
+    '/curriculum/stage-3': 'Advanced loss landscape techniques | Curriculum',
+    '/curriculum/explanations': 'Explanations of key concepts | Curriculum',
     '/landscape': 'Landscape Viewer',
     '/help': 'Help',
     '/about': 'About',
@@ -29,12 +33,8 @@ export default function RootLayout() {
       )}
       <Stack>
         <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-        <Stack.Screen
-          name='modal'
-          options={{ presentation: 'modal', title: 'modal' }}
-        />
       </Stack>
-      <StatusBar style='auto' />
+      <StatusBar style='dark' />
     </ThemeProvider>
   );
 }
