@@ -39,7 +39,6 @@ const createDefaultPathConfig = (id: number): PathConfig => {
     colorName: color.name,
     colorValue: color.value,
     optim: 'Adam',
-    loss: 'MSELoss',
     lr: 0.01,
     startPoint: [0, 0],
   };
@@ -55,7 +54,7 @@ export default function LandscapeWithPath() {
   const [outputs, setOutputs] = useState<number>(1);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
-  const [loss] = useState<string>('MSELoss');
+  const [loss, setLoss] = useState<string>('MSELoss');
   const [pathControlsVisible, setPathControlsVisible] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -89,6 +88,7 @@ export default function LandscapeWithPath() {
   const {
     containerId,
     zValue,
+    isLogPlot,
     isLandscapeLoading,
     isLandscapeLoaded,
     isPathLoading,
@@ -101,6 +101,7 @@ export default function LandscapeWithPath() {
     handleRemoveAllPaths,
     togglePlayPause,
     handleZChange,
+    handleLogPlotToggle,
     togglePlacingMode,
   } = useLandscapeScene({
     activation,
@@ -186,7 +187,9 @@ export default function LandscapeWithPath() {
             width={width}
             activation={activation}
             method={method}
+            loss={loss}
             zValue={zValue}
+            isLogPlot={isLogPlot}
             isLandscapeLoading={isLandscapeLoading}
             isLandscapeLoaded={isLandscapeLoaded}
             isPathLoaded={isPathLoaded}
@@ -195,6 +198,8 @@ export default function LandscapeWithPath() {
             setWidth={setWidth}
             setActivation={setActivation}
             setMethod={setMethod}
+            setLoss={setLoss}
+            onLogPlotChange={handleLogPlotToggle}
             onLoadLandscape={handleLoadLandscapeButtonClick}
             onZChange={handleZChange}
           />

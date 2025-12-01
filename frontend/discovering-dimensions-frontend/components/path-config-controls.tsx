@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, Platform, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { optimisers, losses, lrs } from '@/constants/landscapeParams';
+import { optimisers, lrs } from '@/constants/landscapeParams';
 
 // Define the shape of a single path's configuration
 export interface PathConfig {
@@ -9,7 +9,6 @@ export interface PathConfig {
   colorName: string;
   colorValue: string;
   optim: string;
-  loss: string;
   lr: number;
   startPoint: [number, number];
 }
@@ -33,7 +32,7 @@ export function PathConfigControls(props: PathConfigControlsProps) {
     isLandscapeLoaded,
   } = props;
 
-  const { id, colorName, colorValue, optim, loss, lr, startPoint } = config;
+  const { id, colorName, colorValue, optim, lr, startPoint } = config;
 
   return (
     <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
@@ -54,21 +53,6 @@ export function PathConfigControls(props: PathConfigControlsProps) {
             >
               {optimisers.map((o) => (
                 <Picker.Item key={o.id} label={o.label} value={o.value} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-
-        <View style={styles.paramGroup}>
-          <Text style={styles.paramLabel}>Loss:</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={loss}
-              style={styles.pickerStyle}
-              onValueChange={(val) => onConfigChange(id, 'loss', String(val))}
-            >
-              {losses.map((l) => (
-                <Picker.Item key={l.id} label={l.label} value={l.value} />
               ))}
             </Picker>
           </View>

@@ -71,8 +71,8 @@ def animateminimiser(params: str):
         raise HTTPException(status_code=400, detail=f"Failed to construct MinimiserParams: {e}")
     
     try:
-        path = animate_optimiser(mp)
-        return {"path": path}
+        paths = animate_optimiser(mp)
+        return paths
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
@@ -88,8 +88,8 @@ def animateminimisersample():
             status_code=400, detail=f"Failed to construct default MinimiserParams: {e}")
     
     try:
-        path = animate_optimiser(params)
-        return {"path": path}
+        paths = animate_optimiser(params)
+        return paths
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
