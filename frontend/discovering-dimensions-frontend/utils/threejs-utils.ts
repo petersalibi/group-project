@@ -54,8 +54,8 @@ export function initScene(container: HTMLElement) {
 /**
  * Creates the landscape mesh from API data.
  */
-export function createLandscapeMesh(data: any, zValue: number) {
-  const zGrid: number[][] = data.surface;
+export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: number) {
+  const zGrid: number[][] = isLogPlot ? data.surface_log : data.surface;
   const xs: number[] = data.x_axis;
   const ys: number[] = data.y_axis;
 
