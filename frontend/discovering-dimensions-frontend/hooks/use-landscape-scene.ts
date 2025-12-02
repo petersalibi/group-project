@@ -353,10 +353,25 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       scene.add(mesh);
       meshRef.current = mesh;
 
-      const diag = Math.hypot(geoWidth, geoHeight);
       if (cameraRef.current && controlsRef.current) {
-        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
-        controlsRef.current.target.set(0, 0, 0);
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        controlsRef.current.target.copy(center);
+        const maxDim = Math.max(size.x, size.z);
+        const fov = cameraRef.current.fov * (Math.PI / 180);
+        let cameraDist = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+        cameraDist *= 1.5; // Zoom out multiplier
+
+        cameraRef.current.position.set(
+            center.x, 
+            center.y + cameraDist * 0.7, // Height
+            center.z + cameraDist * 0.7  // Depth
+        );
+        cameraRef.current.updateProjectionMatrix();
         controlsRef.current.update();
       }
       setIsLandscapeLoaded(true);
@@ -683,17 +698,24 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     animate();
 
     const onResize = () => {
-      if (!cameraRef.current || !rendererRef.current) return;
-      // Handle resize for all lines
-      pathLinesRef.current.forEach((line) => {
-        handleResize(camera, renderer, line);
+      if (!cameraRef.current || !rendererRef.current || !container) return;
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
+
+      // Update line resolution uniforms if lines exist
+      pathLinesRef.current.forEach(line => {
+         if (line.material) {
+             (line.material as any).resolution.set(width, height);
+         }
       });
-      // Handle case where no lines exist yet
-      if (pathLinesRef.current.length === 0) {
-        handleResize(camera, renderer, null);
-      }
     };
     window.addEventListener('resize', onResize);
+    onResize();
 
     return () => {
       cancelAnimationFrame(rafId);
