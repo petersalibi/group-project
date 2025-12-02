@@ -17,7 +17,8 @@ export function OrderedList({ children }: { children: React.ReactNode }) {
           <ThemedText type='text' style={{ marginRight: 8 }}>
             {index + 1}.
           </ThemedText>
-          {child}
+          {/* Ensure child wraps around div */}
+          <View style={{ flex: 1 }}>{child}</View>
         </View>
       ))}
     </View>

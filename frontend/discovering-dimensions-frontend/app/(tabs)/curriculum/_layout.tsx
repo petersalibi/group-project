@@ -1,4 +1,4 @@
-import { Link, Slot } from 'expo-router';
+import { Slot, usePathname, useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
@@ -6,6 +6,9 @@ import { View, Platform, ScrollView } from 'react-native';
 import { OrderedList } from '@/components/text-list';
 
 export default function CurriculumScreen() {
+  const pathname = usePathname();
+  const router = useRouter();
+
   return (
     <ThemedBackground style={{ flex: 1, alignItems: 'center' }}>
       <View
@@ -38,29 +41,59 @@ export default function CurriculumScreen() {
               Chapters
             </ThemedText>
             <ThemedView>
-              <Link href='/curriculum' style={{ marginTop: 10 }}>
-                <ThemedText type='link'>Introduction</ThemedText>
-              </Link>
+              <ThemedText
+                style={{
+                  marginTop: 10,
+                  pointerEvents: pathname === '/curriculum' ? 'none' : 'auto',
+                }}
+                type={pathname === '/curriculum' ? 'text' : 'link'}
+                onPress={() => router.navigate('/curriculum')}
+              >
+                Introduction
+              </ThemedText>
               <OrderedList>
-                <Link href='/curriculum/stage-1'>
-                  <ThemedText type='link'>Introducing loss</ThemedText>
-                </Link>
-                <Link href='/curriculum/stage-2'>
-                  <ThemedText type='link'>
-                    Features of loss landscapes
-                  </ThemedText>
-                </Link>
-                <Link href='/curriculum/stage-3'>
-                  <ThemedText type='link'>
-                    Advanced loss landscape techniques
-                  </ThemedText>
-                </Link>
-              </OrderedList>
-              <Link href='/curriculum/explanations' style={{ marginTop: 10 }}>
-                <ThemedText type='link'>
-                  Explanations of key concepts
+                <ThemedText
+                  style={{
+                    pointerEvents:
+                      pathname === '/curriculum/stage-1' ? 'none' : 'auto',
+                  }}
+                  type={pathname === '/curriculum/stage-1' ? 'text' : 'link'}
+                  onPress={() => router.navigate('/curriculum/stage-1')}
+                >
+                  Introducing loss
                 </ThemedText>
-              </Link>
+                <ThemedText
+                  style={{
+                    pointerEvents:
+                      pathname === '/curriculum/stage-2' ? 'none' : 'auto',
+                  }}
+                  type={pathname === '/curriculum/stage-2' ? 'text' : 'link'}
+                  onPress={() => router.navigate('/curriculum/stage-2')}
+                >
+                  Features of loss landscapes
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    pointerEvents:
+                      pathname === '/curriculum/stage-3' ? 'none' : 'auto',
+                  }}
+                  type={pathname === '/curriculum/stage-3' ? 'text' : 'link'}
+                  onPress={() => router.navigate('/curriculum/stage-3')}
+                >
+                  Advanced loss landscape techniques
+                </ThemedText>
+              </OrderedList>
+              <ThemedText
+                style={{
+                  marginTop: 10,
+                  pointerEvents:
+                    pathname === '/curriculum/explanations' ? 'none' : 'auto',
+                }}
+                type={pathname === '/curriculum/explanations' ? 'text' : 'link'}
+                onPress={() => router.navigate('/curriculum/explanations')}
+              >
+                Explanations of key concepts
+              </ThemedText>
             </ThemedView>
           </ThemedView>
         </View>

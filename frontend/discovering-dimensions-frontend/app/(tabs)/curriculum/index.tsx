@@ -1,15 +1,15 @@
 import { UnorderedList } from '@/components/text-list';
 import { ThemedText } from '@/components/themed-text';
-import { Text } from 'react-native';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 export default function CurriculumIndex() {
+  const router = useRouter();
+
   return (
-    <Text>
+    <>
       <ThemedText type='title'>Introduction</ThemedText>
-      {'\n'}
-      {'\n'}
       <ThemedText type='text'>
+        {'\n'}
         The Discovering Dimensions Loss Landscape tool is designed to help you
         understand more about the topic surrounding loss landscapes, how
         changing variables impacts the loss landscapes and visualise how
@@ -37,29 +37,36 @@ export default function CurriculumIndex() {
         <UnorderedList>
           <ThemedText type='text'>
             <ThemedText type='textBold'>Stage 1:</ThemedText>{' '}
-            <Link href='/curriculum/stage-1'>
-              <ThemedText type='link'>Introducing loss</ThemedText>.
-            </Link>{' '}
-            Introducing a basic toy neural network, understanding the impact of
-            weight changes, introducing loss and how it impacts the prediction
-            of a network.
+            <ThemedText
+              type='link'
+              onPress={() => router.push('/curriculum/stage-1')}
+            >
+              Introducing loss
+            </ThemedText>
+            . Introducing a basic toy neural network, understanding the impact
+            of weight changes, introducing loss and how it impacts the
+            prediction of a network.
           </ThemedText>
           <ThemedText type='text'>
             <ThemedText type='textBold'>Stage 2:</ThemedText>{' '}
-            <Link href='/curriculum/stage-2'>
-              <ThemedText type='link'>Features of loss landscapes</ThemedText>
-            </Link>
+            <ThemedText
+              type='link'
+              onPress={() => router.push('/curriculum/stage-2')}
+            >
+              Features of loss landscapes
+            </ThemedText>
             . Introducing loss landscapes, expanding our toy network to generate
             a more interesting landscape and how different network architectures
             impact the look of the loss landscape.
           </ThemedText>
           <ThemedText type='text'>
             <ThemedText type='textBold'>Stage 3:</ThemedText>{' '}
-            <Link href='/curriculum/stage-3'>
-              <ThemedText type='link'>
-                Advanced loss landscape techniques
-              </ThemedText>
-            </Link>
+            <ThemedText
+              type='link'
+              onPress={() => router.navigate('/curriculum/stage-3')}
+            >
+              Advanced loss landscape techniques
+            </ThemedText>
             . Demonstrating a broader range of toy networks, the impact of
             hyperparameters and loss functions and how to compare networks to
             each other.
@@ -70,6 +77,6 @@ export default function CurriculumIndex() {
         If you need any further help navigating the tool, please refer to our
         detailed help guide.
       </ThemedText>
-    </Text>
+    </>
   );
 }
