@@ -181,8 +181,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   link: {
-    lineHeight: 30,
     fontSize: 16,
+    lineHeight: 26,
     color: '#46d1ffff',
   },
   caption: {
