@@ -97,6 +97,7 @@ export default function LandscapeWithPath() {
     isPlacingMode,
     placingPathId,
     currentParams,
+    networkViewId,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
     handleRemoveAllPaths,
@@ -315,6 +316,7 @@ export default function LandscapeWithPath() {
                         }
                         isSceneLoading={isLoading}
                         isLandscapeLoaded={isLandscapeLoaded}
+                        isWatching={networkViewId === config.id}
                       />
                     ))}
                   </View>

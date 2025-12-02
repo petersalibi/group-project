@@ -65,6 +65,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
   const [placingPathId, setPlacingPathId] = useState<number | null>(null);
   const [currentParams, setCurrentParams] = useState<number[] | null>(null);
+  const [networkViewId, setNetworkViewId] = useState<number | null>(null);
 
   // --- Internal state refs ---
   const dataRef = useRef<string>(data);
@@ -76,7 +77,6 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
-  const networkViewIdRef = useRef<number | null>(null);
 
   // --- Three.js refs ---
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -95,6 +95,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const isPlayingRef = useRef(isPlaying);
   const isPathLoadedRef = useRef(isPathLoaded);
   const animationTimeRef = useRef(0);
+  const networkViewIdRef = useRef<number | null>(null);
 
   // --- Array refs for multiple paths ---
   const pathLinesRef = useRef<Line2[]>([]);
@@ -579,9 +580,10 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   const onViewNetwork = useCallback(
     (id: number) => {
+      setNetworkViewId(id);
       networkViewIdRef.current = id;
     },
-    [],
+    [networkViewId],
   );
 
   const togglePlacingMode = useCallback(
@@ -651,10 +653,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
         // Calculate this path's individual progress, stopping at 1.0
         const pathProgress = elapsedTime / animationDuration;
-        if (
-          pathProgress > 1.0 &&
-          animationDuration >= Math.max(...animationDurationsRef.current)
-        ) {
+        if (pathProgress > 1.0 && animationDuration >= Math.max(...animationDurationsRef.current)) {
           if (animationDuration >= Math.max(...animationDurationsRef.current)) {
             setIsPlaying(false);
             animationTimeRef.current = 0;
@@ -685,10 +684,10 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
         }
         // Update current parameters of network (if network view is selected)
-        const networkViewId = networkViewIdRef.current;
-        if (networkViewId !== null && networkViewId === i) {
+        if (networkViewIdRef.current !== null && networkViewIdRef.current === i) {
           const timeStep = Math.floor(pathProgress * (parametersArrayRef.current[i].length - 1));
-          setCurrentParams(parametersArrayRef.current[networkViewId][timeStep]);
+          if (timeStep >= parametersArrayRef.current[i].length) continue;
+          setCurrentParams(parametersArrayRef.current[networkViewIdRef.current][timeStep]);
         }
       }
 
@@ -775,6 +774,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     isPlacingMode,
     placingPathId,
     currentParams,
+    networkViewId,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
     handleRemoveAllPaths,

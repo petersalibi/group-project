@@ -262,13 +262,13 @@ export default function NetworkVis({
             const currentWeightIndex = paramIndex;
             const w = weights ? weights[currentWeightIndex] : undefined;
             
-            if (weights) paramIndex++;
+            if (w) paramIndex++;
             
             calculatedEdges.push({ 
                 x1: src.x, y1: src.y, 
                 x2: tgt.x, y2: tgt.y, 
                 w,
-                weightIndex: currentWeightIndex
+                weightIndex: w !== undefined ? currentWeightIndex : undefined
             });
          });
        });
@@ -312,7 +312,7 @@ export default function NetworkVis({
 
     if (hoveredInfo.type === 'edge') {
       const idx = hoveredInfo.indexOrId as number;
-      // Safety check in case weights aren't loaded yet
+      // Look up the live weight using the stored index
       value = weights && weights[idx] !== undefined ? weights[idx] : 0;
       label = 'Weight';
     } else {
@@ -338,24 +338,26 @@ export default function NetworkVis({
           {edges.map((e, i) => {
             const style = getEdgeStyle(e.w);
 
-            const handleHover = (ev: any, weightIndex: number) => {
+            const handleHover = (ev: any) => {
               // Get coordinates relative to the SVG view
               const x = ev.nativeEvent.locationX ?? ev.nativeEvent.offsetX;
               const y = ev.nativeEvent.locationY ?? ev.nativeEvent.offsetY;
-              setHoveredInfo({
-                type: 'edge',
-                indexOrId: weightIndex,
-                x: x,  // Use dynamic mouse X
-                y: y  // Use dynamic mouse Y
-              });
+              if (e.weightIndex !== undefined) {
+                setHoveredInfo({
+                  type: 'edge',
+                  indexOrId: e.weightIndex,
+                  x: x,  // Use dynamic mouse X
+                  y: y  // Use dynamic mouse Y
+                });
+              }
             };
 
             return (
               <G
                 key={`e-${i}`}
                 // Update position continuously while moving over the line
-                onPointerEnter={(ev: any) => handleHover(ev, i)}
-                onPointerMove={(ev: any) => handleHover(ev, i)}
+                onPointerEnter={(ev: any) => handleHover(ev)}
+                onPointerMove={(ev: any) => handleHover(ev)}
                 onPointerLeave={() => setHoveredInfo(null)}
               >
                 <Line

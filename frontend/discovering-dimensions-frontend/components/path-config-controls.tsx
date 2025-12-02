@@ -21,6 +21,7 @@ interface PathConfigControlsProps {
   isPlacing: boolean;
   isSceneLoading: boolean;
   isLandscapeLoaded: boolean;
+  isWatching: boolean;
 }
 
 export function PathConfigControls(props: PathConfigControlsProps) {
@@ -32,6 +33,7 @@ export function PathConfigControls(props: PathConfigControlsProps) {
     isPlacing,
     isSceneLoading,
     isLandscapeLoaded,
+    isWatching,
   } = props;
 
   const { id, colorName, colorValue, optim, lr, startPoint } = config;
@@ -99,18 +101,14 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           </Text>
         </Pressable>
 
-        <Pressable
-          onPress={() => onViewNetwork(id)}
-          disabled={isSceneLoading || !isLandscapeLoaded}
-          style={({ pressed }) => [
-            styles.actionButton,
-            {
-              backgroundColor: '#333',
-              opacity: pressed || isSceneLoading ? 0.7 : 1,
-            },
-          ]}
+        <Pressable 
+          onPress={() => onViewNetwork(id)} 
+          disabled={isSceneLoading || !isLandscapeLoaded || isWatching}
+          style={[styles.actionButton, isWatching ? styles.buttonDisabled : null]}
         >
-          <Text style={styles.buttonText}>View on Network</Text>
+          <Text style={[styles.buttonText, isWatching ? styles.buttonTextDisabled : null]}>
+            {isWatching ? 'Viewing on Network' : 'View on Network'}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -178,6 +176,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#444',
     alignItems: 'center',
+    backgroundColor: '#333',
   },
   buttonText: {
     color: '#fff',
@@ -187,5 +186,13 @@ const styles = StyleSheet.create({
   coordsText: {
     color: '#fff',
     fontSize: 11
+  },
+  buttonDisabled: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    paddingHorizontal: 0,
+  },
+  buttonTextDisabled: {
+    color: '#666',
   },
 });
