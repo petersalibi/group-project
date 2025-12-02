@@ -96,6 +96,8 @@ export function ThemedText({
             {
               color: animatedColor, // theme color base
               cursor: Platform.OS === 'web' ? 'pointer' : 'none',
+              textDecorationLine: 'underline',
+              textDecorationColor: hoverColor,
             },
             styles.link,
             style,
