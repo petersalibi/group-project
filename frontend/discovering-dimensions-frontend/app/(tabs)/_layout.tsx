@@ -138,7 +138,7 @@ export default function TabLayout() {
             />
             <HoverableTab
               href='/landscape'
-              label='Loss landscape'
+              label='Visualisation'
               disabled={pathname === '/landscape'}
             />
             <HoverableTab
@@ -182,7 +182,7 @@ export default function TabLayout() {
         >
           <Tabs.Screen name='index' options={{ title: 'Home' }} />
           <Tabs.Screen name='curriculum' options={{ title: 'Curriculum' }} />
-          <Tabs.Screen name='landscape' options={{ title: 'Loss landscape' }} />
+          <Tabs.Screen name='landscape' options={{ title: 'Visualisation' }} />
           <Tabs.Screen name='help' options={{ title: 'Help' }} />
           <Tabs.Screen name='about' options={{ title: 'About' }} />
         </Tabs>
