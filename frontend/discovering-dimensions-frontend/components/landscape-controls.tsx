@@ -65,7 +65,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     setLoss,
     onLoadLandscape,
     onZChange,
-    onLogPlotChange
+    onLogPlotChange,
   } = props;
 
   const handleDataChange = (itemValue: string) => {
@@ -211,7 +211,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
 
       <View
         style={{
-          width: 150,
+          maxWidth: 160,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 5,
