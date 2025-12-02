@@ -1,5 +1,4 @@
-import { StatusBar, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image, Platform } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
@@ -12,11 +11,9 @@ import Animated, {
   ZoomOut,
 } from 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
-import { useTheme } from '@/components/theme-provider';
 import { Link } from 'expo-router';
 
 export default function Home() {
-  const { theme } = useTheme();
   const scrollY = useSharedValue(0);
 
   const scrollHandler = useAnimatedScrollHandler({
@@ -37,160 +34,157 @@ export default function Home() {
     };
   });
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: Colors[theme].background }}
+    <Animated.ScrollView
+      onScroll={scrollHandler}
+      scrollEventThrottle={16}
+      style={{ flex: 1, width: '100%' }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overscrollBehavior: 'none',
+      }}
     >
-      <StatusBar barStyle='dark-content' />
-      <Animated.ScrollView
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        style={{ flex: 1, width: '100%' }}
-        contentContainerStyle={{
-          flexGrow: 1,
-          width: '100%',
+      <ThemedBackground
+        style={{
+          padding: 20,
           alignItems: 'center',
-          justifyContent: 'center',
-          overscrollBehavior: 'none',
+          width: '100%',
+          height: '100%',
         }}
       >
-        <ThemedBackground
+        <Animated.View
+          key='title'
+          entering={FadeIn.duration(1000)}
+          exiting={ZoomOut.duration(500)}
+          style={titleAnimatedStyle}
+        >
+          <ThemedText
+            style={{
+              fontSize: Platform.OS === 'web' ? 100 : 60,
+              fontWeight: '300',
+              marginBottom: 20,
+              marginTop: Platform.OS === 'web' ? 300 : 250,
+              textAlign: 'center',
+              lineHeight: Platform.OS === 'web' ? 110 : 66,
+            }}
+          >
+            Discovering Dimensions
+          </ThemedText>
+        </Animated.View>
+        <ThemedView
           style={{
+            marginTop: 500,
+            display: 'flex',
+            maxWidth: 1800,
+            maxHeight: 600,
             padding: 20,
+            marginBottom: 20,
+            flexDirection: Platform.OS === 'web' ? 'row' : 'column',
             alignItems: 'center',
-            width: '100%',
-            height: '100%',
+            borderRadius: 20,
+            position: 'relative',
           }}
         >
-          <Animated.View
-            key='title'
-            entering={FadeIn.duration(1000)}
-            exiting={ZoomOut.duration(500)}
-            style={titleAnimatedStyle}
+          <ThemedView
+            style={{
+              flex: 1,
+              maxWidth: 900,
+              maxHeight: 600,
+              alignItems: 'center',
+            }}
           >
             <ThemedText
               style={{
-                fontSize: 100,
-                fontWeight: '300',
-                marginBottom: 20,
-                marginTop: 200,
+                fontSize: 20,
+                fontWeight: 'bold',
                 textAlign: 'center',
-                lineHeight: 110,
+                marginBottom: 20,
               }}
             >
-              Discovering Dimensions
+              See the whole landscape.
             </ThemedText>
-          </Animated.View>
-          <ThemedView
-            style={{
-              marginTop: 500,
-              display: 'flex',
-              maxWidth: 1800,
-              maxHeight: 600,
-              padding: 20,
-              marginBottom: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderRadius: 20,
-              position: 'relative',
-            }}
-          >
-            <ThemedView
+            <ThemedText
+              style={{ fontSize: 16, textAlign: 'center', marginBottom: 20 }}
+            >
+              Explore the hidden geometry of neural networks with stunning 3D
+              loss landscape visualisations. Watch how different models learn,
+              converge, and navigate their optimisation paths.
+            </ThemedText>
+            {/* Link to /landscape page */}
+            <Link href='/landscape'>
+              <ThemedView
+                style={{
+                  marginTop: 10,
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
+                }}
+                lightColor={Colors['light'].button}
+                darkColor={Colors['dark'].button}
+              >
+                <ThemedText
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                  }}
+                  darkColor='#000'
+                >
+                  View landscape
+                </ThemedText>
+              </ThemedView>
+            </Link>
+          </ThemedView>
+          <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={{ maxWidth: '100%', height: 600 }}
+              resizeMode='contain'
+            />
+          </ThemedView>
+        </ThemedView>
+        <ThemedView
+          style={{
+            display: 'flex',
+            maxWidth: 1800,
+            maxHeight: 600,
+            padding: 20,
+            marginBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderRadius: 20,
+            position: 'relative',
+          }}
+        >
+          <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={{ maxWidth: '100%', height: 600 }}
+              resizeMode='contain'
+            />
+          </ThemedView>
+          <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <ThemedText
               style={{
-                flex: 1,
-                maxWidth: 900,
-                maxHeight: 600,
-                alignItems: 'center',
+                fontSize: 18,
+                fontWeight: 'bold',
+                textAlign: 'center',
               }}
             >
-              <ThemedText
-                style={{
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  marginBottom: 20,
-                }}
-              >
-                See the whole landscape.
-              </ThemedText>
-              <ThemedText
-                style={{ fontSize: 16, textAlign: 'center', marginBottom: 20 }}
-              >
-                Explore the hidden geometry of neural networks with stunning 3D
-                loss landscape visualisations. Watch how different models learn,
-                converge, and navigate their optimisation paths.
-              </ThemedText>
-              {/* Link to /landscape page */}
-              <Link href='/landscape'>
-                <ThemedView
-                  style={{
-                    marginTop: 10,
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                    borderRadius: 10,
-                  }}
-                  lightColor={Colors['light'].button}
-                  darkColor={Colors['dark'].button}
-                >
-                  <ThemedText
-                    style={{
-                      fontSize: 16,
-                      fontWeight: '600',
-                    }}
-                    darkColor='#000'
-                  >
-                    View landscape
-                  </ThemedText>
-                </ThemedView>
-              </Link>
-            </ThemedView>
-            <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
-              <Image
-                source={require('@/assets/images/icon.png')}
-                style={{ maxWidth: '100%', height: 600 }}
-                resizeMode='contain'
-              />
-            </ThemedView>
+              Watch the network flow.
+            </ThemedText>
+            <ThemedText
+              style={{ fontSize: 16, textAlign: 'center', marginTop: 20 }}
+            >
+              Dive into the inner workings of a neural network as data flows
+              through its layers. Experience dynamic, real-time animations that
+              reveal how inputs transform into intelligent predictions.
+            </ThemedText>
           </ThemedView>
-          <ThemedView
-            style={{
-              display: 'flex',
-              maxWidth: 1800,
-              maxHeight: 600,
-              padding: 20,
-              marginBottom: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderRadius: 20,
-              position: 'relative',
-            }}
-          >
-            <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
-              <Image
-                source={require('@/assets/images/icon.png')}
-                style={{ maxWidth: '100%', height: 600 }}
-                resizeMode='contain'
-              />
-            </ThemedView>
-            <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
-              <ThemedText
-                style={{
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                }}
-              >
-                Watch the network flow.
-              </ThemedText>
-              <ThemedText
-                style={{ fontSize: 16, textAlign: 'center', marginTop: 20 }}
-              >
-                Dive into the inner workings of a neural network as data flows
-                through its layers. Experience dynamic, real-time animations
-                that reveal how inputs transform into intelligent predictions.
-              </ThemedText>
-            </ThemedView>
-          </ThemedView>
-        </ThemedBackground>
+        </ThemedView>
+      </ThemedBackground>
+      {Platform.OS === 'web' && (
         <ThemedView
           style={{
             width: '100%',
@@ -204,7 +198,7 @@ export default function Home() {
             © 2024 Discovering Dimensions. All rights reserved.
           </ThemedText>
         </ThemedView>
-      </Animated.ScrollView>
-    </SafeAreaView>
+      )}
+    </Animated.ScrollView>
   );
 }
