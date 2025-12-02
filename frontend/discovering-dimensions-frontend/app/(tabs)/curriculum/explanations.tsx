@@ -457,14 +457,16 @@ export default function Explanations() {
         z-axis. This will generate a loss surface as required, but it is
         important to note that this{' '}
         <ThemedText type='textBold'>
-          only visualises loss for the local plane we selected with x, p and q
+          only visualises loss for the local plane we selected with{' '}
+          <Math exp='\textbf{x}' />, <Math exp='\textbf{p}' /> and{' '}
+          <Math exp='\textbf{q}' />
         </ThemedText>{' '}
         &ndash; although mathematical analysis shows it is generally quite
         representative of how convex the loss landscape is as a whole.
       </ThemedText>
       <Figure
         img={require('@/assets/images/curriculum/explanations/loss-contour.webp')}
-        width={500}
+        width={700}
         aspectRatio={4.4}
         caption='The loss landscape, portrayed as a contour map. Each coloured ring represents a magnitude of loss.'
       />
