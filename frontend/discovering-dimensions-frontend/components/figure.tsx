@@ -1,28 +1,34 @@
 import { View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Image } from 'expo-image';
+import { Image, useImage } from 'expo-image';
+import React from 'react';
 
 interface FigureProps {
   img: string;
   thumbhash?: string; // Thumbhash for placeholder
   width?: number;
-  height?: number;
+  capWidth?: number;
   aspectRatio?: number;
-  caption?: string;
+  caption?: string | React.ReactNode;
 }
 
 export default function Figure({
   img,
   width,
-  height,
+  capWidth,
   aspectRatio,
   caption,
 }: FigureProps) {
+  const image = useImage(img);
+
   return (
     <View
       style={{
+        width: '100%',
+        maxWidth: width ?? 600,
         flexDirection: 'column',
         alignItems: 'center',
+        alignSelf: 'center',
         marginTop: 20,
         marginBottom: 20,
       }}
@@ -31,15 +37,21 @@ export default function Figure({
         style={{
           maxWidth: width ?? 600,
           width: '100%',
-          aspectRatio: width && height ? width / height : aspectRatio,
-          height: height ?? undefined,
+          aspectRatio:
+            image?.width && image?.height
+              ? image.width / image.height
+              : aspectRatio,
           alignSelf: 'center',
           marginBottom: 10,
         }}
         source={img}
         contentFit='contain'
       />
-      {caption && <ThemedText type='caption'>{caption}</ThemedText>}
+      {caption && (
+        <ThemedText type='caption' style={{ maxWidth: capWidth ?? 600 }}>
+          {caption}
+        </ThemedText>
+      )}
     </View>
   );
 }
