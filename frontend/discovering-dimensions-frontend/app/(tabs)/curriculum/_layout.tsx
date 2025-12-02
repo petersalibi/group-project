@@ -38,7 +38,7 @@ export default function CurriculumScreen() {
                 marginBottom: 10,
               }}
             >
-              Chapters
+              Contents
             </ThemedText>
             <ThemedView>
               <ThemedText
