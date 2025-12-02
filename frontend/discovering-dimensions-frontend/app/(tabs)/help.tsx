@@ -25,7 +25,7 @@ export default function HelpScreen() {
             Help
           </ThemedText>
         </ThemedView>
-        <ThemedText>How to use this app.</ThemedText>
+        <ThemedText type='text'>How to use this app.</ThemedText>
       </ThemedView>
     </ThemedBackground>
   );
