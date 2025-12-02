@@ -21,6 +21,7 @@ export type ThemedTextProps = TextProps & {
     | 'defaultSemiBold'
     | 'subheading'
     | 'subsubheading'
+    | 'subsubsubheading'
     | 'link'
     | 'caption';
 };
@@ -137,6 +138,7 @@ export function ThemedText({
         type === 'defaultSemiBold' && styles.defaultSemiBold,
         type === 'subheading' && styles.subheading,
         type === 'subsubheading' && styles.subsubheading,
+        type === 'subsubsubheading' && styles.subsubsubheading,
         type === 'caption' && styles.caption,
         style,
       ]}
@@ -179,9 +181,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: 30,
     marginTop: 20,
-    marginBottom: 10,
   },
   subsubheading: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    lineHeight: 28,
+    marginTop: 18,
+    marginBottom: 9,
+  },
+  subsubsubheading: {
     fontSize: 18,
     fontWeight: 'bold',
     lineHeight: 24,
