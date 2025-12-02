@@ -64,6 +64,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
   const [placingPathId, setPlacingPathId] = useState<number | null>(null);
+  const [currentParams, setCurrentParams] = useState<number[] | null>(null);
 
   // --- Internal state refs ---
   const dataRef = useRef<string>(data);
@@ -75,6 +76,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const originRef = useRef<number[] | null>(null);
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
+  const networkViewIdRef = useRef<number | null>(null);
 
   // --- Three.js refs ---
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -102,6 +104,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const totalPathPointsArrayRef = useRef<number[]>([]);
   const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
   const animationDurationsRef = useRef<number[]>([]);
+  const parametersArrayRef = useRef<number[][][]>([]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -141,6 +144,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     pathNormalsArrayRef.current = [];
     totalPathPointsArrayRef.current = [];
     path2DArrayRef.current = [];
+    parametersArrayRef.current = [];
     Object.values(markersRef.current).forEach(({ ball, line }) => {
       disposeObject(ball);
       disposeObject(line);
@@ -267,15 +271,19 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Process all responses
       responses.forEach((resp, index) => {
         const pathData = resp.data;
-        const arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
+        const path_arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
+        const parameters_arr = pathData.parameters_path?.data ?? pathData.parameters_path;
 
-        if (!Array.isArray(arr) || arr.length < 2) {
+        if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
+        } else if (!Array.isArray(parameters_arr) || parameters_arr.length < 2) {
+          throw new Error(`Invalid parameters data for path ${index + 1}`);
         }
 
-        const twoDPoints = arr.map(
+        const twoDPoints = path_arr.map(
           (p: number[]) => new THREE.Vector2(p[0], p[1]),
         );
+        parametersArrayRef.current[index] = parameters_arr;
         const curve2D = new THREE.SplineCurve(twoDPoints);
         path2DArrayRef.current[index] = curve2D
           .getSpacedPoints(500)
@@ -554,6 +562,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [isPathLoaded, updatePathGeometry],
   );
 
+  const onViewNetwork = useCallback(
+    (id: number) => {
+      networkViewIdRef.current = id;
+    },
+    [],
+  );
+
   const togglePlacingMode = useCallback(
     (id: number | null) => {
       if (id === null || id === placingPathId) {
@@ -654,6 +669,12 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
           ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
         }
+        // Update current parameters of network (if network view is selected)
+        const networkViewId = networkViewIdRef.current;
+        if (networkViewId !== null && networkViewId === i) {
+          const timeStep = Math.floor(pathProgress * (parametersArrayRef.current[i].length - 1));
+          setCurrentParams(parametersArrayRef.current[networkViewId][timeStep]);
+        }
       }
 
       controls.update();
@@ -731,6 +752,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     isPlaying,
     isPlacingMode,
     placingPathId,
+    currentParams,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
     handleRemoveAllPaths,
@@ -738,5 +760,6 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     handleLogPlotToggle,
     handleZChange,
     togglePlacingMode,
+    onViewNetwork
   };
 }

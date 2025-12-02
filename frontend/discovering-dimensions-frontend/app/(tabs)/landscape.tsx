@@ -96,6 +96,7 @@ export default function LandscapeWithPath() {
     isPlaying,
     isPlacingMode,
     placingPathId,
+    currentParams,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
     handleRemoveAllPaths,
@@ -103,6 +104,7 @@ export default function LandscapeWithPath() {
     handleZChange,
     handleLogPlotToggle,
     togglePlacingMode,
+    onViewNetwork,
   } = useLandscapeScene({
     activation,
     depth,
@@ -171,6 +173,7 @@ export default function LandscapeWithPath() {
             width={width}
             activation={activation}
             outputCount={outputs}
+            weights={currentParams || []}
           />
         </View>
 
@@ -310,6 +313,7 @@ export default function LandscapeWithPath() {
                       config={config}
                       onConfigChange={handleConfigChange}
                       onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                      onViewNetwork={() => onViewNetwork(config.id)}
                       isPlacing={isPlacingMode && placingPathId === config.id}
                       isSceneLoading={isLoading}
                       isLandscapeLoaded={isLandscapeLoaded}

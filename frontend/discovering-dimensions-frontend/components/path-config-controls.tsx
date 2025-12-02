@@ -17,6 +17,7 @@ interface PathConfigControlsProps {
   config: PathConfig;
   onConfigChange: (id: number, field: keyof PathConfig, value: any) => void;
   onPlaceStartPoint: (id: number) => void;
+  onViewNetwork: (id: number) => void;
   isPlacing: boolean;
   isSceneLoading: boolean;
   isLandscapeLoaded: boolean;
@@ -27,6 +28,7 @@ export function PathConfigControls(props: PathConfigControlsProps) {
     config,
     onConfigChange,
     onPlaceStartPoint,
+    onViewNetwork,
     isPlacing,
     isSceneLoading,
     isLandscapeLoaded,
@@ -72,6 +74,11 @@ export function PathConfigControls(props: PathConfigControlsProps) {
             </Picker>
           </View>
         </View>
+        <View style={styles.paramGroup}>
+          <Text style={styles.coordsText}>
+            Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]
+          </Text>
+        </View>
       </View>
 
       {/* Footer: Action & Status */}
@@ -92,9 +99,19 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           </Text>
         </Pressable>
 
-        <Text style={styles.coordsText}>
-          Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]
-        </Text>
+        <Pressable
+          onPress={() => onViewNetwork(id)}
+          disabled={isSceneLoading || !isLandscapeLoaded}
+          style={({ pressed }) => [
+            styles.actionButton,
+            {
+              backgroundColor: '#333',
+              opacity: pressed || isSceneLoading ? 0.7 : 1,
+            },
+          ]}
+        >
+          <Text style={styles.buttonText}>View on Network</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -169,7 +186,6 @@ const styles = StyleSheet.create({
   },
   coordsText: {
     color: '#fff',
-    fontSize: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 11
   },
 });
