@@ -83,17 +83,6 @@ export default function CurriculumScreen() {
                   Advanced loss landscape techniques
                 </ThemedText>
               </OrderedList>
-              <ThemedText
-                style={{
-                  marginTop: 10,
-                  pointerEvents:
-                    pathname === '/curriculum/explanations' ? 'none' : 'auto',
-                }}
-                type={pathname === '/curriculum/explanations' ? 'text' : 'link'}
-                onPress={() => router.navigate('/curriculum/explanations')}
-              >
-                Explanations of key concepts
-              </ThemedText>
             </ThemedView>
           </ThemedView>
         </View>
