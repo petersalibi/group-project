@@ -57,6 +57,14 @@ export function ThemedText({
   // Hover animation value (0 = normal, 1 = hovered)
   const hoverAnim = useRef(new Animated.Value(0)).current;
 
+  // Reset hover animation and colour if link turns to text
+  useEffect(() => {
+    if (type !== 'link') {
+      hoverAnim.stopAnimation();
+      hoverAnim.setValue(0);
+    }
+  }, [hoverAnim, type]);
+
   // Animate underline + color on hover
   const animateHover = (toValue: number) => {
     Animated.timing(hoverAnim, {
