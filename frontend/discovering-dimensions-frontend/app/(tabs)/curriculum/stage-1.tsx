@@ -67,8 +67,8 @@ export default function CurriculumStage1() {
       />
       <ThemedText type='text'>
         {'\n'}
-        So to make this purple network, we have three inputs (red, green, blue),
-        a function that decides if the colours match some rules and one output
+        So to make this purple network, we have 3 inputs (red, green, blue), a
+        function that decides if the colours match some rules and one output
         (&quot;yes&quot; if its purple, &quot;no&quot; if it isn&apos;t).
         {'\n'}
         {'\n'}
@@ -110,9 +110,8 @@ export default function CurriculumStage1() {
         prediction and see if it tells us anything about why we have a big loss.
         {'\n'}
         {'\n'}
-        Since we have three inputs, we can also nicely visualise the network in
-        3D, having an axis for the red, green and blue components of the
-        colours.
+        Since we have 3 inputs, we can also nicely visualise the network in 3D,
+        having an axis for the red, green and blue components of the colours.
       </ThemedText>
       <Figure
         img={require('@/assets/images/curriculum/stage-1/rgb-network-80.webp')}

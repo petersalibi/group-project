@@ -32,7 +32,7 @@ export default function Explanations() {
         {'\n'}
         However, such a visualisation is, at least at first, impossible to
         replicate to any non-trivial network. A network with any more than two
-        parameters would require more than three dimensions to visualise its
+        parameters would require more than 3 dimensions to visualise its
         trajectory, a feat well beyond human interpretability. Using contour
         maps or scatter points with colour as the fourth dimension would only
         allow a single extra parameter &ndash; a drop in the bucket given the
@@ -64,7 +64,7 @@ export default function Explanations() {
         &ndash; and thus actual useful information &ndash; of the landscape. Put
         simply, if the vast majority of the landscape we want to visualise is
         useless noise (which it is), then PCA is capable of reducing a
-        multi-dimensional problem back into a three-dimensional one. The
+        multi-dimensional problem back into a 3-dimensional one. The
         &quot;ball&quot; still exists, it&apos;s simply locked in a high
         dimensional space. PCA returns us to a visualisable 3D space, which in
         effect allows us to provide the &quot;ball rolling down a hill&quot;
@@ -251,7 +251,7 @@ export default function Explanations() {
         dataset.
         {'\n'}
         {'\n'}
-        The three key ingredients we will generate are:
+        The 3 key ingredients we will generate are:
         <OrderedList>
           <ThemedText type='text'>
             The <ThemedText type='textBold'>instability map</ThemedText> &ndash;

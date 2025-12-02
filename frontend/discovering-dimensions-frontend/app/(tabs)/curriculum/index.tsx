@@ -29,7 +29,7 @@ export default function CurriculumIndex() {
         and discover interesting comparisons between loss landscapes.
         {'\n'}
         {'\n'}
-        This course is split into three stages, so depending on your current
+        This course is split into 3 stages, so depending on your current
         knowledge, you are able to start from wherever you like, using these
         lessons as a guide to get the most out of using and interpreting this
         tool.
