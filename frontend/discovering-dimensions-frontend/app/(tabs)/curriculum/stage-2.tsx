@@ -111,10 +111,10 @@ export default function CurriculumStage2() {
         purple prediction example, we can call red <Math exp='x_1' />, green{' '}
         <Math exp='x_2' /> and blue <Math exp='x_3' />, then our first example
         would look like:
-        <Math block={true} exp='\textbf{x}_1 = [x_1, x_2, x_3]' />
+        <Math block={true} exp='\textbf{x}_1 = [x_1, x_2, x_3].' />
         But of course, we can&apos;t just have one example, so we need to
         include more. We can have a second example:
-        <Math block={true} exp='\textbf{x}_2 = [x_1, x_2, x_3]' />
+        <Math block={true} exp='\textbf{x}_2 = [x_1, x_2, x_3].' />
         But now we have the same variable names for both examples, so let&apos;s
         denote <Math exp='x_{11}, x_{12}, x_{13}' /> to refer to example
         1&apos;s red green and blue values, and{' '}
@@ -130,23 +130,23 @@ export default function CurriculumStage2() {
             \ldots & \ldots & \ldots \\
             x_{n1} & x_{n2} & x_{n3}
           \end{bmatrix} = \begin{bmatrix}
-            \text{example} 1 \\
-            \text{example} 2 \\
-            \text{example} 3 \\
+            \text{example}\hspace{-1.em} 1 \\
+            \text{example}\hspace{-1.em} 2 \\
+            \text{example}\hspace{-1.em} 3 \\
             \ldots \\
-            \text{example} n
+            \text{example}\hspace{-1.em} n
           \end{bmatrix}.'
         />
       </ThemedText>
       <ThemedText type='text'>
         We&apos;ve not done anything new here, we&apos;ve just allowed ourselves
         to have <Math exp='n' /> different colours each with a red value{' '}
-        <Math exp='x_{i1}' />, a green value <Math exp='x_{i2}' />
-        and a blue value <Math exp='x_{i3}' />. If we wanted to have more
-        features &ndash; say if we had a different dataset or we also wanted to
-        add luminosity (light level of the colour), we could add{' '}
-        <Math exp='x_{i4}' />. And in general, <Math exp='x_{ij}' /> just means
-        the value of the <Math exp='j' />
+        <Math exp='x_{i1}' />, a green value <Math exp='x_{i2}' /> and a blue
+        value <Math exp='x_{i3}' />. If we wanted to have more features &ndash;
+        say if we had a different dataset or we also wanted to add luminosity
+        (light level of the colour), we could add <Math exp='x_{i4}' />. And in
+        general, <Math exp='x_{ij}' /> just means the value of the{' '}
+        <Math exp='j' />
         -th attribute of the <Math exp='i' />
         -th training example &ndash; that&apos;s it. Each row in this matrix is
         one training example, and each column is an attribute over all the
@@ -176,10 +176,11 @@ export default function CurriculumStage2() {
         price, it could be a real number. This is simpler &ndash; for each
         training example there is only one answer, so we can just let{' '}
         <Math exp='y_1' /> be the answer to training example{' '}
-        <Math exp='\textbf{x}_1' />, <Math exp='y_2' /> as the answer to{' '}
-        <Math exp='\textbf{x}_2' /> and so on, let <Math exp='y_i' /> be the
-        answer to <Math exp='\textbf{x}_i' />. Then we can construct our list or
-        &quot;vector&quot; as they are called of labels:
+        <Math exp='\textbf{x}_{\hspace{-0.2em}1}' />, <Math exp='y_2' /> as the
+        answer to <Math exp='\textbf{x}_{\hspace{-0.2em}2}' /> and so on, let{' '}
+        <Math exp='y_i' /> be the answer to{' '}
+        <Math exp='\textbf{x}_{\hspace{-0.2em}i}' />. Then we can construct our
+        list or &quot;vector&quot; as they are called of labels:
         <Math
           block={true}
           exp='\textbf{y} = \begin{bmatrix} y_1 \\ y_2 \\ \ldots \\ y_n \end{bmatrix}'
@@ -200,8 +201,8 @@ export default function CurriculumStage2() {
             tool, while those in red have values that map to &quot;No&quot;.
             Each &quot;yes&quot; or &quot;no&quot; output is precisely the
             corresponding label <Math exp='y_i' /> for each example{' '}
-            <Math exp='\textbf{x}_i' />, with the whole label vector being{' '}
-            <Math exp='\textbf{y}' />.
+            <Math exp='\textbf{x}_{\hspace{-0.2em}i}' />, with the whole label
+            vector being <Math exp='\textbf{y}' />.
           </ThemedText>
         }
       />
@@ -229,45 +230,46 @@ export default function CurriculumStage2() {
           exp='\textbf{w} = \begin{bmatrix}
             w_1 \\ w_2 \\ w_3 \\ \ldots \\ w_d
           \end{bmatrix} = \begin{bmatrix}
-            \text{weight value for attribute} \hspace{-6em} 1 \\
-            \text{weight value for attribute} \hspace{-6em} 2 \\
-            \text{weight value for attribute} \hspace{-6em} 3 \\
+            \text{weight value for attribute} \hspace{-6.3em} 1 \\
+            \text{weight value for attribute} \hspace{-6.3em} 2 \\
+            \text{weight value for attribute} \hspace{-6.3em} 3 \\
             \ldots \\
-            \text{weight value for attribute} \hspace{-6em} d
+            \text{weight value for attribute} \hspace{-6.3em} d
           \end{bmatrix}'
         />
         where <Math exp='w_i' /> is just the weight for the <Math exp='i' />
         -th attribute. So our prediction for the <Math exp='j' />
         -th training or testing example{' '}
         <Math
-          exp='\textbf{x}_i =
+          exp='\textbf{x}_{\hspace{-0.2em}i} =
         \begin{bmatrix} x_{i1} & x_{i2} & \ldots & x_{id} \end{bmatrix}'
         />
         , which we call <Math exp='\hat{y}_i' /> for a training/testing example{' '}
-        <Math exp='\textbf{x}_i' /> would look like:
+        <Math exp='\textbf{x}_{\hspace{-0.2em}i}' /> would look like:
         <Math
           block={true}
           exp='\hat{y}_{i} = w_1x_{i1} + w_2x_{i2} + \ldots + w_dx_{id} = \sum_{j=1}^d w_jx_{ij}'
         />
         or in matrix format, we can rewrite this as just the dot product of the
         weight vector <Math exp='\textbf{w}' /> and the training example{' '}
-        <Math exp='\textbf{x}_i' />, giving us a much simpler notation:
+        <Math exp='\textbf{x}_{\hspace{-0.2em}i}' />, giving us a much simpler
+        notation:
         <Math
           block={true}
-          exp='\hat{y}_i = \textbf{w} \cdot \textbf{x}_i = \textbf{x}_i\textbf{w}.'
+          exp='\hat{y}_i = \textbf{w} \cdot \textbf{x}_{\hspace{-0.2em}i} = \textbf{x}_{\hspace{-0.2em}i} \textbf{w}.'
         />
-        Then finally if we wanted to predict all $n$ training / testing examples
-        in one go, we can just use our training matrix <Math exp='\textbf{X}' />{' '}
-        from before to get:
+        Finally, if we wanted to predict all <Math exp='n' /> training/testing
+        examples in one go, we can just use our training matrix{' '}
+        <Math exp='\textbf{X}' /> from before to get:
         <Math
           block={true}
           exp='\hat{\textbf{y}} = \textbf{X} \textbf{w} = \begin{bmatrix}
             \hat{y}_1 \\ \hat{y}_2 \\ \ldots \\ \hat{y}_n \end{bmatrix} =
             \begin{bmatrix}
-              \text{prediction for example} \hspace{-4.5em} 1 \\
-              \text{prediction for example} \hspace{-4.5em} 2 \\
+              \text{prediction for example} \hspace{-4.8em} 1 \\
+              \text{prediction for example} \hspace{-4.8em} 2 \\
               \ldots \\
-              \text{prediction for example} \hspace{-4.5em} n
+              \text{prediction for example} \hspace{-4.8em} n
             \end{bmatrix}.'
         />
         This is just the same as above but if we want to represent all
@@ -311,7 +313,7 @@ export default function CurriculumStage2() {
           block={true}
           exp='\begin{align*}
             \hat{y}_{i} &= w_0 \times 1 + w_1x_{i1} + w_2x_{i2} + \ldots + w_dx_{id} \\
-            &= \sum_{j=0}^d w_jx_{ij} = \textbf{x}_i\textbf{w} + w_0.
+            &= \sum_{j=0}^d w_jx_{ij} = \textbf{x}_{\hspace{-0.2em}i}\textbf{w} + w_0.
           \end{align*}'
         />
         This is perfect! We have now successfully added a constant bias term to
@@ -375,7 +377,7 @@ export default function CurriculumStage2() {
             So in a formula, the loss would just be defined as:
             <Math
               block={true}
-              exp='L(\hat{\textbf{{y}}}, \textbf{y}) = \sum_{i=1}^n (y_i-\hat{y}_i)^2 = ||\textbf{y} &ndash; \hat{\textbf{y}}||_2^2'
+              exp='L(\hat{\textbf{{y}}}, \textbf{y}\hspace{-0.2em}) = \sum_{i=1}^n (y_i-\hat{y}_i)^2 = ||\textbf{y}\hspace{-0.2em}-\hat{\textbf{y}}||_2^2'
             />
           </ThemedText>
         </OrderedList>
@@ -385,9 +387,10 @@ export default function CurriculumStage2() {
         many more, but most neural network predictors and linear models will use
         this one. This one is known as{' '}
         <ThemedText type='textBold'>least squares</ThemedText>, or{' '}
-        <ThemedText type='textBold'>mean squared error</ThemedText> if we divide
-        by the number of examples (for the purposes of training, these methods
-        differ only by a constant factor).
+        <ThemedText type='textBold'>mean squared error</ThemedText> (
+        <ThemedText type='textBold'>MSE</ThemedText>) if we divide by the number
+        of examples (for the purposes of training, these methods differ only by
+        a constant factor).
         {'\n'}
         {'\n'}
         And as for the first question, while there is a method called{' '}
@@ -607,7 +610,7 @@ export default function CurriculumStage2() {
         now we have:
         <Math
           block={true}
-          exp='\hat{y}_i = \sigma \left( \textbf{x}_i\textbf{w} + w_0 \right)'
+          exp='\hat{y}_i = \sigma \left( \textbf{x}_{\hspace{-0.2em}i}\textbf{w} + w_0 \right)'
         />
         or more generally for the full set of training examples:
         <Math
