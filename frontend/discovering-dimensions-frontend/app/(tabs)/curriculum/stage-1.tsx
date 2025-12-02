@@ -70,8 +70,12 @@ export default function CurriculumStage1() {
         So to make this purple network, we have 3 inputs (red, green, blue), a
         function that decides if the colours match some rules and one output
         (&quot;yes&quot; if its purple, &quot;no&quot; if it isn&apos;t).
-        {'\n'}
-        {'\n'}
+      </ThemedText>
+      <VideoScreen
+        videoSource={require('@/assets/videos/curriculum/stage-1/purple-network.mp4')}
+        width={800}
+      />
+      <ThemedText type='text'>
         To decide how this function decides whether the colour is purple, we
         need to decide the <ThemedText type='textBold'>weights</ThemedText> for
         each of the inputs. This will then help us decide if one input is too
@@ -83,10 +87,14 @@ export default function CurriculumStage1() {
         blue and &lt; 50% green, which makes our network look like this:
       </ThemedText>
       <VideoScreen
-        videoSource={require('@/assets/videos/curriculum/stage-1/purple-network.mp4')}
+        videoSource={'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4'}
         width={800}
       />
       <ThemedText type='text'>
+        Now lets test it out. Choose a colour and see what the network predicts,
+        is it correct? what happens if you try dark blue? or pink?
+        {'\n'}
+        {'\n'}
         If you tried out a few different colours, you will see two things:
         {'\n'}
         <UnorderedList>
@@ -103,13 +111,15 @@ export default function CurriculumStage1() {
         there is an error in the predicted values. So, the loss is the number of
         correctly labelled colours compared to all of the colours we tested out
         on the network.
-        {'\n'}
-        {'\n'}
+      </ThemedText>
+      <Figure img='' width={500} aspectRatio={1.5} caption='' />
+      <ThemedText type='text'>
         Another way we can look at this is on a graph, we can compare the
         different inputs, draw the thresholds that the weights are using for the
         prediction and see if it tells us anything about why we have a big loss.
-        {'\n'}
-        {'\n'}
+      </ThemedText>
+      <Figure img='' width={500} aspectRatio={1.5} caption='' />
+      <ThemedText type='text'>
         Since we have 3 inputs, we can also nicely visualise the network in 3D,
         having an axis for the red, green and blue components of the colours.
       </ThemedText>
@@ -120,6 +130,12 @@ export default function CurriculumStage1() {
         caption='80% correct &ndash; the green crosses show a correct prediction, the red crosses show an incorrect prediction and the purple line shows the region where the colours are going to be predicted as purple.'
       />
       <ThemedText type='text'>
+        Looking at these different graphs, we can see that the network has an
+        accuracy of 80% for the 10 test images we tried. which also means that
+        there is a loss of 20%, with 20% of the colours being labelled
+        incorrectly (the network made the wrong prediction).
+        {'\n'}
+        {'\n'}
         We want to make our network more accurate, so that all the purple
         colours are labelled purple, and all other colours are labelled not
         purple. To do this we can look at the graphs, how well they labelled the
