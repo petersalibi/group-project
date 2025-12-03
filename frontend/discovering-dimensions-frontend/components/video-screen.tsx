@@ -1,12 +1,18 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { StyleSheet, View } from 'react-native';
+import { ThemedText } from './themed-text';
 
 interface VideoScreenProps {
   videoSource: any;
   width?: number;
+  caption?: string;
 }
 
-export default function VideoScreen({ videoSource, width }: VideoScreenProps) {
+export default function VideoScreen({
+  videoSource,
+  width,
+  caption,
+}: VideoScreenProps) {
   const player = useVideoPlayer(videoSource, (player) => {
     player.loop = true;
     player.play();
@@ -25,6 +31,7 @@ export default function VideoScreen({ videoSource, width }: VideoScreenProps) {
         allowsFullscreen
         allowsPictureInPicture
       />
+      {caption && <ThemedText type='caption'>{caption}</ThemedText>}
       {/* Play/Pause button - disabled for now
       <View style={styles.controlsContainer}>
         <Button
@@ -49,10 +56,10 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 50,
   },
   video: {
     width: '100%',
+    marginBottom: 10,
   },
   controlsContainer: {
     padding: 10,
