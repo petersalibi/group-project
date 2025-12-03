@@ -4,6 +4,7 @@ import { Collapsible } from '@/components/ui/collapsible';
 import Math from '@/components/math';
 import Figure from '@/components/figure';
 import { Link } from 'expo-router';
+import VideoScreen from '@/components/video-screen';
 
 export default function CurriculumStage3() {
   return (
@@ -292,6 +293,11 @@ export default function CurriculumStage3() {
         projection function, any point on our higher-dimensional space can be
         expressed as a point on a 3D space. Thus, we have our visualisations.
       </ThemedText>
+      <VideoScreen
+        videoSource={require('@/assets/videos/curriculum/stage-3/pca.mp4')}
+        width={800}
+        caption='An animation demonstrating how PCA works.'
+      />
       <Figure
         img={require('@/assets/images/curriculum/stage-3/loss-animation.webp')}
         width={500}
