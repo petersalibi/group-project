@@ -55,8 +55,8 @@ const getEdgeStyle = (weight: number | undefined) => {
   const val = Math.tanh(weight / 2);
   const magnitude = Math.abs(val);
   
-  // Color: Red if > 0, Blue if < 0
-  const color = val > 0 ? `rgba(255, 0, 0, 0.8)` : `rgba(0, 100, 255, 0.8)`;
+  // Color: Green if > 0, Red if < 0
+  const color = val > 0 ? `rgba(9, 255, 0, 0.8)` : `rgba(255, 0, 0, 0.8)`;
   const width = 2 + magnitude * 10;
 
   return { stroke: color, width, opacity: 0.8 };
@@ -78,6 +78,45 @@ const Tooltip = ({ x, y, value, label }: { x: number, y: number, value: number, 
     <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
       {label}: {value.toFixed(4)}
     </Text>
+  </View>
+);
+
+const NetworkWeightKey = () => (
+  <View style={styles.keyContainer}>
+    <Text style={styles.keyTitle}>Weights</Text>
+    
+    {/* Positive */}
+    <View style={styles.keyItem}>
+        <Svg width="25" height="10">
+            <Line x1="0" y1="5" x2="25" y2="5" stroke="rgb(9,255,0)" strokeWidth="3" />
+        </Svg>
+        <Text style={styles.keyText}>Positive</Text>
+    </View>
+
+    {/* Negative */}
+    <View style={styles.keyItem}>
+        <Svg width="25" height="10">
+            <Line x1="0" y1="5" x2="25" y2="5" stroke="rgb(255,0,0)" strokeWidth="3" />
+        </Svg>
+        <Text style={styles.keyText}>Negative</Text>
+    </View>
+
+    {/* High Magnitude */}
+    <View style={styles.keyItem}>
+        <Svg width="25" height="7">
+            {/* Thick line */}
+            <Line x1="0" y1="3" x2="25" y2="3" stroke="#fff" strokeWidth="12" />
+        </Svg>
+        <Text style={styles.keyText}>High Magnitude</Text>
+    </View>
+    {/* Low Magnitude */}
+    <View style={styles.keyItem}>
+        <Svg width="25" height="7">
+            {/* Thin line */}
+            <Line x1="0" y1="3" x2="25" y2="3" stroke="#fff" strokeWidth="2" />
+        </Svg>
+        <Text style={styles.keyText}>Low Magnitude</Text>
+    </View>
   </View>
 );
 
@@ -447,6 +486,8 @@ export default function NetworkVis({
           />
       )}
 
+      {weights && weights.length > 0 && <NetworkWeightKey />}
+
       <View style={styles.labelContainer}>
         <Text style={styles.infoText}>
           {activation} • {depth} Hidden
@@ -474,5 +515,33 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     textTransform: 'uppercase',
+  },
+  keyContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Semi-transparent background
+    padding: 8,
+    borderRadius: 6,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    gap: 4,
+  },
+  keyTitle: {
+    color: '#aaa',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  keyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  keyText: {
+    color: '#eee',
+    fontSize: 10,
+    fontWeight: '500',
   },
 });

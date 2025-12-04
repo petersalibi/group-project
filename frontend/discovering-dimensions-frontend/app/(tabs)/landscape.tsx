@@ -152,6 +152,24 @@ export default function LandscapeWithPath() {
     );
   };
 
+  function LossKey() {
+    return (
+      <View style={styles.lossKeyContainer}>
+        <Text style={styles.lossKeyText}>High Loss</Text>
+        {/* Gradient Bar */}
+        <View 
+          style={[
+            styles.gradientBar, 
+            Platform.OS === 'web' && ({ 
+              backgroundImage: 'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))' 
+            } as any)
+          ]} 
+        />
+        <Text style={styles.lossKeyText}>Low Loss</Text>
+      </View>
+    );
+  }
+
   const isLoading = isLandscapeLoading || isPathLoading;
 
   return (
@@ -211,6 +229,8 @@ export default function LandscapeWithPath() {
           >
             {/* Canvas Container */}
             <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
+            
+            {isLandscapeLoaded && <LossKey />}
 
             {/* Right Sidebar Container */}
             <View
@@ -380,5 +400,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  lossKeyContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    zIndex: 10, // Ensure it sits above the canvas
+    pointerEvents: 'none', // Let clicks pass through to the canvas if needed
+  },
+  lossKeyText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowRadius: 2,
+  },
+  gradientBar: {
+    width: 12,
+    height: 80,
+    marginVertical: 4,
   },
 });
