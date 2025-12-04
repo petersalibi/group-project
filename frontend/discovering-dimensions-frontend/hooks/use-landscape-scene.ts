@@ -157,6 +157,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     clockRef.current = new THREE.Clock();
   }, []);
 
+  const handleClearPaths = useCallback(() => {
+    handleRemoveAllPaths();
+    setNetworkViewId(null);
+    networkViewIdRef.current = null;
+    setCurrentParams(null);
+  }, []);
+
   /**
    * Updates 3D path geometry from a cached 2D path.
    */
@@ -236,7 +243,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     setIsLandscapeLoaded(false);
     setIsPathLoading(true);
-    // === NEW: Clear all markers on generation ===
+    // Clear all markers on generation
     Object.values(markersRef.current).forEach(({ ball, line }) => {
       ball.visible = false;
       line.visible = false;
@@ -777,7 +784,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     networkViewId,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
-    handleRemoveAllPaths,
+    handleClearPaths,
     togglePlayPause,
     handleLogPlotToggle,
     handleZChange,

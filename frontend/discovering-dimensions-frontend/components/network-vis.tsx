@@ -49,7 +49,7 @@ const getActivationPath = (type: string) => {
 };
 
 const getEdgeStyle = (weight: number | undefined) => {
-  if (weight === undefined) return { stroke: '#fff', width: 1, opacity: 0.8 };
+  if (weight === undefined) return { stroke: '#fff', width: 2, opacity: 0.8 };
   
   // Normalize weight (-1 to 1)
   const val = Math.tanh(weight / 2);
@@ -57,7 +57,7 @@ const getEdgeStyle = (weight: number | undefined) => {
   
   // Color: Red if > 0, Blue if < 0
   const color = val > 0 ? `rgba(255, 0, 0, 0.8)` : `rgba(0, 100, 255, 0.8)`;
-  const width = 1 + magnitude * 10;
+  const width = 2 + magnitude * 10;
 
   return { stroke: color, width, opacity: 0.8 };
 };
@@ -449,7 +449,7 @@ export default function NetworkVis({
 
       <View style={styles.labelContainer}>
         <Text style={styles.infoText}>
-          {activation} • {depth} Hidden • {width} Width
+          {activation} • {depth} Hidden
         </Text>
       </View>
     </ThemedView>

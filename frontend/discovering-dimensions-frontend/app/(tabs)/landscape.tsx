@@ -100,7 +100,7 @@ export default function LandscapeWithPath() {
     networkViewId,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
-    handleRemoveAllPaths,
+    handleClearPaths,
     togglePlayPause,
     handleZChange,
     handleLogPlotToggle,
@@ -281,7 +281,7 @@ export default function LandscapeWithPath() {
                       {isPathLoaded && (
                         <Button
                           title={'Clear Paths'}
-                          onPress={handleRemoveAllPaths}
+                          onPress={handleClearPaths}
                           color='#ff4444'
                         />
                       )}
