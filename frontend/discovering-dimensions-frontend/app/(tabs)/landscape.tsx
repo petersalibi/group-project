@@ -411,8 +411,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowRadius: 2,
   },
   gradientBar: {
     width: 12,
