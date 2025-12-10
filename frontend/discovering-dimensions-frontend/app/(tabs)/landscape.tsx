@@ -157,13 +157,15 @@ export default function LandscapeWithPath() {
       <View style={styles.lossKeyContainer}>
         <Text style={styles.lossKeyText}>High Loss</Text>
         {/* Gradient Bar */}
-        <View 
+        <View
           style={[
-            styles.gradientBar, 
-            Platform.OS === 'web' && ({ 
-              backgroundImage: 'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))' 
-            } as any)
-          ]} 
+            styles.gradientBar,
+            Platform.OS === 'web' &&
+              ({
+                backgroundImage:
+                  'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))',
+              } as any),
+          ]}
         />
         <Text style={styles.lossKeyText}>Low Loss</Text>
       </View>
@@ -204,7 +206,6 @@ export default function LandscapeWithPath() {
 
       {/* MAIN CONTENT */}
       <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
-        
         {/* LEFT: Network Visualisation */}
         <View style={{ flex: 1, borderRightWidth: 1, borderColor: '#333' }}>
           <NetworkVis
@@ -229,7 +230,7 @@ export default function LandscapeWithPath() {
           >
             {/* Canvas Container */}
             <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
-            
+
             {isLandscapeLoaded && <LossKey />}
 
             {/* Right Sidebar Container */}
@@ -292,9 +293,7 @@ export default function LandscapeWithPath() {
 
                     <View style={{ gap: 5 }}>
                       <Button
-                        title={
-                          isPathLoading ? 'Loading...' : 'Generate Paths'
-                        }
+                        title={isPathLoading ? 'Loading...' : 'Generate Paths'}
                         onPress={handleLoadAllPathsButtonClick}
                         disabled={isLoading || !isLandscapeLoaded}
                       />
@@ -327,13 +326,9 @@ export default function LandscapeWithPath() {
                         key={config.id}
                         config={config}
                         onConfigChange={handleConfigChange}
-                        onPlaceStartPoint={() =>
-                          togglePlacingMode(config.id)
-                        }
+                        onPlaceStartPoint={() => togglePlacingMode(config.id)}
                         onViewNetwork={() => onViewNetwork(config.id)}
-                        isPlacing={
-                          isPlacingMode && placingPathId === config.id
-                        }
+                        isPlacing={isPlacingMode && placingPathId === config.id}
                         isSceneLoading={isLoading}
                         isLandscapeLoaded={isLandscapeLoaded}
                         isWatching={networkViewId === config.id}

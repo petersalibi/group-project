@@ -135,7 +135,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           ))}
         </Picker>
       </ThemedView>
-      
+
       {depth > 1 && (
         <ThemedView style={styles.param}>
           <ThemedText type='default'>Width:</ThemedText>

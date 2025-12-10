@@ -2,8 +2,6 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, G, Text as SvgText, Path } from 'react-native-svg';
 import { ThemedView } from './themed-view';
-import { Colors } from '@/constants/theme';
-import { useTheme } from '@/components/theme-provider';
 
 interface NetworkVisProps {
   inputCount: number;
@@ -50,11 +48,11 @@ const getActivationPath = (type: string) => {
 
 const getEdgeStyle = (weight: number | undefined) => {
   if (weight === undefined) return { stroke: '#fff', width: 2, opacity: 0.8 };
-  
+
   // Normalize weight (-1 to 1)
   const val = Math.tanh(weight / 2);
   const magnitude = Math.abs(val);
-  
+
   // Color: Green if > 0, Red if < 0
   const color = val > 0 ? `rgba(9, 255, 0, 0.8)` : `rgba(255, 0, 0, 0.8)`;
   const width = 2 + magnitude * 10;
@@ -62,19 +60,31 @@ const getEdgeStyle = (weight: number | undefined) => {
   return { stroke: color, width, opacity: 0.8 };
 };
 
-const Tooltip = ({ x, y, value, label }: { x: number, y: number, value: number, label: string }) => (
-  <View style={{
-    position: 'absolute',
-    left: x-40,
-    top: y-30,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#555',
-    zIndex: 100,
-  }}>
+const Tooltip = ({
+  x,
+  y,
+  value,
+  label,
+}: {
+  x: number;
+  y: number;
+  value: number;
+  label: string;
+}) => (
+  <View
+    style={{
+      position: 'absolute',
+      left: x - 40,
+      top: y - 30,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: '#555',
+      zIndex: 100,
+    }}
+  >
     <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
       {label}: {value.toFixed(4)}
     </Text>
@@ -84,38 +94,52 @@ const Tooltip = ({ x, y, value, label }: { x: number, y: number, value: number, 
 const NetworkWeightKey = () => (
   <View style={styles.keyContainer}>
     <Text style={styles.keyTitle}>Weights</Text>
-    
+
     {/* Positive */}
     <View style={styles.keyItem}>
-        <Svg width="25" height="10">
-            <Line x1="0" y1="5" x2="25" y2="5" stroke="rgb(9,255,0)" strokeWidth="3" />
-        </Svg>
-        <Text style={styles.keyText}>Positive</Text>
+      <Svg width='25' height='10'>
+        <Line
+          x1='0'
+          y1='5'
+          x2='25'
+          y2='5'
+          stroke='rgb(9,255,0)'
+          strokeWidth='3'
+        />
+      </Svg>
+      <Text style={styles.keyText}>Positive</Text>
     </View>
 
     {/* Negative */}
     <View style={styles.keyItem}>
-        <Svg width="25" height="10">
-            <Line x1="0" y1="5" x2="25" y2="5" stroke="rgb(255,0,0)" strokeWidth="3" />
-        </Svg>
-        <Text style={styles.keyText}>Negative</Text>
+      <Svg width='25' height='10'>
+        <Line
+          x1='0'
+          y1='5'
+          x2='25'
+          y2='5'
+          stroke='rgb(255,0,0)'
+          strokeWidth='3'
+        />
+      </Svg>
+      <Text style={styles.keyText}>Negative</Text>
     </View>
 
     {/* High Magnitude */}
     <View style={styles.keyItem}>
-        <Svg width="25" height="7">
-            {/* Thick line */}
-            <Line x1="0" y1="3" x2="25" y2="3" stroke="#fff" strokeWidth="12" />
-        </Svg>
-        <Text style={styles.keyText}>High Magnitude</Text>
+      <Svg width='25' height='7'>
+        {/* Thick line */}
+        <Line x1='0' y1='3' x2='25' y2='3' stroke='#fff' strokeWidth='12' />
+      </Svg>
+      <Text style={styles.keyText}>High Magnitude</Text>
     </View>
     {/* Low Magnitude */}
     <View style={styles.keyItem}>
-        <Svg width="25" height="7">
-            {/* Thin line */}
-            <Line x1="0" y1="3" x2="25" y2="3" stroke="#fff" strokeWidth="2" />
-        </Svg>
-        <Text style={styles.keyText}>Low Magnitude</Text>
+      <Svg width='25' height='7'>
+        {/* Thin line */}
+        <Line x1='0' y1='3' x2='25' y2='3' stroke='#fff' strokeWidth='2' />
+      </Svg>
+      <Text style={styles.keyText}>Low Magnitude</Text>
     </View>
   </View>
 );
@@ -128,8 +152,6 @@ export default function NetworkVis({
   outputCount,
   weights,
 }: NetworkVisProps) {
-  const { theme } = useTheme();
-
   // Current dimensions of the SVG container
   const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
 
@@ -275,53 +297,64 @@ export default function NetworkVis({
 
   // Calculate edges and biases dynamically based on the current animating positions of nodes
   const { edges, nodeBiases } = useMemo(() => {
-    const calculatedEdges: { x1: number; y1: number; x2: number; y2: number, w?: number, weightIndex?: number }[] = [];
+    const calculatedEdges: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      w?: number;
+      weightIndex?: number;
+    }[] = [];
     const calculatedBiases: Record<string, number> = {}; // Map node ID to bias value
 
     // Group nodes
     const inputNodes = displayNodes.filter((n) => n.type === 'input');
     const outputNodes = displayNodes.filter((n) => n.type === 'output');
-    
+
     // Group hidden layers
     const hiddenLayers: NodeData[][] = [];
-    displayNodes.filter((n) => n.type === 'hidden').forEach((n) => {
+    displayNodes
+      .filter((n) => n.type === 'hidden')
+      .forEach((n) => {
         const parts = n.id.split('-');
         const layerIdx = parseInt(parts[1]) - 1;
         if (!hiddenLayers[layerIdx]) hiddenLayers[layerIdx] = [];
         hiddenLayers[layerIdx].push(n);
-    });
+      });
 
     let paramIndex = 0;
 
     // Helper to process a layer connection
     const processLayer = (sources: NodeData[], targets: NodeData[]) => {
       // Process Weights
-       targets.forEach(tgt => {
-         sources.forEach(src => {
-            const currentWeightIndex = paramIndex;
-            const w = weights ? weights[currentWeightIndex] : undefined;
-            
-            if (w) paramIndex++;
-            
-            calculatedEdges.push({ 
-                x1: src.x, y1: src.y, 
-                x2: tgt.x, y2: tgt.y, 
-                w,
-                weightIndex: w !== undefined ? currentWeightIndex : undefined
-            });
-         });
-       });
+      targets.forEach((tgt) => {
+        sources.forEach((src) => {
+          const currentWeightIndex = paramIndex;
+          const w = weights ? weights[currentWeightIndex] : undefined;
 
-       // Process Biases
-       targets.forEach(tgt => {
-          const b = weights ? weights[paramIndex] : undefined;
-          if (weights && b !== undefined) {
-              calculatedBiases[tgt.id] = b;
-              paramIndex++;
-          }
-       });
+          if (w) paramIndex++;
+
+          calculatedEdges.push({
+            x1: src.x,
+            y1: src.y,
+            x2: tgt.x,
+            y2: tgt.y,
+            w,
+            weightIndex: w !== undefined ? currentWeightIndex : undefined,
+          });
+        });
+      });
+
+      // Process Biases
+      targets.forEach((tgt) => {
+        const b = weights ? weights[paramIndex] : undefined;
+        if (weights && b !== undefined) {
+          calculatedBiases[tgt.id] = b;
+          paramIndex++;
+        }
+      });
     };
-    
+
     // Input -> First Hidden (or Output if depth=1)
     if (hiddenLayers.length > 0) {
       processLayer(inputNodes, hiddenLayers[0]);
@@ -331,7 +364,7 @@ export default function NetworkVis({
 
     // Hidden -> Hidden
     for (let i = 0; i < hiddenLayers.length - 1; i++) {
-      processLayer(hiddenLayers[i], hiddenLayers[i+1]);
+      processLayer(hiddenLayers[i], hiddenLayers[i + 1]);
     }
 
     // Last Hidden -> Output
@@ -385,8 +418,8 @@ export default function NetworkVis({
                 setHoveredInfo({
                   type: 'edge',
                   indexOrId: e.weightIndex,
-                  x: x,  // Use dynamic mouse X
-                  y: y  // Use dynamic mouse Y
+                  x: x, // Use dynamic mouse X
+                  y: y, // Use dynamic mouse Y
                 });
               }
             };
@@ -400,7 +433,10 @@ export default function NetworkVis({
                 onPointerLeave={() => setHoveredInfo(null)}
               >
                 <Line
-                  x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
+                  x1={e.x1}
+                  y1={e.y1}
+                  x2={e.x2}
+                  y2={e.y2}
                   stroke={style.stroke}
                   strokeWidth={style.width}
                   opacity={style.opacity}
@@ -420,18 +456,18 @@ export default function NetworkVis({
           const handleHover = () => {
             // Check if this node actually has a bias
             if (nodeBiases[n.id] !== undefined) {
-                setHoveredInfo({ 
-                    type: 'node', 
-                    indexOrId: n.id, 
-                    x: n.x, 
-                    y: n.y 
-                });
+              setHoveredInfo({
+                type: 'node',
+                indexOrId: n.id,
+                x: n.x,
+                y: n.y,
+              });
             }
           };
 
           return (
-            <G 
-              key={n.id} 
+            <G
+              key={n.id}
               opacity={n.opacity}
               onMouseEnter={handleHover}
               onMouseLeave={() => setHoveredInfo(null)}
@@ -478,12 +514,12 @@ export default function NetworkVis({
       </Svg>
 
       {tooltipData && (
-          <Tooltip 
-              x={tooltipData.x} 
-              y={tooltipData.y} 
-              value={tooltipData.value} 
-              label={tooltipData.label}
-          />
+        <Tooltip
+          x={tooltipData.x}
+          y={tooltipData.y}
+          value={tooltipData.value}
+          label={tooltipData.label}
+        />
       )}
 
       {weights && weights.length > 0 && <NetworkWeightKey />}

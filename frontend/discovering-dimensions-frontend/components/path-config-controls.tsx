@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Platform, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { optimisers, lrs } from '@/constants/landscapeParams';
 
@@ -78,7 +78,8 @@ export function PathConfigControls(props: PathConfigControlsProps) {
         </View>
         <View style={styles.paramGroup}>
           <Text style={styles.coordsText}>
-            Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]
+            Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}
+            ]
           </Text>
         </View>
       </View>
@@ -101,12 +102,20 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           </Text>
         </Pressable>
 
-        <Pressable 
-          onPress={() => onViewNetwork(id)} 
+        <Pressable
+          onPress={() => onViewNetwork(id)}
           disabled={isSceneLoading || !isLandscapeLoaded || isWatching}
-          style={[styles.actionButton, isWatching ? styles.buttonDisabled : null]}
+          style={[
+            styles.actionButton,
+            isWatching ? styles.buttonDisabled : null,
+          ]}
         >
-          <Text style={[styles.buttonText, isWatching ? styles.buttonTextDisabled : null]}>
+          <Text
+            style={[
+              styles.buttonText,
+              isWatching ? styles.buttonTextDisabled : null,
+            ]}
+          >
             {isWatching ? 'Viewing on Network' : 'View on Network'}
           </Text>
         </Pressable>
@@ -185,7 +194,7 @@ const styles = StyleSheet.create({
   },
   coordsText: {
     color: '#fff',
-    fontSize: 11
+    fontSize: 11,
   },
   buttonDisabled: {
     backgroundColor: 'transparent',
