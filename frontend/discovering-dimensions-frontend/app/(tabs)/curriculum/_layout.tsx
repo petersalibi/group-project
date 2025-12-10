@@ -4,10 +4,17 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
 import { View, Platform, ScrollView } from 'react-native';
 import { OrderedList } from '@/components/text-list';
+import { useEffect, useRef } from 'react';
 
 export default function CurriculumScreen() {
   const pathname = usePathname();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Scroll to top whenever route changes
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [pathname]);
 
   return (
     <ThemedBackground style={{ flex: 1, alignItems: 'center' }}>
@@ -87,7 +94,7 @@ export default function CurriculumScreen() {
           </ThemedView>
         </View>
         {/* Content slot */}
-        <ScrollView>
+        <ScrollView ref={scrollRef}>
           <ThemedView
             style={{
               marginTop: 20,
