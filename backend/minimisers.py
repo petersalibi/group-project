@@ -29,16 +29,27 @@ class MinimiserParams:
         self.epochs = epochs
         self.lock_to_plane = lock_to_plane
 
-def project_to_plane(theta_i, theta_0, dir1, dir2):
+def project_to_plane(theta_i, theta_0, dir1, dir2, return_residual=False):
     v = theta_i - theta_0
     D = torch.stack([dir1, dir2], dim=1)
 
     # solve least squares problem: (D^D)[a b] = d^(v)
     lhs = D.T @ D
     rhs = D.T @ v
-
     sol = torch.linalg.solve(lhs, rhs)
-    return sol[0].item(), sol[1].item()
+
+    a, b = sol[0], sol[1]
+
+    if not return_residual:
+        return a.item(), b.item()
+
+    # calculate our residuals for fidelity
+    theta_hat = theta_0 + a * dir1 + b * dir2
+    residual = torch.norm(theta_i - theta_hat)
+    total = torch.norm(theta_i - theta_0) + 1e-12
+
+    return a.item(), b.item(), (residual / total).item()
+
 
 def contains_nan(tensor):
     return torch.isnan(tensor).any().item()
@@ -58,10 +69,14 @@ def animate_optimiser(params: MinimiserParams):
         _train_locked_to_plane(
             params, model, data, minimiser_path, parameters_path
         )
+        fidelity = 1.0
     else:
-        _train_free(
+        residuals = _train_free(
             params, model, data, minimiser_path, parameters_path
         )
+
+        mean_residual = sum(residuals) / len(residuals)
+        fidelity = float(torch.exp(-torch.tensor(mean_residual)))
 
     print()
     model.load_state_dict(saved_state)
@@ -69,6 +84,7 @@ def animate_optimiser(params: MinimiserParams):
     return {
         "minimiser_path": minimiser_path,
         "parameters_path": parameters_path,
+        "fidelity": fidelity,
     }
 
 def _prepare_data_and_model(params):
@@ -113,6 +129,9 @@ def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path)
         parameters_path.append(flatten_params(model.parameters()).tolist())
 
 def _train_free(params, model, data, minimiser_path, parameters_path):
+    # we also want to keep track of residuals to the plane
+    residuals = []
+
     x, y = params.init_xy
     dir1, dir2 = params.directions
 
@@ -131,10 +150,13 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
         optimiser.step()
 
         theta = flatten_params(model.parameters())
-        a, b = project_to_plane(theta, params.theta_0, dir1, dir2)
+        a, b, residual = project_to_plane(theta, params.theta_0, dir1, dir2, return_residual=True)
 
+        residuals.append(residual)
         minimiser_path.append((a, b))
         parameters_path.append(theta.tolist())
+    
+    return residuals
 
 
 def _params_from_plane(model, theta0, dir1, dir2, a, b):
