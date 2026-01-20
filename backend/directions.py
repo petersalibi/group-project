@@ -28,7 +28,7 @@ def get_directions(model, method: VisualisationMethod, args=None):
         case VisualisationMethod.FILTERNORM:
             return get_filterwise_directions(model)
         case VisualisationMethod.PCAMINIMISER:
-            return get_pca_directions(model)
+            return get_pca_directions(model, args)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
@@ -84,6 +84,63 @@ def get_filterwise_directions(model):
         dirs.append(scaled_direction)
     
     return dirs[0], dirs[1]
+
+def get_pca_directions(model, minimiser_trajectories):
+
+    # convert List[List[float]] to List[Tensor]
+    trajectory_tensors = [
+        torch.tensor(p, dtype=torch.float32)
+        for p in minimiser_trajectories
+    ]
+
+    # Stack and center
+    X = torch.stack(trajectory_tensors)
+    X = X - X.mean(dim=0, keepdim=True)
+
+    # PCA in parameter space
+    pca = PCA(n_components=2)
+    pca.fit(X.cpu().numpy())
+
+    pc1 = torch.tensor(pca.components_[0], dtype=X.dtype)
+    pc2 = torch.tensor(pca.components_[1], dtype=X.dtype)
+
+    # Unflatten into parameter-shaped tensors
+    dir1, dir2 = [], []
+    idx = 0
+    for p in model.parameters():
+        n = p.numel()
+        dir1.append(pc1[idx:idx+n].view_as(p))
+        dir2.append(pc2[idx:idx+n].view_as(p))
+        idx += n
+
+    # Match scale to random directions
+    rand1, rand2 = get_random_directions(model)
+
+    def rescale(pca_dir, rand_dir):
+        norm_pca  = sum(torch.norm(d) for d in pca_dir)
+        norm_rand = sum(torch.norm(d) for d in rand_dir)
+        scale = norm_rand / (norm_pca + 1e-12)
+        return [d * scale for d in pca_dir]
+
+    dir1 = rescale(dir1, rand1)
+    dir2 = rescale(dir2, rand2)
+
+    return dir1, dir2
+
+def get_pca_directions_david(model, minimiser_trajectories) -> tuple[np.ndarray, np.ndarray, None]:
+    
+    # We will not be using the loss values directly, we only need the PCA directions for this function
+    all_samples, _ = minimiser_trajectories
+    
+    # Convert into one matrix so we can use PCA on it
+    X = torch.stack(all_samples).numpy()
+    
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(X)
+
+    x, y = X_pca[:, 0], X_pca[:, 1]
+
+    return x, y #, pca (we don't need to return pca object)
 
 
 def ztransform(train : pd.DataFrame, test : pd.DataFrame, 
@@ -257,20 +314,3 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : st
 
     # Combine to get a tuple of the vectors and associated loss
     return parameter_snapshots, loss_vals
-
-
-def get_pca_directions(minimiser_trajectories) -> tuple[np.ndarray, np.ndarray, None]:
-    
-    # We will not be using the loss values directly, we only need the PCA directions for this function
-    all_samples, _ = minimiser_trajectories
-    
-    # Convert into one matrix so we can use PCA on it
-    X = torch.stack(all_samples).numpy()
-    
-    pca = PCA(n_components=2)
-    X_pca = pca.fit_transform(X)
-
-    x, y = X_pca[:, 0], X_pca[:, 1]
-    
-    # Let's also return the PCA object if we want to use it later
-    return x, y, pca

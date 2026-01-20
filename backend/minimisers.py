@@ -29,7 +29,7 @@ class MinimiserParams:
         self.epochs = epochs
         self.lock_to_plane = lock_to_plane
 
-def project_to_plane(theta_i, theta_0, dir1, dir2, return_residual=False):
+def project_to_plane(theta_i, theta_0, dir1, dir2):
     v = theta_i - theta_0
     D = torch.stack([dir1, dir2], dim=1)
 
@@ -38,18 +38,7 @@ def project_to_plane(theta_i, theta_0, dir1, dir2, return_residual=False):
     rhs = D.T @ v
     sol = torch.linalg.solve(lhs, rhs)
 
-    a, b = sol[0], sol[1]
-
-    if not return_residual:
-        return a.item(), b.item()
-
-    # calculate our residuals for fidelity
-    theta_hat = theta_0 + a * dir1 + b * dir2
-    residual = torch.norm(theta_i - theta_hat)
-    total = torch.norm(theta_i - theta_0) + 1e-12
-
-    return a.item(), b.item(), (residual / total).item()
-
+    return sol[0].item(), sol[1].item()
 
 def contains_nan(tensor):
     return torch.isnan(tensor).any().item()
@@ -71,12 +60,9 @@ def animate_optimiser(params: MinimiserParams):
         )
         fidelity = 1.0
     else:
-        residuals = _train_free(
+        fidelity = _train_free(
             params, model, data, minimiser_path, parameters_path
         )
-
-        mean_residual = sum(residuals) / len(residuals)
-        fidelity = float(torch.exp(-torch.tensor(mean_residual)))
 
     print()
     model.load_state_dict(saved_state)
@@ -129,9 +115,6 @@ def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path)
         parameters_path.append(flatten_params(model.parameters()).tolist())
 
 def _train_free(params, model, data, minimiser_path, parameters_path):
-    # we also want to keep track of residuals to the plane
-    residuals = []
-
     x, y = params.init_xy
     dir1, dir2 = params.directions
 
@@ -139,6 +122,17 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
     _load_flat_params(model, new_params)
 
     optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
+
+    # How we track fidelity --
+    # calculate the full path length in parameter space
+    # and the path length projected onto the plane
+    # then fidelity = plane_path_length / full_path_length (measure of orthogonality)
+    prev_theta = None
+    prev_ab = None
+
+    # full_path_length should always be >= plane_path_length
+    full_path_length = 0.0
+    plane_path_length = 0.0
 
     for i in range(params.epochs):
         print_progress_bar(i, params.epochs, prefix="Progress:", suffix="Complete", length=50)
@@ -150,13 +144,22 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
         optimiser.step()
 
         theta = flatten_params(model.parameters())
-        a, b, residual = project_to_plane(theta, params.theta_0, dir1, dir2, return_residual=True)
+        a, b = project_to_plane(theta, params.theta_0, dir1, dir2)
 
-        residuals.append(residual)
+        # accumulate path lengths
+        if prev_theta is not None:
+            full_path_length += torch.norm(theta - prev_theta).item()
+            plane_path_length += ((a - prev_ab[0])**2 + (b - prev_ab[1])**2) ** 0.5
+
+        prev_theta = theta.clone()
+        prev_ab = (a, b)
+
         minimiser_path.append((a, b))
         parameters_path.append(theta.tolist())
-    
-    return residuals
+
+    fidelity = plane_path_length / (full_path_length + 1e-12) # avoid div by zero
+    return fidelity
+
 
 
 def _params_from_plane(model, theta0, dir1, dir2, a, b):

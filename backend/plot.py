@@ -5,6 +5,10 @@ from matplotlib.animation import FuncAnimation
 from losslandscape import generate_loss_landscape, LandscapeParams, VisualisationMethod, TrainingDataType
 from minimisers import animate_optimiser, MinimiserParams
 from network import NetworkParams
+
+# pre-generated testcases
+from testcases import *
+
 import torch
 import torch.nn as nn
 
@@ -12,7 +16,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 from collections import OrderedDict
 
-def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, copies=1):
+def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=None, copies=1):
 
     # Horizontal Layout
     fig, axs = plt.subplots(copies, len(landscapes), subplot_kw={'projection': '3d'}, figsize=(10, 6))
@@ -31,6 +35,9 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, copies=1)
             ax.set_xlabel('Direction 1')
             ax.set_ylabel('Direction 2')
             ax.set_zlabel('Loss')
+
+            # show the fidelity if provided
+            ax.set_title(f'fidelity: {fidelity:.4f}' if fidelity is not None else 'Loss Landscape')
 
             surf = [ax.plot_surface(X, Y, Z, cmap=cm.viridis)]
 
@@ -55,12 +62,7 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, copies=1)
     plt.show()
     return ani
 
-loss = nn.BCEWithLogitsLoss()
-network = NetworkParams(depth=1, activation=nn.Sigmoid(), width=1)
-method = VisualisationMethod.TWOPARAMETERS
-args = [1, 2]
-data = TrainingDataType.PURPLECOLOURS
-params = LandscapeParams(network, method, data, args=args, loss=loss, scale=1)
+params = purple_classification_params
 
 landscape = generate_loss_landscape(params, verbose=True)
 # print(print_landscape(landscape["surface"]))
@@ -69,16 +71,22 @@ directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
 theta_0 = torch.tensor(landscape["theta_0"])
 
 minimiser_params = MinimiserParams(
-    network=network,
-    data=data,
+    network=params.network,
+    data=params.data,
     x_direction=directions[0],
     y_direction=directions[1],
     theta_0=theta_0,
     init_xy=(0.8, 0.8),
-    loss=loss,
-    lock_to_plane=True
+    loss=params.loss,
+    lock_to_plane=False
 )
 
 paths = animate_optimiser(minimiser_params)
 minimiser_path = paths["minimiser_path"]
-animate_landscape([landscape["surface"], landscape["surface_log"]], landscape["x_axis"], landscape["y_axis"], minimiser_path)
+fidelity = paths["fidelity"]
+
+animate_landscape([landscape["surface"], 
+                landscape["surface_log"]], 
+                landscape["x_axis"], 
+                landscape["y_axis"], 
+                minimiser_path, fidelity)
