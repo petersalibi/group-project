@@ -44,92 +44,118 @@ def contains_nan(tensor):
     return torch.isnan(tensor).any().item()
 
 def animate_optimiser(params: MinimiserParams):
-
-    # set seeds for reproducibility
     torch.manual_seed(1066)
-    
-    data = TrainingData(params.data)
-    if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
-        if data.y.ndim == 1:
-            data.y = data.y.view(-1, 1).float()
-    model = Model(params.network, data.inputs, data.outputs)
 
-    dir1, dir2 = params.directions
-    x, y = params.init_xy
+    data, model = _prepare_data_and_model(params)
+    saved_state = _clone_state_dict(model)
+
     minimiser_path = []
     parameters_path = []
 
-    # save state (clone tensors so we won't share memory)
-    saved = {k: v.clone() for k, v in model.state_dict().items()}
-    print_progress_bar(0, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    print_progress_bar(0, params.epochs, prefix="Progress:", suffix="Complete", length=50)
 
     if params.lock_to_plane:
-        # ensure device consistency
-        device = next(model.parameters()).device if any(True for _ in model.parameters()) else torch.device('cpu')
-        model.to(device)
-        data.X = data.X.to(device)
-        data.y = data.y.to(device)
-
-        # trainable scalars (must be tensors with grad)
-        a = torch.tensor(x, dtype=torch.float32, device=device, requires_grad=True)
-        b = torch.tensor(y, dtype=torch.float32, device=device, requires_grad=True)
-        optimiser = params.optimiser([a, b], lr=params.learning_rate)
-
-        theta0 = params.theta_0.to(device)
-        dir1 = dir1.to(device)
-        dir2 = dir2.to(device)
-
-        for i in range(params.epochs):
-            print_progress_bar(i, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
-            pos = theta0 + a * dir1 + b * dir2
-
-            params_dict = {}
-            idx = 0
-            for name, param in model.named_parameters():
-                n = param.numel()
-                params_dict[name] = pos[idx:idx + n].view(param.size())
-                idx += n
-
-            optimiser.zero_grad()
-            preds = torch.func.functional_call(model, params_dict, (data.X,))
-            loss = params.loss(preds, data.y)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_([a, b], max_norm=1.0)
-            optimiser.step()
-
-            minimiser_path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
-            parameters_path.append(flatten_params(model.parameters()).tolist())
-
+        _train_locked_to_plane(
+            params, model, data, minimiser_path, parameters_path
+        )
     else:
-        new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2
-
-        # update parameters by copying in new_params manually
-        index = 0
-        with torch.no_grad(): # HOTFIX - prevent tracking in autograd
-            for p in model.parameters():
-                numel = p.numel()
-                p.copy_(new_params[index:index + numel].view_as(p))
-                index += numel
-
-        optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
-
-        for i in range(params.epochs):
-            print_progress_bar(i, params.epochs, prefix = 'Progress:', suffix = 'Complete', length = 50)
-
-            optimiser.zero_grad()
-            loss = params.loss(model(data.X), data.y)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimiser.step()
-
-            theta_i = flatten_params(model.parameters())
-            a, b = project_to_plane(theta_i, params.theta_0, dir1, dir2)
-            minimiser_path.append((a,b))
-            parameters_path.append(theta_i.tolist())
+        _train_free(
+            params, model, data, minimiser_path, parameters_path
+        )
 
     print()
-    model.load_state_dict(saved)
+    model.load_state_dict(saved_state)
+
     return {
         "minimiser_path": minimiser_path,
-        "parameters_path": parameters_path
+        "parameters_path": parameters_path,
     }
+
+def _prepare_data_and_model(params):
+    data = TrainingData(params.data)
+
+    if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)) and data.y.ndim == 1:
+        data.y = data.y.view(-1, 1).float()
+
+    model = Model(params.network, data.inputs, data.outputs)
+    return data, model
+
+def _clone_state_dict(model):
+    return {k: v.clone() for k, v in model.state_dict().items()}
+
+def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path):
+    device = next(model.parameters()).device
+    model.to(device)
+    data.X = data.X.to(device)
+    data.y = data.y.to(device)
+
+    a = torch.tensor(params.init_xy[0], device=device, requires_grad=True)
+    b = torch.tensor(params.init_xy[1], device=device, requires_grad=True)
+
+    optimiser = params.optimiser([a, b], lr=params.learning_rate)
+
+    theta0 = params.theta_0.to(device)
+    dir1, dir2 = (d.to(device) for d in params.directions)
+
+    for i in range(params.epochs):
+        print_progress_bar(i, params.epochs, prefix="Progress:", suffix="Complete", length=50)
+
+        optimiser.zero_grad()
+        params_dict = _params_from_plane(model, theta0, dir1, dir2, a, b)
+        preds = torch.func.functional_call(model, params_dict, (data.X,))
+        loss = params.loss(preds, data.y)
+
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_([a, b], 1.0)
+        optimiser.step()
+
+        minimiser_path.append((_clamp(a.item()), _clamp(b.item())))
+        parameters_path.append(flatten_params(model.parameters()).tolist())
+
+def _train_free(params, model, data, minimiser_path, parameters_path):
+    x, y = params.init_xy
+    dir1, dir2 = params.directions
+
+    new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2
+    _load_flat_params(model, new_params)
+
+    optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
+
+    for i in range(params.epochs):
+        print_progress_bar(i, params.epochs, prefix="Progress:", suffix="Complete", length=50)
+
+        optimiser.zero_grad()
+        loss = params.loss(model(data.X), data.y)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        optimiser.step()
+
+        theta = flatten_params(model.parameters())
+        a, b = project_to_plane(theta, params.theta_0, dir1, dir2)
+
+        minimiser_path.append((a, b))
+        parameters_path.append(theta.tolist())
+
+
+def _params_from_plane(model, theta0, dir1, dir2, a, b):
+    pos = theta0 + a * dir1 + b * dir2
+    params_dict = {}
+
+    idx = 0
+    for name, param in model.named_parameters():
+        n = param.numel()
+        params_dict[name] = pos[idx:idx + n].view_as(param)
+        idx += n
+
+    return params_dict
+
+def _load_flat_params(model, flat_params):
+    idx = 0
+    with torch.no_grad():
+        for p in model.parameters():
+            n = p.numel()
+            p.copy_(flat_params[idx:idx + n].view_as(p))
+            idx += n
+
+def _clamp(x, lo=-1.0, hi=1.0):
+    return max(lo, min(hi, float(x)))

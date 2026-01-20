@@ -6,6 +6,7 @@ from losslandscape import generate_loss_landscape, LandscapeParams, Visualisatio
 from minimisers import animate_optimiser, MinimiserParams
 from network import NetworkParams
 import torch
+import torch.nn as nn
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
