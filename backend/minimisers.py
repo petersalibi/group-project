@@ -40,6 +40,16 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
 
     return sol[0].item(), sol[1].item()
 
+def convert_plane_coordinates(source_theta_0, source_dir1, source_dir2, ab, target_theta_0, target_dir1, target_dir2):
+    a, b = ab
+    # Compute the parameter vector for the point
+    theta = source_theta_0 + a * source_dir1 + b * source_dir2
+    
+    # Project onto the target plane
+    a_proj, b_proj = project_to_plane(theta, target_theta_0, target_dir1, target_dir2)
+    
+    return a_proj, b_proj
+
 def contains_nan(tensor):
     return torch.isnan(tensor).any().item()
 
@@ -149,7 +159,7 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
         # accumulate path lengths
         if prev_theta is not None:
             full_path_length += torch.norm(theta - prev_theta).item()
-            plane_path_length += ((a - prev_ab[0])**2 + (b - prev_ab[1])**2) ** 0.5
+            plane_path_length += torch.norm((a - prev_ab[0]) * dir1 + (b - prev_ab[1]) * dir2).item()
 
         prev_theta = theta.clone()
         prev_ab = (a, b)

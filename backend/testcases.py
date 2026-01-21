@@ -43,3 +43,15 @@ purple_classification_params = LandscapeParams(
         args=[1, 2], # GREEN and BLUE channels
         loss=nn.BCEWithLogitsLoss(), scale=1
     )
+
+def params_to_pca(params: LandscapeParams, minimiser_trajectories):
+    return LandscapeParams(
+        network=params.network,
+        method=VisualisationMethod.PCAMINIMISER,
+        data=params.data,
+        args=minimiser_trajectories,
+        loss=params.loss,
+        scale=params.scale * 5,
+        training_samples=params.training_samples,
+        surface_samples=params.surface_samples
+    )

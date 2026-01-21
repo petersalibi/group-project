@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import cm
 from matplotlib.animation import FuncAnimation
 from losslandscape import generate_loss_landscape, LandscapeParams, VisualisationMethod, TrainingDataType
-from minimisers import animate_optimiser, MinimiserParams
+from minimisers import animate_optimiser, MinimiserParams, convert_plane_coordinates
 from network import NetworkParams
 
 # pre-generated testcases
@@ -62,7 +62,7 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=
     plt.show()
     return ani
 
-params = purple_classification_params
+params = regression_params_complex
 
 landscape = generate_loss_landscape(params, verbose=True)
 # print(print_landscape(landscape["surface"]))
@@ -70,13 +70,17 @@ lst_directions = (landscape["x_direction"], landscape["y_direction"])
 directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
 theta_0 = torch.tensor(landscape["theta_0"])
 
+init_xy = (0.8, 0.8)
+print(f"direction_x: {directions[0]}")
+print(f"direction_y: {directions[1]}")
+
 minimiser_params = MinimiserParams(
     network=params.network,
     data=params.data,
     x_direction=directions[0],
     y_direction=directions[1],
     theta_0=theta_0,
-    init_xy=(0.8, 0.8),
+    init_xy=init_xy,
     loss=params.loss,
     lock_to_plane=False
 )
@@ -84,9 +88,38 @@ minimiser_params = MinimiserParams(
 paths = animate_optimiser(minimiser_params)
 minimiser_path = paths["minimiser_path"]
 fidelity = paths["fidelity"]
+print(f"Fidelity of optimiser path to plane: {fidelity:.4f}")
 
-animate_landscape([landscape["surface"], 
-                landscape["surface_log"]], 
-                landscape["x_axis"], 
-                landscape["y_axis"], 
+# Re-generate landscape with pca on minimiser path
+pca_landscape = generate_loss_landscape(params_to_pca(params, paths["parameters_path"]), verbose=True)
+lst_directions = (pca_landscape["x_direction"], pca_landscape["y_direction"])
+pca_directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
+pca_theta_0 = torch.tensor(pca_landscape["theta_0"])
+pca_init_xy = convert_plane_coordinates(theta_0, directions[0], directions[1],
+                                      init_xy, pca_theta_0, pca_directions[0], pca_directions[1])
+print(f"pca_init_xy: {pca_init_xy}")
+print(f"pca_direction_x: {pca_directions[0]}")
+print(f"pca_direction_y: {pca_directions[1]}")
+
+minimiser_params = MinimiserParams(
+    network=params.network,
+    data=params.data,
+    x_direction=pca_directions[0],
+    y_direction=pca_directions[1],
+    theta_0=pca_theta_0,
+    init_xy=pca_init_xy,
+    loss=params.loss,
+    lock_to_plane=False
+)
+
+paths = animate_optimiser(minimiser_params)
+minimiser_path = paths["minimiser_path"]
+print(minimiser_path)
+fidelity = paths["fidelity"]
+print(f"Fidelity of optimiser path to plane (after PCA): {fidelity:.4f}")
+
+animate_landscape([pca_landscape["surface"], 
+                pca_landscape["surface_log"]], 
+                pca_landscape["x_axis"], 
+                pca_landscape["y_axis"], 
                 minimiser_path, fidelity)

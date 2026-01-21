@@ -86,44 +86,40 @@ def get_filterwise_directions(model):
     return dirs[0], dirs[1]
 
 def get_pca_directions(model, minimiser_trajectories):
-
-    # convert List[List[float]] to List[Tensor]
+    # Convert List[List[float]] to Tensor
     trajectory_tensors = [
         torch.tensor(p, dtype=torch.float32)
         for p in minimiser_trajectories
     ]
 
-    # Stack and center
-    X = torch.stack(trajectory_tensors)
-    X = X - X.mean(dim=0, keepdim=True)
+    X = torch.stack(trajectory_tensors).cpu().numpy()
 
-    # PCA in parameter space
+    # Center trajectory (critical)
+    X = X - X.mean(axis=0, keepdims=True)
+
     pca = PCA(n_components=2)
-    pca.fit(X.cpu().numpy())
+    pca.fit(X)
 
-    pc1 = torch.tensor(pca.components_[0], dtype=X.dtype)
-    pc2 = torch.tensor(pca.components_[1], dtype=X.dtype)
+    # PCA unit directions
+    pc1 = torch.tensor(pca.components_[0], dtype=torch.float32)
+    pc2 = torch.tensor(pca.components_[1], dtype=torch.float32)
+
+    # Scale by sqrt of explained variance
+    scale1 = pca.explained_variance_[0] ** 0.5
+    scale2 = pca.explained_variance_[1] ** 0.5
+
+    pc1 = pc1 * scale1
+    pc2 = pc2 * scale2
 
     # Unflatten into parameter-shaped tensors
     dir1, dir2 = [], []
     idx = 0
+
     for p in model.parameters():
         n = p.numel()
-        dir1.append(pc1[idx:idx+n].view_as(p))
-        dir2.append(pc2[idx:idx+n].view_as(p))
+        dir1.append(pc1[idx:idx + n].view_as(p))
+        dir2.append(pc2[idx:idx + n].view_as(p))
         idx += n
-
-    # Match scale to random directions
-    rand1, rand2 = get_random_directions(model)
-
-    def rescale(pca_dir, rand_dir):
-        norm_pca  = sum(torch.norm(d) for d in pca_dir)
-        norm_rand = sum(torch.norm(d) for d in rand_dir)
-        scale = norm_rand / (norm_pca + 1e-12)
-        return [d * scale for d in pca_dir]
-
-    dir1 = rescale(dir1, rand1)
-    dir2 = rescale(dir2, rand2)
 
     return dir1, dir2
 
