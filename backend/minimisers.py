@@ -98,7 +98,8 @@ def animate_optimiser(params: MinimiserParams):
             optimiser.step()
 
             minimiser_path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
-            parameters_path.append(flatten_params(model.parameters()).tolist())
+            # parameters_path.append(flatten_params(model.parameters()).tolist())
+            parameters_path.append(pos.detach().cpu().tolist())
 
     else:
         new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2

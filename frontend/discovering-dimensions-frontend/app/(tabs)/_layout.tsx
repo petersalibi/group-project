@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const { theme, toggleTheme } = useTheme();
@@ -128,15 +129,16 @@ export default function TabLayout() {
             </View>
           </Link>
           {/* Navigation links */}
-          <header style={{ display: 'flex', gap: 20 }}>
+          <header style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
             <HoverableTab
               href='/curriculum'
               label='Curriculum'
-              disabled={pathname === '/curriculum'}
+              // If on the curriculum page or any subpage, disable link
+              disabled={pathname.startsWith('/curriculum')}
             />
             <HoverableTab
               href='/landscape'
-              label='Loss landscape'
+              label='Visualisation'
               disabled={pathname === '/landscape'}
             />
             <HoverableTab
@@ -180,7 +182,7 @@ export default function TabLayout() {
         >
           <Tabs.Screen name='index' options={{ title: 'Home' }} />
           <Tabs.Screen name='curriculum' options={{ title: 'Curriculum' }} />
-          <Tabs.Screen name='landscape' options={{ title: 'Loss landscape' }} />
+          <Tabs.Screen name='landscape' options={{ title: 'Visualisation' }} />
           <Tabs.Screen name='help' options={{ title: 'Help' }} />
           <Tabs.Screen name='about' options={{ title: 'About' }} />
         </Tabs>
@@ -188,59 +190,80 @@ export default function TabLayout() {
     );
   } else {
     return (
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: Colors[theme].tint,
-          headerShown: false,
-          tabBarButton: HapticTab,
-        }}
-      >
-        <Tabs.Screen
-          name='index'
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name='house.fill' color={color} />
-            ),
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors[theme].button }}>
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: Colors[theme].tint,
+            headerShown: false,
+            tabBarButton: HapticTab,
+            tabBarActiveBackgroundColor: Colors[theme].background,
+            tabBarStyle: {
+              height: Platform.OS === 'ios' ? 54 : 60,
+              paddingBottom: Platform.OS === 'ios' ? 1 : 6,
+              paddingTop: Platform.OS === 'ios' ? 1 : 4,
+            },
           }}
-        />
-        <Tabs.Screen
-          name='curriculum'
-          options={{
-            title: 'Curriculum',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name='book.fill' color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name='landscape'
-          options={{
-            title: 'Landscape',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name='mountain.2.fill' color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name='about'
-          options={{
-            title: 'About',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name='info.circle.fill' color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name='settings'
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name='gearshape.fill' color={color} />
-            ),
-          }}
-        />
-      </Tabs>
+        >
+          <Tabs.Screen
+            name='index'
+            options={{
+              title: 'Home',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={28} name='house.fill' color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name='curriculum'
+            options={{
+              title: 'Curriculum',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={28} name='book.fill' color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name='landscape'
+            options={{
+              title: 'Landscape',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={28} name='mountain.2.fill' color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name='help'
+            options={{
+              title: 'Help',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol
+                  size={28}
+                  name='questionmark.circle.fill'
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name='about'
+            options={{
+              title: 'About',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={28} name='info.circle.fill' color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name='settings'
+            options={{
+              title: 'Settings',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={28} name='gearshape.fill' color={color} />
+              ),
+            }}
+          />
+        </Tabs>
+      </SafeAreaView>
     );
   }
 }
