@@ -17,8 +17,8 @@ export const Colors = {
     borderBottom: '#6c94aeff',
     tint: tintColorLight,
     icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    button: '#15e0ebff',
+    line: '#000000ff',
   },
   dark: {
     text: '#ffffffff',
@@ -28,8 +28,8 @@ export const Colors = {
     borderBottom: '#394b55ff',
     tint: tintColorDark,
     icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    button: '#fff',
+    line: '#FFFFFFFF',
   },
 };
 
