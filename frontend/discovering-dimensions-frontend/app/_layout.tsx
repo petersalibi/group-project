@@ -1,13 +1,9 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Platform } from 'react-native';
+import Head from 'expo-router/head';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -28,7 +24,12 @@ export default function RootLayout() {
   };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider>
+      {Platform.OS === 'web' && (
+        <Head>
+          <title>{titleMap[path] + ' | Discovering Dimensions'}</title>
+        </Head>
+      )}
       <Stack>
         <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
       </Stack>
