@@ -13,7 +13,7 @@ class MinimiserParams:
                  theta_0: torch.Tensor,
                  init_xy=(0.0, 0.0),
                  optimiser=optim.Adam,
-                 learning_rate=0.1,
+                 learning_rate=0.01,
                  loss=nn.MSELoss(), 
                  epochs=300,
                  lock_to_plane=False):
@@ -39,6 +39,9 @@ def project_to_plane(theta_i, theta_0, dir1, dir2):
 
     sol = torch.linalg.solve(lhs, rhs)
     return sol[0].item(), sol[1].item()
+
+def contains_nan(tensor):
+    return torch.isnan(tensor).any().item()
 
 def animate_optimiser(params: MinimiserParams):
 
@@ -91,10 +94,12 @@ def animate_optimiser(params: MinimiserParams):
             preds = torch.func.functional_call(model, params_dict, (data.X,))
             loss = params.loss(preds, data.y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_([a, b], max_norm=1.0)
             optimiser.step()
 
             minimiser_path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
-            parameters_path.append(flatten_params(model.parameters()).tolist())
+            # parameters_path.append(flatten_params(model.parameters()).tolist())
+            parameters_path.append(pos.detach().cpu().tolist())
 
     else:
         new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2
@@ -115,6 +120,7 @@ def animate_optimiser(params: MinimiserParams):
             optimiser.zero_grad()
             loss = params.loss(model(data.X), data.y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimiser.step()
 
             theta_i = flatten_params(model.parameters())

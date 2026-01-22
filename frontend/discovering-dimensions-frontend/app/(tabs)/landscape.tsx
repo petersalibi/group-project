@@ -1,235 +1,420 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // Used for camera control
-import { Platform, Text, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  Pressable,
+  ScrollView,
+  Dimensions,
+  LayoutChangeEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import api from '@/src/api';
 import { Picker } from '@react-native-picker/picker';
-import Slider from '@react-native-community/slider';
+import { useLandscapeScene } from '@/hooks/use-landscape-scene';
+import { LandscapeControls } from '@/components/landscape-controls';
+import { AnimationControls } from '@/components/animation-controls';
+import {
+  PathConfigControls,
+  PathConfig,
+} from '@/components/path-config-controls';
+import NetworkVis from '@/components/network-vis';
+import {
+  PATH_COLORS,
+  datasetFeatures,
+  datasetOutputs,
+} from '@/constants/landscapeParams';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { useTheme } from '@/components/theme-provider';
 
-export default function Landscape() {
-  const [selectedSurface, setSelectedSurface] = useState('loss_filt.json');
-  const [zValue, setZValue] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  // References to Three.js objects
-  const meshRef = useRef<THREE.Mesh | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+// Helper to create a default config for a new path
+const createDefaultPathConfig = (id: number): PathConfig => {
+  const color = PATH_COLORS[id % PATH_COLORS.length];
+  return {
+    id: id,
+    colorName: color.name,
+    colorValue: color.value,
+    optim: 'Adam',
+    lr: 0.01,
+    startPoint: [0, 0],
+  };
+};
+
+export default function LandscapeWithPath() {
+  const { theme } = useTheme();
+  // --- Shared Landscape State ---
+  const [activation, setActivation] = useState<string>('ReLU');
+  const [inputs, setInputs] = useState<number>(1);
+  const [depth, setDepth] = useState<number>(2);
+  const [width, setWidth] = useState<number>(10);
+  const [outputs, setOutputs] = useState<number>(1);
+  const [method, setMethod] = useState<string>('RANDOMDIRS');
+  const [data, setData] = useState<string>('SINREGRESSION');
+  const [loss, setLoss] = useState<string>('MSELoss');
+  const [pathControlsVisible, setPathControlsVisible] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
 
   useEffect(() => {
-    // Create scene
-    const container = document.getElementById('container');
-    if (!container) return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0);
-    sceneRef.current = scene;
-
-    // Create camera
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000,
-    );
-    camera.position.set(0, 1, 3);
     if (Platform.OS === 'web') {
-      camera.zoom = 1.0;
-    } else {
-      camera.zoom = 0.5;
+      window.dispatchEvent(new Event('resize'));
     }
-    camera.updateProjectionMatrix();
-    cameraRef.current = camera;
-
-    // Create renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
-
-    // Add controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0, 0);
-    controls.update();
-
-    // Add lights
-    const light = new THREE.DirectionalLight(0xffffff, 1.5);
-    light.position.set(1, 1, 1);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
-
-    animate();
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  }, []);
+  }, [headerHeight, viewportHeight, pathControlsVisible]);
 
   useEffect(() => {
-    if (!sceneRef.current) return;
+    setInputs(datasetFeatures[data] || 1);
+    setOutputs(datasetOutputs[data] || 1);
+  }, [data]);
 
-    // Load JSON of {x, y, z} points
-    async function loadAndBuild(url: string) {
-      setIsLoading(true);
-      // Fetch JSON data
-      const response = await api.get(`/data/${url}`);
-      const json = await response.data;
-      if (json.error) {
-        alert(`Error loading data: ${json.error}`);
-        return;
-      }
-      const data = json.data;
-
-      // Convert to arrays
-      const xs: number[] = data.map((p: { x: number }) => p.x);
-      const ys: number[] = data.map((p: { y: number }) => p.y);
-      const zs: number[] = data.map((p: { z: number }) => p.z);
-
-      // Deduce grid resolution
-      const uniqueX = [...new Set(xs)].sort((a, b) => a - b);
-      const uniqueY = [...new Set(ys)].sort((a, b) => a - b);
-      const nx = uniqueX.length;
-      const ny = uniqueY.length;
-
-      // Sort and map Z values into grid layout
-      const zGrid = Array.from({ length: nx }, () => Array(ny).fill(0));
-      data.forEach((p: { x: number; y: number; z: number }) => {
-        const i = uniqueX.indexOf(p.x);
-        const j = uniqueY.indexOf(p.y);
-        if (i >= 0 && j >= 0) zGrid[i][j] = p.z;
-      });
-
-      // Compute width/height of the plane
-      const width = uniqueX[uniqueX.length - 1] - uniqueX[0];
-      const height = uniqueY[uniqueY.length - 1] - uniqueY[0];
-      const widthSegments = nx - 1;
-      const heightSegments = ny - 1;
-
-      if (meshRef.current) {
-        sceneRef.current!.remove(meshRef.current);
-        meshRef.current.geometry.dispose();
-        (meshRef.current.material as THREE.Material).dispose();
-      }
-
-      const geometry = new THREE.PlaneGeometry(
-        width,
-        height,
-        widthSegments,
-        heightSegments,
-      );
-      const positions = geometry.attributes.position;
-      const vertexCount = positions.count;
-
-      // Compute min/max for coloring
-      const minZ = Math.min(...zs);
-      const maxZ = Math.max(...zs);
-      const range = maxZ - minZ || 1;
-      const zScale = Math.min(width, height) * 0.2;
-      const colors = new Float32Array(vertexCount * 3);
-
-      let v = 0;
-      for (let j = 0; j <= heightSegments; j++) {
-        for (let i = 0; i <= widthSegments; i++) {
-          // Set Z (loss) position
-          const lossVal = zGrid[i][j];
-          positions.setZ(v, ((lossVal - minZ) / range) * zScale);
-          // Set color based on Z value
-          const norm = (lossVal - minZ) / range;
-          const col = new THREE.Color();
-          col.setHSL((1 - norm) * 0.7, 0.8, 0.5);
-          // Set RGB values
-          colors[v * 3] = col.r;
-          colors[v * 3 + 1] = col.g;
-          colors[v * 3 + 2] = col.b;
-          v++;
-        }
-      }
-
-      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      geometry.computeVertexNormals();
-
-      const material = new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        side: THREE.DoubleSide,
-        flatShading: false,
-      });
-
-      // Create mesh
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.scale.z = zScale;
-      sceneRef.current!.add(mesh);
-      meshRef.current = mesh;
-      setIsLoading(false);
-      setZValue(1);
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
     }
+  }, [pathControlsVisible]);
 
-    loadAndBuild(selectedSurface);
-  }, [selectedSurface]);
+  // --- Path State ---
+  const [numPaths, setNumPaths] = useState<number>(1);
+  const [pathConfigs, setPathConfigs] = useState<PathConfig[]>([
+    createDefaultPathConfig(0),
+  ]);
 
-  const surfaces = [
-    { id: 1, label: 'Filterwise Normalised', value: 'loss_filt.json' },
-    { id: 2, label: 'Random Directions', value: 'loss_rand.json' },
-  ];
+  // --- Landscape Scene Hook ---
+  const {
+    containerId,
+    zValue,
+    isLogPlot,
+    isLandscapeLoading,
+    isLandscapeLoaded,
+    isPathLoading,
+    isPathLoaded,
+    isPlaying,
+    isPlacingMode,
+    placingPathId,
+    currentParams,
+    networkViewId,
+    handleLoadLandscapeButtonClick,
+    handleLoadAllPathsButtonClick,
+    handleClearPaths,
+    togglePlayPause,
+    handleZChange,
+    handleLogPlotToggle,
+    togglePlacingMode,
+    onViewNetwork,
+  } = useLandscapeScene({
+    activation,
+    depth,
+    width,
+    method,
+    data,
+    loss,
+    pathConfigs,
+    onPathConfigChange: (id, field, value) => {
+      // Callback for the hook to update the state
+      setPathConfigs((currentConfigs) =>
+        currentConfigs.map((config) =>
+          config.id === id ? { ...config, [field]: value } : config,
+        ),
+      );
+    },
+  });
+
+  // --- UI Handlers ---
+
+  // Update path config array when user changes number of paths
+  const handleNumPathsChange = (num: number) => {
+    setNumPaths(num);
+    setPathConfigs((currentConfigs) => {
+      const newConfigs: PathConfig[] = [];
+      for (let i = 0; i < num; i++) {
+        // Keep existing config if available, otherwise create new
+        newConfigs.push(currentConfigs[i] || createDefaultPathConfig(i));
+      }
+      return newConfigs;
+    });
+  };
+
+  // Update a specific path's config
+  const handleConfigChange = (
+    id: number,
+    field: keyof PathConfig,
+    value: any,
+  ) => {
+    setPathConfigs((currentConfigs) =>
+      currentConfigs.map((config) =>
+        config.id === id ? { ...config, [field]: value } : config,
+      ),
+    );
+  };
+
+  function LossKey() {
+    return (
+      <View style={styles.lossKeyContainer}>
+        <Text style={styles.lossKeyText}>High Loss</Text>
+        {/* Gradient Bar */}
+        <View
+          style={[
+            styles.gradientBar,
+            Platform.OS === 'web' &&
+              ({
+                backgroundImage:
+                  'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))',
+              } as any),
+          ]}
+        />
+        <Text style={styles.lossKeyText}>Low Loss</Text>
+      </View>
+    );
+  }
+
+  const isLoading = isLandscapeLoading || isPathLoading;
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View id='container'>
-        <View
-          style={{
-            flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-            alignItems: 'center',
-            padding: 10,
-            gap: 10,
-            backgroundColor: '#d8eeffd3',
-          }}
-        >
-          <Text>Select surface:</Text>
-          <Picker
-            id='fileSelect'
-            selectedValue={selectedSurface}
-            style={{ height: 30, width: 200 }}
-            onValueChange={(itemValue) => setSelectedSurface(itemValue)}
-          >
-            {surfaces.map((surface) => (
-              <Picker.Item
-                key={surface.id}
-                label={surface.label}
-                value={surface.value}
-              />
-            ))}
-          </Picker>
-          <Text>Z scale:</Text>
-          <Slider
-            style={{ width: 200, height: 40 }}
-            minimumValue={0.001}
-            maximumValue={5}
-            value={zValue}
-            onValueChange={(value) => {
-              setZValue(value);
-              if (meshRef.current) {
-                meshRef.current.scale.z = value;
-              }
-            }}
-            minimumTrackTintColor='#00aaffff'
-            maximumTrackTintColor='#0083c4ff'
-            thumbTintColor='#0076a9ff'
-            disabled={isLoading}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: Colors[theme].landscapeBackground }}
+    >
+      {/* TOP BAR: Landscape Controls */}
+      <View style={styles.topBar}>
+        <LandscapeControls
+          data={data}
+          depth={depth}
+          width={width}
+          activation={activation}
+          method={method}
+          loss={loss}
+          zValue={zValue}
+          isLogPlot={isLogPlot}
+          isLandscapeLoading={isLandscapeLoading}
+          isLandscapeLoaded={isLandscapeLoaded}
+          isPathLoaded={isPathLoaded}
+          setData={setData}
+          setDepth={setDepth}
+          setWidth={setWidth}
+          setActivation={setActivation}
+          setMethod={setMethod}
+          setLoss={setLoss}
+          onLogPlotChange={handleLogPlotToggle}
+          onLoadLandscape={handleLoadLandscapeButtonClick}
+          onZChange={handleZChange}
+        />
+      </View>
+
+      {/* MAIN CONTENT */}
+      <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+        {/* LEFT: Network Visualisation */}
+        <View style={{ flex: 1, borderRightWidth: 1, borderColor: '#333' }}>
+          <NetworkVis
+            inputCount={inputs}
+            depth={depth}
+            width={width}
+            activation={activation}
+            outputCount={outputs}
+            weights={currentParams || []}
           />
-          <Text>{zValue}</Text>
+        </View>
+
+        {/* RIGHT: Landscape Canvas + Sidebar */}
+        <View style={{ flex: 1 }}>
+          <ThemedView
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              overflow: 'hidden',
+            }}
+            lightColor={Colors['light'].background}
+          >
+            {/* Canvas Container */}
+            <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
+
+            {isLandscapeLoaded && <LossKey />}
+
+            {/* Right Sidebar Container */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                zIndex: 20,
+                height: '100%',
+              }}
+            >
+              {/* Toggle Button */}
+              <Pressable
+                onPress={() => setPathControlsVisible((prev) => !prev)}
+                style={styles.sidebarToggle}
+              >
+                <View
+                  style={[
+                    {
+                      transform: [
+                        { rotate: pathControlsVisible ? '0deg' : '180deg' },
+                      ],
+                    },
+                  ]}
+                >
+                  <IconSymbol name='chevron.right' size={30} color='white' />
+                </View>
+              </Pressable>
+
+              {/* Scrollable Sidebar Content */}
+              {pathControlsVisible && (
+                <ScrollView
+                  style={styles.sidebar}
+                  contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
+                >
+                  {/* Path Count & Actions */}
+                  <View style={styles.sidebarSection}>
+                    <Text style={styles.headerText}>Configuration</Text>
+
+                    <View style={styles.row}>
+                      <Text style={{ color: '#eee', fontSize: 12 }}>
+                        Number of Paths:
+                      </Text>
+                      <Picker
+                        selectedValue={numPaths}
+                        style={{
+                          height: 28,
+                          width: 60,
+                          backgroundColor: '#eee',
+                        }}
+                        onValueChange={(itemValue) =>
+                          handleNumPathsChange(Number(itemValue))
+                        }
+                      >
+                        <Picker.Item label='1' value={1} />
+                        <Picker.Item label='2' value={2} />
+                        <Picker.Item label='3' value={3} />
+                      </Picker>
+                    </View>
+
+                    <View style={{ gap: 5 }}>
+                      <Button
+                        title={isPathLoading ? 'Loading...' : 'Generate Paths'}
+                        onPress={handleLoadAllPathsButtonClick}
+                        disabled={isLoading || !isLandscapeLoaded}
+                      />
+                      {isPathLoaded && (
+                        <Button
+                          title={'Clear Paths'}
+                          onPress={handleClearPaths}
+                          color='#ff4444'
+                        />
+                      )}
+                    </View>
+                  </View>
+                  {/* Animation */}
+                  {isPathLoaded && (
+                    <View style={styles.sidebarSection}>
+                      <Text style={styles.headerText}>Animation</Text>
+                      <AnimationControls
+                        isPathLoaded={isPathLoaded}
+                        isPlaying={isPlaying}
+                        onTogglePlayPause={togglePlayPause}
+                      />
+                    </View>
+                  )}
+
+                  {/* Individual Path Settings */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={styles.headerText}>Path Details</Text>
+                    {pathConfigs.map((config) => (
+                      <PathConfigControls
+                        key={config.id}
+                        config={config}
+                        onConfigChange={handleConfigChange}
+                        onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                        onViewNetwork={() => onViewNetwork(config.id)}
+                        isPlacing={isPlacingMode && placingPathId === config.id}
+                        isSceneLoading={isLoading}
+                        isLandscapeLoaded={isLandscapeLoaded}
+                        isWatching={networkViewId === config.id}
+                      />
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </ThemedView>
         </View>
       </View>
-      {/* Placeholder for Three.js rendering */}
-      <canvas id='landscapeCanvas'></canvas>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  param: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+    backgroundColor: '#90fbffd3',
+    padding: 5,
+    borderRadius: 5,
+  },
+  topBar: {
+    zIndex: 30,
+    flexGrow: 0,
+    borderBottomWidth: 1,
+  },
+  sidebar: {
+    width: 280,
+    backgroundColor: '#1c1c1cf0',
+    borderLeftWidth: 1,
+    borderLeftColor: '#333',
+    height: '100%',
+    padding: 10,
+  },
+  sidebarToggle: {
+    width: 30,
+    height: 50,
+    backgroundColor: '#333',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  sidebarSection: {
+    backgroundColor: '#2a2a2a',
+    padding: 10,
+    borderRadius: 6,
+    gap: 8,
+  },
+  headerText: {
+    color: '#888',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  lossKeyContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    zIndex: 10, // Ensure it sits above the canvas
+    pointerEvents: 'none', // Let clicks pass through to the canvas if needed
+  },
+  lossKeyText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  gradientBar: {
+    width: 12,
+    height: 80,
+    marginVertical: 4,
+  },
+});

@@ -52,15 +52,11 @@ def parse_network_params(params: dict):
         activation = parse_activation(params.get("activation", "Tanh"))
         depth = params.get("depth", 2)
         width = params.get("width", 10)
-        inputs = params.get("inputs", 1)
-        outputs = params.get("outputs", 1)
 
         network_params = NetworkParams(
             activation=activation,
             depth=depth,
-            width=width,
-            inputs=inputs,
-            outputs=outputs
+            width=width
         )
         return network_params
     except Exception as e:

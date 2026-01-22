@@ -1,213 +1,204 @@
-import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import api from '@/src/api';
-
-const BASE_URL = api.defaults.baseURL || 'unknown';
+import { Image, Platform } from 'react-native';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedBackground } from '@/components/themed-background';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  FadeIn,
+  ZoomOut,
+} from 'react-native-reanimated';
+import { Colors } from '@/constants/theme';
+import { Link } from 'expo-router';
 
 export default function Home() {
-  const [ping, setPing] = useState<string | null>(null);
-  const [pingLoading, setPingLoading] = useState(false);
-  const [name, setName] = useState('Lucy');
-  const [greeting, setGreeting] = useState<string | null>(null);
-  const [greetLoading, setGreetLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const scrollY = useSharedValue(0);
 
-  const doPing = async () => {
-    setPingLoading(true);
-    setError(null);
-    try {
-      const res = await api.get('/ping');
-      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
-      const data = res.data;
-      setPing(data?.message ?? 'no message');
-    } catch (e: any) {
-      setPing(null);
-      setError(`Ping failed: ${e.message}`);
-    } finally {
-      setPingLoading(false);
-    }
-  };
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
-  const doGreet = async () => {
-    if (!name.trim())
-      return Alert.alert('Name required', 'Please enter your name.');
-    setGreetLoading(true);
-    setGreeting(null);
-    setError(null);
-    try {
-      const res = await api.get(`/greet/${encodeURIComponent(name.trim())}`);
-      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
-      const data = res.data;
-      setGreeting(data?.greeting ?? 'no greeting');
-    } catch (e: any) {
-      setError(`Greet failed: ${e.message}`);
-    } finally {
-      setGreetLoading(false);
-    }
-  };
+  const titleAnimatedStyle = useAnimatedStyle(() => {
+    // Fade and shrink between scroll 0 -> 200
+    const opacity = interpolate(scrollY.value, [0, 150], [1, 0], 'clamp');
 
-  useEffect(() => {
-    doPing();
-  }, []);
+    const scale = interpolate(scrollY.value, [0, 150], [1, 0.9], 'clamp');
 
+    return {
+      opacity,
+      transform: [{ scale }],
+    };
+  });
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <StatusBar barStyle='dark-content' />
-      {/* Full-width header */}
-      <View
+    <Animated.ScrollView
+      onScroll={scrollHandler}
+      scrollEventThrottle={16}
+      style={{ flex: 1, width: '100%' }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overscrollBehavior: 'none',
+      }}
+    >
+      <ThemedBackground
         style={{
-          height: 56,
-          flexDirection: 'row',
+          padding: 20,
           alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 20,
-          borderBottomWidth: 1,
-          borderBottomColor: '#eee',
           width: '100%',
+          height: '100%',
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Image
-            style={{ width: 20, height: 20, marginRight: 6 }}
-            source={require('../../assets/images/logo.svg')}
-          />
-          <Text style={{ fontSize: 20, fontWeight: '700' }}>
-            Discovering Dimensions
-          </Text>
-        </View>
-        <Text style={{ color: '#666', fontSize: 12 }}>API: {BASE_URL}</Text>
-      </View>
-
-      {/* Fullscreen body */}
-      <ScrollView
-        style={{ flex: 1, width: '100%' }}
-        contentContainerStyle={{
-          flexGrow: 1,
-          width: '100%',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#fff',
-        }}
-      >
-        <View style={{ width: '100%', maxWidth: 1000 }}>
-          {/* Full width image */}
-          <Image
-            source={{
-              uri: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1920&auto=format&fit=crop',
-            }}
+        <Animated.View
+          key='title'
+          entering={FadeIn.duration(1000)}
+          exiting={ZoomOut.duration(500)}
+          style={titleAnimatedStyle}
+        >
+          <ThemedText
             style={{
-              width: '100%',
-              height: 400,
+              fontSize: Platform.OS === 'web' ? 100 : 60,
+              fontWeight: '300',
+              marginBottom: 20,
+              marginTop: Platform.OS === 'web' ? 300 : 250,
+              textAlign: 'center',
+              lineHeight: Platform.OS === 'web' ? 110 : 66,
             }}
-            resizeMode='cover'
-          />
-
-          {/* Content area */}
-          <View style={{ padding: 20 }}>
-            <Text style={{ fontSize: 26, fontWeight: '700', marginBottom: 8 }}>
-              Welcome to Discovering Dimensions
-            </Text>
-            <Text style={{ color: '#666', marginBottom: 20, fontSize: 16 }}>
-              Ping status: {pingLoading ? '…' : (ping ?? 'not yet')}
-            </Text>
-
-            <View
+          >
+            Discovering Dimensions
+          </ThemedText>
+        </Animated.View>
+        <ThemedView
+          style={{
+            marginTop: 500,
+            display: 'flex',
+            maxWidth: 1800,
+            maxHeight: 600,
+            padding: 20,
+            marginBottom: 20,
+            flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+            alignItems: 'center',
+            borderRadius: 20,
+            position: 'relative',
+          }}
+        >
+          <ThemedView
+            style={{
+              flex: 1,
+              maxWidth: 900,
+              maxHeight: 600,
+              alignItems: 'center',
+            }}
+          >
+            <ThemedText
               style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                gap: 10,
+                fontSize: 20,
+                fontWeight: 'bold',
+                textAlign: 'center',
                 marginBottom: 20,
               }}
             >
-              <TouchableOpacity
-                onPress={doPing}
-                disabled={pingLoading}
+              See the whole landscape.
+            </ThemedText>
+            <ThemedText
+              style={{ fontSize: 16, textAlign: 'center', marginBottom: 20 }}
+            >
+              Explore the hidden geometry of neural networks with stunning 3D
+              loss landscape visualisations. Watch how different models learn,
+              converge, and navigate their optimisation paths.
+            </ThemedText>
+            {/* Link to /landscape page */}
+            <Link href='/landscape'>
+              <ThemedView
                 style={{
-                  backgroundColor: '#0A84FF',
-                  paddingVertical: 14,
+                  marginTop: 10,
+                  paddingVertical: 10,
                   paddingHorizontal: 20,
                   borderRadius: 10,
-                  opacity: pingLoading ? 0.6 : 1,
                 }}
+                lightColor={Colors['light'].button}
+                darkColor={Colors['dark'].button}
               >
-                {pingLoading ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Text
-                    style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
-                  >
-                    Ping Backend
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={doGreet}
-                disabled={greetLoading}
-                style={{
-                  backgroundColor: '#34C759',
-                  paddingVertical: 14,
-                  paddingHorizontal: 20,
-                  borderRadius: 10,
-                  opacity: greetLoading ? 0.6 : 1,
-                }}
-              >
-                {greetLoading ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Text
-                    style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
-                  >
-                    Send Greeting
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Input */}
-            <Text style={{ marginBottom: 6, fontWeight: '600', fontSize: 16 }}>
-              Your name
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder='e.g. Ada'
-              autoCapitalize='words'
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                borderRadius: 8,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                fontSize: 16,
-                backgroundColor: '#fafafa',
-                marginBottom: 16,
-              }}
+                <ThemedText
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                  }}
+                  darkColor='#000'
+                >
+                  View landscape
+                </ThemedText>
+              </ThemedView>
+            </Link>
+          </ThemedView>
+          <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={{ maxWidth: '100%', height: 600 }}
+              resizeMode='contain'
             />
-
-            {/* Result */}
-            {!!greeting && (
-              <Text style={{ fontSize: 18, fontWeight: '600' }}>
-                Result: {greeting}
-              </Text>
-            )}
-            {!!error && (
-              <Text style={{ color: '#D00', marginTop: 10 }}>{error}</Text>
-            )}
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          </ThemedView>
+        </ThemedView>
+        <ThemedView
+          style={{
+            display: 'flex',
+            maxWidth: 1800,
+            maxHeight: 600,
+            padding: 20,
+            marginBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderRadius: 20,
+            position: 'relative',
+          }}
+        >
+          <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={{ maxWidth: '100%', height: 600 }}
+              resizeMode='contain'
+            />
+          </ThemedView>
+          <ThemedView style={{ flex: 1, maxWidth: 900, maxHeight: 600 }}>
+            <ThemedText
+              style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                textAlign: 'center',
+              }}
+            >
+              Watch the network flow.
+            </ThemedText>
+            <ThemedText
+              style={{ fontSize: 16, textAlign: 'center', marginTop: 20 }}
+            >
+              Dive into the inner workings of a neural network as data flows
+              through its layers. Experience dynamic, real-time animations that
+              reveal how inputs transform into intelligent predictions.
+            </ThemedText>
+          </ThemedView>
+        </ThemedView>
+      </ThemedBackground>
+      {Platform.OS === 'web' && (
+        <ThemedView
+          style={{
+            width: '100%',
+            padding: 20,
+            alignItems: 'center',
+            borderTopWidth: 1,
+            maxHeight: 100,
+          }}
+        >
+          <ThemedText style={{ fontSize: 14 }}>
+            © 2025 Discovering Dimensions. All rights reserved.
+          </ThemedText>
+        </ThemedView>
+      )}
+    </Animated.ScrollView>
   );
 }

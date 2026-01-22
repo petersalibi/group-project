@@ -14,18 +14,25 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const path: string = usePathname();
+  const titleMap: { [key: string]: string } = {
+    '/': 'Home',
+    '/curriculum': 'Introduction | Curriculum',
+    '/curriculum/stage-1': 'Introducing loss | Curriculum',
+    '/curriculum/stage-2': 'Features of loss landscapes | Curriculum',
+    '/curriculum/stage-3': 'Advanced loss landscape techniques | Curriculum',
+    '/landscape': 'Landscape Viewer',
+    '/help': 'Help',
+    '/about': 'About',
+    '/settings': 'Settings',
+  };
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-        <Stack.Screen
-          name='modal'
-          options={{ presentation: 'modal', title: 'Modal' }}
-        />
       </Stack>
-      <StatusBar style='auto' />
+      <StatusBar style='dark' />
     </ThemeProvider>
   );
 }

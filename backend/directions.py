@@ -28,7 +28,7 @@ def get_directions(model, method: VisualisationMethod, args=None):
         case VisualisationMethod.FILTERNORM:
             return get_filterwise_directions(model)
         case VisualisationMethod.PCAMINIMISER:
-            return get_pca_directions(model, args)
+            return get_pca_directions(model)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
@@ -159,7 +159,7 @@ def set_params_from_vector(model, vector):
         pointer += numel
         
 
-def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : str, epochs : int = 200,
+def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : str, model, epochs : int = 200,
                      record_interval : int = 1, n_random_samples : int = 500, sigma : float = 0.02) :
     
     all_vars = independents + [dependent]
@@ -176,15 +176,11 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : st
 
     # Initialising everything
     
-    # Input-output shape of the network
-    n_inputs = len(independents)
-    n_outputs = train[dependent].nunique()
+    # Input-output shape of the network (REDUNDANT due to existing model)
+    # n_inputs = len(independents)
+    # n_outputs = train[dependent].nunique()
     
-    model = nn.Sequential(nn.Linear(n_inputs,5),
-                    nn.Tanh(),
-                    nn.Linear(5,5),
-                    nn.Tanh(),
-                    nn.Linear(5,n_outputs))
+    original_model_state = model.state_dict()
     
     lf = nn.CrossEntropyLoss()
     optim = torch.optim.Adam(model.parameters(), lr = 0.01)
@@ -255,6 +251,9 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : st
                 loss = lf(model(X_train), Y_train )
                 
                 loss_vals.append(loss.item())
+
+    # Return to the original model state
+    model.load_state_dict(original_model_state)
 
     # Combine to get a tuple of the vectors and associated loss
     return parameter_snapshots, loss_vals
