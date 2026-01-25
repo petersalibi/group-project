@@ -85,7 +85,9 @@ def get_filterwise_directions(model):
     
     return dirs[0], dirs[1]
 
-def get_pca_directions(model, minimiser_trajectories):
+def get_pca_directions(model, minimiser_trajectories, 
+                       add_random_noise : bool = True, 
+                       n_points : int =1, sigma : float = 0.02) -> tuple[list[list[float]]]:
     # Convert List[List[float]] to Tensor
     trajectory_tensors = [
         torch.tensor(p, dtype=torch.float32)
@@ -94,10 +96,17 @@ def get_pca_directions(model, minimiser_trajectories):
 
     X = torch.stack(trajectory_tensors).cpu().numpy()
 
+    if add_random_noise and (n_points - 1) > 0:
+        
+        perturbations = sample_random_points(X, n_points - 1, sigma, True, True)
+        
+        X = np.vstack([X, perturbations])
+
     # Center trajectory (critical)
-    X = X - X.mean(axis=0, keepdims=True)
+    X = ( X - X.mean(axis=0, keepdims=True) ) / ( X.std(axis=0, keepdims=True) + 1e-10 )
 
     pca = PCA(n_components=2)
+    
     pca.fit(X)
 
     # PCA unit directions
@@ -310,3 +319,23 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : st
 
     # Combine to get a tuple of the vectors and associated loss
     return parameter_snapshots, loss_vals
+
+
+
+def sample_random_points(X : np.ndarray, n_points : int = 10, 
+                         sigma : float = 0.03, use_norm : bool = True,
+                         collapse : bool = True) -> np.ndarray :
+    
+    if not n_points : return np.array([])
+    
+    noise_shape = (n_points, *X.shape)
+    random_noise = np.random.randn(*noise_shape)
+    Xs = np.stack([X] * n_points)
+    norms = np.linalg.norm(X, axis = 1).reshape(1, -1, 1) if use_norm else 1
+    
+    Xs = Xs + sigma * random_noise * norms
+    
+    if collapse:
+        Xs = Xs.reshape(n_points * X.shape[0], *X.shape[1:])
+    
+    return Xs
