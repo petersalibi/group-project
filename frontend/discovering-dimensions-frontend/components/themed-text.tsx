@@ -28,8 +28,8 @@ export type ThemedTextProps = TextProps & {
 
 export function ThemedText({
   style,
-  lightColor,
-  darkColor,
+  lightColor = '#000',
+  darkColor = '#fff',
   type = 'default',
   ...rest
 }: ThemedTextProps) {
@@ -127,7 +127,7 @@ export function ThemedText({
   }
 
   return (
-    <Text
+    <Animated.Text
       style={[
         { color: animatedColor },
         type === 'default' && styles.default,
