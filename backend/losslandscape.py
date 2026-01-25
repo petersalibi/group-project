@@ -28,12 +28,12 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
 
     model = Model(landscape_params.network, data.inputs, data.outputs)
-    dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
+    dir1, dir2, new_theta = get_directions(model, landscape_params.method, landscape_params.args)
 
     # Torch.inference_mode makes the nn not waste computation by calculating gradients
     with torch.inference_mode():
         xAxis, yAxis, loss_surface, loss_surface_log = compute_loss_surface(model, data.X, data.y,
-                                                        dir1, dir2,
+                                                        dir1, dir2, new_theta,
                                                         landscape_params.loss, 
                                                         landscape_params.surface_samples,
                                                         landscape_params.scale,
@@ -45,9 +45,9 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "y_axis": yAxis.tolist(),
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
-            "theta_0": flatten_params(model.parameters()).tolist()}
+            "theta_0": new_theta.tolist() if new_theta is not None else flatten_params(model.parameters()).tolist()}
 
-def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False):
+def compute_loss_surface(model, X, y, dir1, dir2, theta0, loss, samples=200, scale=10, verbose=False):
 
     if verbose:
         start = time.time()
@@ -73,9 +73,24 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
             print_progress_bar(i, samples, prefix='Progress:', suffix='Complete', length=50)
 
         for j, b in enumerate(betas):
-
-            for p, d1, d2 in zip(params_list, dir1, dir2):
-                p.data.copy_(a*d1 + b*d2)
+            if theta0 is not None:
+                if isinstance(theta0, list) and len(theta0) > 0 and isinstance(theta0[0], torch.Tensor):
+                    # list of tensors
+                    for p, d1, d2, t0 in zip(params_list, dir1, dir2, theta0):
+                        p.data.copy_(a*d1 + b*d2 + t0)
+                else:
+                    # flat tensor or list
+                    if not isinstance(theta0, torch.Tensor):
+                        theta0 = torch.tensor(theta0)
+                    idx = 0
+                    for p, d1, d2 in zip(params_list, dir1, dir2):
+                        n = p.numel()
+                        t0_slice = theta0[idx:idx+n].view_as(p)
+                        p.data.copy_(a*d1 + b*d2 + t0_slice)
+                        idx += n
+            else:
+                for p, d1, d2 in zip(params_list, dir1, dir2):
+                    p.data.copy_(a*d1 + b*d2)
 
             loss_surface[i,j] = loss(model(X), y).item()
 

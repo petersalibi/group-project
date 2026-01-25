@@ -15,7 +15,7 @@ class VisualisationMethod(Enum):
     RANDOMDIRS      = 1
     FILTERNORM      = 2
     PCAMINIMISER    = 3
-    MSEMINIMISER    = 4
+    MAXFIDELITY     = 4
 
 def get_directions(model, method: VisualisationMethod, args=None):
     # set seeds for reproducibility
@@ -30,8 +30,8 @@ def get_directions(model, method: VisualisationMethod, args=None):
             return get_filterwise_directions(model)
         case VisualisationMethod.PCAMINIMISER:
             return get_pca_directions(model, args)
-        case VisualisationMethod.MSEMINIMISER:
-            return get_minimising_mse_directions(model, args)
+        case VisualisationMethod.MAXFIDELITY:
+            return get_max_fidelity_directions(model, args)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
@@ -50,7 +50,7 @@ def get_two_parameter_directions(model, args):
         dirs.append(direction)
     
     print(dirs)
-    return dirs[0], dirs[1]
+    return dirs[0], dirs[1], None
 
 def get_random_directions(model):
     dirs = []
@@ -58,7 +58,7 @@ def get_random_directions(model):
         direction = [torch.randn_like(p) for p in model.parameters()]
         dirs.append(direction)
 
-    return dirs[0], dirs[1]
+    return dirs[0], dirs[1], None
 
 def get_filterwise_directions(model):
     dirs = []
@@ -86,74 +86,69 @@ def get_filterwise_directions(model):
 
         dirs.append(scaled_direction)
     
-    return dirs[0], dirs[1]
+    return dirs[0], dirs[1], None
 
-def get_minimising_mse_directions(
+from utils import print_progress_bar
+
+def get_max_fidelity_directions(
     model,
     minimiser_trajectories,
-    epochs=500,
+    epochs=50,
     lr=1e-2,
-    orthogonal_weight=1.0
 ):
-
     device = next(model.parameters()).device
 
-    # Flatten trajectories
+    # Convert full path to tensor (N, P)
     thetas = torch.stack([
         torch.tensor(theta, device=device)
         for theta in minimiser_trajectories
     ])
 
+    # Step differences
+    delta = thetas[1:] - thetas[:-1]          # (N-1, P)
+    step_norms = torch.norm(delta, dim=1)     # (N-1,)
 
-    theta0 = thetas.mean(dim=0)        # (P,)
-    v = thetas - theta0                # (N, P)
+    theta0 = thetas[0]
 
-    # Initialise directions
+    # Initialise plane directions
     dir1 = torch.randn_like(theta0, requires_grad=True)
     dir2 = torch.randn_like(theta0, requires_grad=True)
 
     optimizer = torch.optim.Adam([dir1, dir2], lr=lr)
 
-    eye2 = torch.eye(2, device=device)
-
     for _ in range(epochs):
         optimizer.zero_grad()
 
-        # Build direction matrix
-        D = torch.stack([dir1, dir2], dim=1)  # (P, 2)
+        # Orthonormal basis via Gram-Schmidt
+        u1 = dir1 / (torch.norm(dir1) + 1e-12)
+        u2 = dir2 - torch.dot(dir2, u1) * u1
+        u2 = u2 / (torch.norm(u2) + 1e-12)
 
-        # Projection (vectorised)
-        DtD = D.T @ D                         # (2, 2)
-        DtD_inv = torch.linalg.inv(DtD + 1e-6 * eye2)
-        coeffs = v @ D @ DtD_inv              # (N, 2)
-        recon = coeffs @ D.T                  # (N, P)
+        # Project steps onto plane
+        proj1 = delta @ u1
+        proj2 = delta @ u2
+        proj_len = torch.sqrt(proj1**2 + proj2**2)
 
-        # Reconstruction loss
-        mse = torch.mean(torch.sum((v - recon) ** 2, dim=1))
+        # Weighted fidelity (maximize)
+        fidelity = torch.sum(step_norms * proj_len) / (
+            torch.sum(step_norms ** 2) + 1e-12
+        )
 
-        # Regularisation
-        norm_penalty = (torch.norm(dir1) - 1) ** 2 + (torch.norm(dir2) - 1) ** 2
-        ortho_penalty = (torch.dot(dir1, dir2)) ** 2
+        loss = -fidelity
 
-        loss = mse + 0.1 * norm_penalty + orthogonal_weight * ortho_penalty
         loss.backward()
         optimizer.step()
 
-        # Enforce scale
-        with torch.no_grad():
-            dir1 /= torch.norm(dir1) + 1e-12
-            dir2 /= torch.norm(dir2) + 1e-12
-
-    # Unflatten into model-shaped tensors
+    # Unflatten into parameter-shaped tensors
     dirs1, dirs2 = [], []
     idx = 0
     for p in model.parameters():
         n = p.numel()
-        dirs1.append(dir1[idx:idx+n].view_as(p))
-        dirs2.append(dir2[idx:idx+n].view_as(p))
+        dirs1.append(u1[idx:idx+n].view_as(p))
+        dirs2.append(u2[idx:idx+n].view_as(p))
         idx += n
 
-    return dirs1, dirs2
+    return dirs1, dirs2, None
 
 
 def calculate_mse(minimiser_trajectories, theta0, dir1, dir2):
@@ -205,7 +200,7 @@ def get_pca_directions(model, minimiser_trajectories):
         dir2.append(pc2[idx:idx + n].view_as(p))
         idx += n
 
-    return dir1, dir2
+    return dir1, dir2, None
 
 def get_pca_directions_david(model, minimiser_trajectories) -> tuple[np.ndarray, np.ndarray, None]:
     

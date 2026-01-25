@@ -56,10 +56,10 @@ def params_to_pca(params: LandscapeParams, minimiser_trajectories):
         surface_samples=params.surface_samples
     )
 
-def params_to_mse_minimisation(params: LandscapeParams, minimiser_trajectories):
+def params_to_max_fidelity(params: LandscapeParams, minimiser_trajectories):
     return LandscapeParams(
         network=params.network,
-        method=VisualisationMethod.MSEMINIMISER,
+        method=VisualisationMethod.MAXFIDELITY,
         data=params.data,
         args=minimiser_trajectories,
         loss=params.loss,
