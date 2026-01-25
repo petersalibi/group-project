@@ -139,11 +139,14 @@ def csv_to_training_data(filename: str):
     y = df.iloc[:, -1] # last column
     
     # Preprocess X: Convert string columns to categorical codes BEFORE creating tensor
+    # Categorical columns will be converted to multiple columns for one-hot encoding
     for col in range(X.shape[1]):
         if isinstance(X[0, col], str):  # Check if the column contains strings
-            col_series = pd.Series(X[:, col])
-            col_cat = col_series.astype('category')
-            X[:, col] = col_cat.cat.codes.values  # Replace with integer codes
+            # Convert to categorical codes and insert several columns for one-hot encoding
+            col_data = pd.Categorical(X[:, col])
+            one_hot = pd.get_dummies(col_data).values
+            X = np.delete(X, col, axis=1)  # Remove original column
+            X = np.insert(X, col, one_hot, axis=1)  # Insert one-hot encoded columns
     
     # Now create the tensor (X is fully numeric)
     X_tensor = torch.tensor(X, dtype=torch.float32)
