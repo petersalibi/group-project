@@ -7,6 +7,7 @@ class TrainingDataType(Enum):
     SINREGRESSION = 0
     PENGUINS      = 1
     PURPLECOLOURS = 2
+    CUSTOM        = 3
 
 class TrainingData:
 
@@ -60,6 +61,9 @@ class TrainingData:
 
                 self.inputs = self.X.shape[1]
                 self.outputs = 1
+            
+            case TrainingDataType.CUSTOM:
+                self.X, self.y, self.inputs, self.outputs = csv_to_training_data("custom_dataset.csv")
 
             case _:
                 raise ValueError("Training Data Type Not Found!")
