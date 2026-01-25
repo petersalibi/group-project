@@ -5,7 +5,7 @@ neural networks through loss landscape exploration.
 
 ---
 
-## Installation
+## Getting started
 
 1. Install [Node.js (LTS)](https://nodejs.org/en/download) and Python
 2. Clone the repo locally
@@ -22,9 +22,11 @@ neural networks through loss landscape exploration.
       ```
 
    2. Install required packages
-      `pip install -r requirements`
+
+      `pip install -r requirements.txt`
 
    3. Start the FastAPI server
+
       `uvicorn app:app --reload --host 0.0.0.0 --port 8000`
 
 4. Setup frontend
@@ -36,4 +38,5 @@ neural networks through loss landscape exploration.
       ```
 
    2. Start the app
+
       `npx expo start`
