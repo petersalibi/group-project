@@ -1,6 +1,7 @@
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
+import { Platform } from 'react-native';
 
 export default function HelpScreen() {
   return (
@@ -15,12 +16,16 @@ export default function HelpScreen() {
       >
         <ThemedView style={{ marginBottom: 20 }}>
           <ThemedText
-            style={{ fontWeight: '700', fontSize: 40, textAlign: 'center' }}
+            style={{
+              fontWeight: '700',
+              fontSize: Platform.OS === 'web' ? 40 : 25,
+              textAlign: 'center',
+            }}
           >
             Help
           </ThemedText>
         </ThemedView>
-        <ThemedText>How to use this app.</ThemedText>
+        <ThemedText type='text'>How to use this app.</ThemedText>
       </ThemedView>
     </ThemedBackground>
   );

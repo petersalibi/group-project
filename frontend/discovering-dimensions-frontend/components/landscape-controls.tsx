@@ -65,7 +65,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     setLoss,
     onLoadLandscape,
     onZChange,
-    onLogPlotChange
+    onLogPlotChange,
   } = props;
 
   const handleDataChange = (itemValue: string) => {
@@ -111,6 +111,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         <Picker
           id='dataSelect'
           selectedValue={data}
+          enabled={!isPathLoaded}
           style={{ height: 30 }}
           onValueChange={(itemValue) => handleDataChange(String(itemValue))}
         >
@@ -125,6 +126,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         <Picker
           id='depthSelect'
           selectedValue={depth}
+          enabled={!isPathLoaded}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setDepth(Number(itemValue))}
         >
@@ -134,25 +136,29 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         </Picker>
       </ThemedView>
 
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Width:</ThemedText>
-        <Picker
-          id='widthSelect'
-          selectedValue={width}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => setWidth(Number(itemValue))}
-        >
-          {widths.map((w) => (
-            <Picker.Item key={w.id} label={w.label} value={w.value} />
-          ))}
-        </Picker>
-      </ThemedView>
+      {depth > 1 && (
+        <ThemedView style={styles.param}>
+          <ThemedText type='default'>Width:</ThemedText>
+          <Picker
+            id='widthSelect'
+            selectedValue={width}
+            enabled={!isPathLoaded}
+            style={{ height: 30 }}
+            onValueChange={(itemValue) => setWidth(Number(itemValue))}
+          >
+            {widths.map((w) => (
+              <Picker.Item key={w.id} label={w.label} value={w.value} />
+            ))}
+          </Picker>
+        </ThemedView>
+      )}
 
       <ThemedView style={styles.param}>
         <ThemedText type='default'>Activation:</ThemedText>
         <Picker
           id='activationSelect'
           selectedValue={activation}
+          enabled={!isPathLoaded}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setActivation(String(itemValue))}
         >
@@ -167,6 +173,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         <Picker
           id='lossSelect'
           selectedValue={loss}
+          enabled={!isPathLoaded}
           style={{ height: 30 }}
           onValueChange={(itemValue) => setLoss(String(itemValue))}
         >
@@ -182,6 +189,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           id='methodSelect'
           selectedValue={method}
           style={{ height: 30 }}
+          enabled={!isPathLoaded}
           onValueChange={(itemValue) => setMethod(String(itemValue))}
         >
           {methods.map((m) => (
@@ -195,7 +203,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         <Button
           title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
           onPress={onLoadLandscape}
-          disabled={isLandscapeLoading}
+          disabled={isLandscapeLoading || isPathLoaded}
           color='#00aaff'
         />
       </View>
@@ -211,7 +219,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
 
       <View
         style={{
-          width: 150,
+          maxWidth: 160,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 5,

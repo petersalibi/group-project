@@ -64,6 +64,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
   const [placingPathId, setPlacingPathId] = useState<number | null>(null);
+  const [currentParams, setCurrentParams] = useState<number[] | null>(null);
+  const [networkViewId, setNetworkViewId] = useState<number | null>(null);
 
   // --- Internal state refs ---
   const dataRef = useRef<string>(data);
@@ -93,6 +95,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const isPlayingRef = useRef(isPlaying);
   const isPathLoadedRef = useRef(isPathLoaded);
   const animationTimeRef = useRef(0);
+  const networkViewIdRef = useRef<number | null>(null);
 
   // --- Array refs for multiple paths ---
   const pathLinesRef = useRef<Line2[]>([]);
@@ -102,6 +105,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const totalPathPointsArrayRef = useRef<number[]>([]);
   const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
   const animationDurationsRef = useRef<number[]>([]);
+  const parametersArrayRef = useRef<number[][][]>([]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -141,6 +145,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     pathNormalsArrayRef.current = [];
     totalPathPointsArrayRef.current = [];
     path2DArrayRef.current = [];
+    parametersArrayRef.current = [];
     Object.values(markersRef.current).forEach(({ ball, line }) => {
       disposeObject(ball);
       disposeObject(line);
@@ -150,6 +155,13 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     setIsPathLoaded(false);
     animationTimeRef.current = 0;
     clockRef.current = new THREE.Clock();
+  }, []);
+
+  const handleClearPaths = useCallback(() => {
+    handleRemoveAllPaths();
+    setNetworkViewId(null);
+    networkViewIdRef.current = null;
+    setCurrentParams(null);
   }, []);
 
   /**
@@ -231,7 +243,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     setIsLandscapeLoaded(false);
     setIsPathLoading(true);
-    // === NEW: Clear all markers on generation ===
+    // Clear all markers on generation
     Object.values(markersRef.current).forEach(({ ball, line }) => {
       ball.visible = false;
       line.visible = false;
@@ -267,15 +279,19 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Process all responses
       responses.forEach((resp, index) => {
         const pathData = resp.data;
-        const arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
+        const path_arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
+        const parameters_arr = pathData.parameters_path?.data ?? pathData.parameters_path;
 
-        if (!Array.isArray(arr) || arr.length < 2) {
+        if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
+        } else if (!Array.isArray(parameters_arr) || parameters_arr.length < 2) {
+          throw new Error(`Invalid parameters data for path ${index + 1}`);
         }
 
-        const twoDPoints = arr.map(
+        const twoDPoints = path_arr.map(
           (p: number[]) => new THREE.Vector2(p[0], p[1]),
         );
+        parametersArrayRef.current[index] = parameters_arr;
         const curve2D = new THREE.SplineCurve(twoDPoints);
         path2DArrayRef.current[index] = curve2D
           .getSpacedPoints(500)
@@ -345,10 +361,25 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       scene.add(mesh);
       meshRef.current = mesh;
 
-      const diag = Math.hypot(geoWidth, geoHeight);
       if (cameraRef.current && controlsRef.current) {
-        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
-        controlsRef.current.target.set(0, 0, 0);
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        controlsRef.current.target.copy(center);
+        const maxDim = Math.max(size.x, size.z);
+        const fov = cameraRef.current.fov * (Math.PI / 180);
+        let cameraDist = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+        cameraDist *= 1.5; // Zoom out multiplier
+
+        cameraRef.current.position.set(
+            center.x, 
+            center.y + cameraDist * 0.7, // Height
+            center.z + cameraDist * 0.7  // Depth
+        );
+        cameraRef.current.updateProjectionMatrix();
         controlsRef.current.update();
       }
       setIsLandscapeLoaded(true);
@@ -554,6 +585,14 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [isPathLoaded, updatePathGeometry],
   );
 
+  const onViewNetwork = useCallback(
+    (id: number) => {
+      setNetworkViewId(id);
+      networkViewIdRef.current = id;
+    },
+    [networkViewId],
+  );
+
   const togglePlacingMode = useCallback(
     (id: number | null) => {
       if (id === null || id === placingPathId) {
@@ -621,10 +660,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
         // Calculate this path's individual progress, stopping at 1.0
         const pathProgress = elapsedTime / animationDuration;
-        if (
-          pathProgress > 1.0 &&
-          animationDuration >= Math.max(...animationDurationsRef.current)
-        ) {
+        if (pathProgress > 1.0 && animationDuration >= Math.max(...animationDurationsRef.current)) {
           if (animationDuration >= Math.max(...animationDurationsRef.current)) {
             setIsPlaying(false);
             animationTimeRef.current = 0;
@@ -654,6 +690,12 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
           ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
         }
+        // Update current parameters of network (if network view is selected)
+        if (networkViewIdRef.current !== null && networkViewIdRef.current === i) {
+          const timeStep = Math.floor(pathProgress * (parametersArrayRef.current[i].length - 1));
+          if (timeStep >= parametersArrayRef.current[i].length) continue;
+          setCurrentParams(parametersArrayRef.current[networkViewIdRef.current][timeStep]);
+        }
       }
 
       controls.update();
@@ -662,17 +704,24 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     animate();
 
     const onResize = () => {
-      if (!cameraRef.current || !rendererRef.current) return;
-      // Handle resize for all lines
-      pathLinesRef.current.forEach((line) => {
-        handleResize(camera, renderer, line);
+      if (!cameraRef.current || !rendererRef.current || !container) return;
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
+
+      // Update line resolution uniforms if lines exist
+      pathLinesRef.current.forEach(line => {
+         if (line.material) {
+             (line.material as any).resolution.set(width, height);
+         }
       });
-      // Handle case where no lines exist yet
-      if (pathLinesRef.current.length === 0) {
-        handleResize(camera, renderer, null);
-      }
     };
     window.addEventListener('resize', onResize);
+    onResize();
 
     return () => {
       cancelAnimationFrame(rafId);
@@ -731,12 +780,15 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     isPlaying,
     isPlacingMode,
     placingPathId,
+    currentParams,
+    networkViewId,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
-    handleRemoveAllPaths,
+    handleClearPaths,
     togglePlayPause,
     handleLogPlotToggle,
     handleZChange,
     togglePlacingMode,
+    onViewNetwork
   };
 }

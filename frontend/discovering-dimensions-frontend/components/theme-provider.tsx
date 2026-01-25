@@ -44,7 +44,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // Persist theme on change
   useEffect(() => {
     if (!isLoaded) return; // Avoid saving before initial load
-    console.log('Saving theme:', theme);
     AsyncStorage.setItem('appTheme', theme);
   }, [theme, isLoaded]);
 
