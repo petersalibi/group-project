@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -8,8 +8,8 @@ import {
   Button,
   Pressable,
   ScrollView,
-  Dimensions,
-  LayoutChangeEvent,
+  PanResponder,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
@@ -40,6 +40,7 @@ const createDefaultPathConfig = (id: number): PathConfig => {
     colorValue: color.value,
     optim: 'Adam',
     lr: 0.01,
+    locked: true,
     startPoint: [0, 0],
   };
 };
@@ -106,6 +107,7 @@ export default function LandscapeWithPath() {
     handleLogPlotToggle,
     togglePlacingMode,
     onViewNetwork,
+    handleUploadCsv,
   } = useLandscapeScene({
     activation,
     depth,
@@ -125,6 +127,33 @@ export default function LandscapeWithPath() {
   });
 
   // --- UI Handlers ---
+
+  // State for the left panel width
+  const [leftPanelWidth, setLeftPanelWidth] = useState(Dimensions.get('window').width * 0.5);
+
+  // Ref to track the width during the drag gesture
+  const leftPanelWidthRef = useRef(Dimensions.get('window').width * 0.5);
+
+  // PanResponder to handle the drag
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        // Sync the ref with the current state when drag starts
+        leftPanelWidthRef.current = leftPanelWidth;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Calculate new width
+        const newWidth = leftPanelWidthRef.current + gestureState.dx;
+        
+        // Clamp the width (Margin: 350)
+        if (newWidth > 350 && newWidth < Dimensions.get('window').width - 350) {
+          setLeftPanelWidth(newWidth);
+        }
+      },
+      onPanResponderRelease: () => {},
+    })
+  ).current;
 
   // Update path config array when user changes number of paths
   const handleNumPathsChange = (num: number) => {
@@ -201,13 +230,14 @@ export default function LandscapeWithPath() {
           onLogPlotChange={handleLogPlotToggle}
           onLoadLandscape={handleLoadLandscapeButtonClick}
           onZChange={handleZChange}
+          onUploadCsv={handleUploadCsv}
         />
       </View>
 
       {/* MAIN CONTENT */}
       <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
         {/* LEFT: Network Visualisation */}
-        <View style={{ flex: 1, borderRightWidth: 1, borderColor: '#333' }}>
+        <View style={{ width: leftPanelWidth, borderRightWidth: 1, borderColor: '#333' }}>
           <NetworkVis
             inputCount={inputs}
             depth={depth}
@@ -216,6 +246,30 @@ export default function LandscapeWithPath() {
             outputCount={outputs}
             weights={currentParams || []}
           />
+        </View>
+
+        {/* --- DRAGGABLE HANDLE --- */}
+        <View
+          {...panResponder.panHandlers}
+          style={[
+            {
+              width: 10,
+              backgroundColor: '#2a2a2a',
+              borderRightWidth: 1,
+              borderLeftWidth: 1,
+              borderColor: '#111',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 100,
+            },
+            // Only apply the cursor style on Web
+            Platform.select({
+              web: { cursor: 'col-resize' } as any,
+              default: {},
+            }),
+          ]}
+        >
+          <View style={{ width: 4, height: 30, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#555' }} />
         </View>
 
         {/* RIGHT: Landscape Canvas + Sidebar */}
@@ -236,10 +290,15 @@ export default function LandscapeWithPath() {
             {/* Right Sidebar Container */}
             <View
               style={{
+                position: 'absolute', 
+                right: 0,
+                top: 0,
+                bottom: 0,
                 flexDirection: 'row',
                 alignItems: 'flex-start',
                 zIndex: 20,
                 height: '100%',
+                pointerEvents: 'box-none'
               }}
             >
               {/* Toggle Button */}
@@ -417,4 +476,5 @@ const styles = StyleSheet.create({
     height: 80,
     marginVertical: 4,
   },
+
 });

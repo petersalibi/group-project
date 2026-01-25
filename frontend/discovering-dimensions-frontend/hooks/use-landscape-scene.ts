@@ -15,6 +15,7 @@ import {
   cleanupScene,
 } from '@/utils/threejs-utils';
 import { PathConfig } from '@/components/path-config-controls';
+import { config } from 'process';
 
 // --- Constants ---
 const animationSpeed = 0.2;
@@ -69,6 +70,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   // --- Internal state refs ---
   const dataRef = useRef<string>(data);
+  const csvRef = useRef<number[][] | null>(null);
   const lossRef = useRef<string>(loss);
   const activationRef = useRef<string>(activation);
   const depthRef = useRef<number>(depth);
@@ -114,6 +116,39 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   useEffect(() => {
     isPathLoadedRef.current = isPathLoaded;
   }, [isPathLoaded]);
+
+  /**
+   * Parses a CSV string into a number[][].
+   * Assumes no header, or that the backend handles headers.
+   */
+  const parseAndValidateCSV = (csvText: string): number[][] | null => {
+    const rows = csvText.trim().split('\n');
+    
+    if (rows.length === 0) return null;
+
+    const data: number[][] = [];
+    const expectedCols = rows[0].split(',').length;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].split(',').map((val) => parseFloat(val.trim()));
+
+      // Validation 1: Check consistency of column count
+      if (row.length !== expectedCols) {
+        console.error(`Row ${i} has invalid column count.`);
+        return null;
+      }
+
+      // Validation 2: Check for NaNs
+      if (row.some((val) => isNaN(val))) {
+        console.error(`Row ${i} contains non-numeric values.`);
+        return null;
+      }
+
+      data.push(row);
+    }
+
+    return data;
+  };
 
   /**
    * Disposes of a single Three.js object from a ref array.
@@ -253,12 +288,14 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     try {
       const data = dataRef.current;
+      const csv = csvRef.current;
       const activation = activationRef.current;
       const depth = depthRef.current;
       const width = widthRef.current;
       const loss = lossRef.current;
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config) => {
+        console.log(config.startPoint);
         const paramString = `/animateminimiser/${JSON.stringify({
           network: { activation, depth, width },
           data,
@@ -269,7 +306,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           optimiser: config.optim,
           learning_rate: config.lr,
           loss: loss,
-          lock_to_plane: true,
+          lock_to_plane: config.locked,
         })}`;
         return api.get(paramString);
       });
@@ -513,6 +550,32 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [placingPathId, onPathConfigChange, getOrCreateMarker],
   );
 
+  const handleUploadCsv = useCallback(async (file: File) => {
+
+    try {
+      // Read the file
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+      });
+
+      // Parse and Verify
+      const parsedData = parseAndValidateCSV(text);
+
+      if (!parsedData) {
+        alert('Invalid CSV format. Please ensure the file contains only numeric data and consistent rows.');
+        return;
+      }
+      console.log(parsedData);
+      csvRef.current = parsedData;
+    } catch (err) {
+      console.error('Failed to upload CSV:', err);
+      alert('Failed to upload file.');
+    }
+  }, []);
+
   const handleLoadLandscapeButtonClick = useCallback(
     () => loadAndBuildLandscape(),
     [loadAndBuildLandscape],
@@ -720,11 +783,16 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
          }
       });
     };
+    const resizeObserver = new ResizeObserver(() => {
+        onResize();
+    });
+    resizeObserver.observe(container);
     window.addEventListener('resize', onResize);
     onResize();
 
     return () => {
       cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
       window.removeEventListener('resize', onResize);
       cleanupScene(scene, renderer);
     };
@@ -789,6 +857,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     handleLogPlotToggle,
     handleZChange,
     togglePlacingMode,
-    onViewNetwork
+    onViewNetwork,
+    handleUploadCsv,
   };
 }

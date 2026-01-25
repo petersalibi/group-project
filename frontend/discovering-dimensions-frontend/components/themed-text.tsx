@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   StyleSheet,
+  Text,
   Pressable,
   Platform,
   type TextProps,

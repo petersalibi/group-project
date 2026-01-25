@@ -27,7 +27,8 @@ export const methods = [
 export const dataSets = [
   { id: 1, label: 'Sine Regression', value: 'SINREGRESSION' },
   { id: 2, label: 'Penguins', value: 'PENGUINS' },
-  { id: 3, label: 'Purple Colours', value: 'PURPLECOLOURS' }
+  { id: 3, label: 'Purple Colours', value: 'PURPLECOLOURS' },
+  { id: 4, label: 'Custom', value: 'CUSTOM'}
 ];
 
 export const datasetFeatures: Record<string, number> = {
@@ -48,11 +49,16 @@ export const optimisers = [
   { id: 3, label: 'RMSProp', value: 'RMSprop' },
 ];
 
+export const allLosses= [
+  { id: 1, label: 'MSE', value: 'MSELoss' },
+  { id: 2, label: 'L1', value: 'L1Loss' },
+  { id: 3, label: 'Cross-Entropy', value: 'CrossEntropyLoss' },
+  { id: 4, label: 'Binary Cross-Entropy', value: 'BCELoss' }
+]
 export const regLosses = [
   { id: 1, label: 'MSE', value: 'MSELoss' },
   { id: 2, label: 'L1', value: 'L1Loss' },
 ]
-
 export const ceLoss = [{ id: 1, label: 'Cross-Entropy', value: 'CrossEntropyLoss' }]
 export const bceLoss = [{ id: 1, label: 'Binary Cross-Entropy', value: 'BCELoss' }]
 

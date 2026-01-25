@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Platform, StyleSheet, View, Button, Switch } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
@@ -7,6 +7,7 @@ import {
   widths,
   activations,
   methods,
+  allLosses,
   regLosses,
   ceLoss,
   bceLoss,
@@ -42,6 +43,7 @@ interface LandscapeControlsProps {
   onLoadLandscape: () => void;
   onZChange: (value: number) => void;
   onLogPlotChange: (value: boolean) => void;
+  onUploadCsv?: (file: any) => void;
 }
 
 export function LandscapeControls(props: LandscapeControlsProps) {
@@ -66,7 +68,25 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     onLoadLandscape,
     onZChange,
     onLogPlotChange,
+    onUploadCsv,
   } = props;
+
+  const hiddenFileInput = useRef<HTMLInputElement>(null);
+
+  const handleUploadPress = () => {
+    if (Platform.OS === 'web') {
+      hiddenFileInput.current?.click();
+    } else {
+      if (onUploadCsv) onUploadCsv(null); 
+    }
+  };
+
+  const handleWebFileChange = (event: any) => {
+    const file = event.target.files[0];
+    if (file && onUploadCsv) {
+      onUploadCsv(file);
+    }
+  };
 
   const handleDataChange = (itemValue: string) => {
     if (itemValue === data) return;
@@ -85,6 +105,9 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         setLosses(bceLoss);
         setLoss(bceLoss[0].value);
         break;
+      case 'CUSTOM':
+        setLosses(allLosses);
+        setLoss(allLosses[0].value);
     }
   };
 
@@ -106,6 +129,15 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       lightColor='#ecececff'
       darkColor='#2a2828ff'
     >
+      {Platform.OS === 'web' && (
+        <input
+          type="file"
+          accept=".csv"
+          ref={hiddenFileInput}
+          onChange={handleWebFileChange}
+          style={{ display: 'none' }}
+        />
+      )}
       <ThemedView style={styles.param}>
         <ThemedText type='default'>Data Set:</ThemedText>
         <Picker
@@ -120,6 +152,16 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           ))}
         </Picker>
       </ThemedView>
+
+      {data === 'CUSTOM' && (
+        <View style={{ marginLeft: 5 }}>
+          <Button 
+            title="Upload CSV" 
+            onPress={handleUploadPress} 
+            color="#841584"
+          />
+        </View>
+      )}
 
       <ThemedView style={styles.param}>
         <ThemedText type='default'>Depth:</ThemedText>

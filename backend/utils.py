@@ -101,6 +101,7 @@ def parse_minimiser_params(params: dict):
         y_direction = torch.tensor(params.get("y_direction", torch.randn(100).tolist()))
 
         theta_0 = torch.tensor(params.get("theta_0", torch.randn(100).tolist()))
+        init_xy = params.get("init_xy", (0.0, 0.0))
         optimiser = parse_optimiser(params.get("optimiser", "Adam"))
         learning_rate = params.get("learning_rate", 0.1)
         loss = parse_loss(params.get("loss", "MSELoss"))
@@ -113,6 +114,7 @@ def parse_minimiser_params(params: dict):
             x_direction=x_direction,
             y_direction=y_direction,
             theta_0=theta_0,
+            init_xy=init_xy,
             optimiser=optimiser,
             loss=loss,
             learning_rate=learning_rate,

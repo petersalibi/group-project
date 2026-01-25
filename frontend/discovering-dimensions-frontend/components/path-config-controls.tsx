@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Switch } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { optimisers, lrs } from '@/constants/landscapeParams';
 
@@ -10,6 +10,7 @@ export interface PathConfig {
   colorValue: string;
   optim: string;
   lr: number;
+  locked: boolean;
   startPoint: [number, number];
 }
 
@@ -36,7 +37,7 @@ export function PathConfigControls(props: PathConfigControlsProps) {
     isWatching,
   } = props;
 
-  const { id, colorName, colorValue, optim, lr, startPoint } = config;
+  const { id, colorName, colorValue, optim, lr, locked, startPoint } = config;
 
   return (
     <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
@@ -81,6 +82,13 @@ export function PathConfigControls(props: PathConfigControlsProps) {
             Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}
             ]
           </Text>
+        </View>
+        <View style={styles.paramGroup}>
+          <Text style={styles.paramLabel}>Locked to Plane:</Text>
+            <Switch
+              value={locked}
+              onValueChange={(val) => onConfigChange(id, 'locked', Boolean(val))}
+            />
         </View>
       </View>
 
