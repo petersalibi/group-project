@@ -5,8 +5,8 @@ import json
 from losslandscape import *
 from minimisers import *
 from network import *
-from utils import parse_landscape_params, parse_minimiser_params, print_landscape, sample_dir1, sample_dir2, sample_theta0
-
+from parse import *
+from utils import * 
 import traceback
 
 app = FastAPI()
@@ -93,6 +93,23 @@ def animateminimisersample():
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
+
+@app.get("/preparecustomdataset/{rawdata}")
+def prepare_custom_dataset(rawdata: str):
+    import pandas as pd
+    from io import StringIO
+
+    try:
+        # Convert the raw CSV string to a pandas DataFrame
+        df = pd.read_csv(StringIO(rawdata))
+        
+        # Save the DataFrame to a CSV file for later use
+        df.to_csv("data/training/custom_dataset.csv", index=False)
+        
+        return {"message": "Custom dataset saved successfully."}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to prepare custom dataset: {e} \n {traceback.format_exc()}")
 
 # Fetch the given JSON data file
 @app.get("/data/{filename}")
