@@ -1,86 +1,92 @@
-import unittest
+import pytest
 import torch
 import torch.nn as nn
 from losslandscape import LandscapeParams, generate_loss_landscape, compute_loss_surface
 from network import NetworkParams, Model, TrainingDataType
 from directions import VisualisationMethod
 
-class TestLossLandscape(unittest.TestCase):
-    def setUp(self):
-        self.network_params = NetworkParams()
-        self.landscape_params = LandscapeParams(
-            network=self.network_params,
-            method=VisualisationMethod.FILTERNORM,
-            data=TrainingDataType.SINREGRESSION,
-            loss=nn.MSELoss(),
-            training_samples=32,  # Smaller sample size for testing
-            surface_samples=10    # Smaller surface samples for testing
-        )
-        
-    def test_landscape_params_creation(self):
-        params = self.landscape_params
-        self.assertIsInstance(params.network, NetworkParams)
-        self.assertEqual(params.method, VisualisationMethod.FILTERNORM)
-        self.assertEqual(params.data, TrainingDataType.SINREGRESSION)
-        self.assertIsInstance(params.loss, nn.MSELoss)
-        self.assertEqual(params.training_samples, 32)
-        self.assertEqual(params.surface_samples, 10)
-        
-    def test_generate_loss_landscape(self):
-        result = generate_loss_landscape(self.landscape_params)
-        
-        # Check if result contains required keys
-        self.assertIn('surface', result)
-        self.assertIn('x_axis', result)
-        self.assertIn('y_axis', result)
-        
-        # Check dimensions
-        self.assertEqual(len(result['x_axis']), self.landscape_params.surface_samples)
-        self.assertEqual(len(result['y_axis']), self.landscape_params.surface_samples)
-        self.assertEqual(len(result['surface']), self.landscape_params.surface_samples)
-        self.assertEqual(len(result['surface'][0]), self.landscape_params.surface_samples)
-        
-    def test_compute_loss_surface(self):
-        model = Model(self.network_params)
-        data = torch.randn(32, 1)  # Random input data
-        target = torch.randn(32, 1)  # Random target data
-        loss_fn = nn.MSELoss()
-        
-        # Create dummy directions (same shape as model parameters)
-        dir1 = [torch.randn_like(p) for p in model.parameters()]
-        dir2 = [torch.randn_like(p) for p in model.parameters()]
-        
-        samples = 5  # Small number for testing
-        alphas, betas, loss_surface = compute_loss_surface(
-            model, data, target, dir1, dir2, loss_fn, samples=samples
-        )
-        
-        # Check shapes
-        self.assertEqual(alphas.shape, (samples,))
-        self.assertEqual(betas.shape, (samples,))
-        self.assertEqual(loss_surface.shape, (samples, samples))
-        
-        # Check value ranges
-        self.assertTrue(torch.all(loss_surface >= 0))  # Loss should be non-negative
-        self.assertTrue(torch.all(loss_surface <= 300))  # Max loss parameter
-        
-    def test_model_state_preservation(self):
-        # Test that compute_loss_surface doesn't permanently modify the model
-        model = Model(self.network_params)
-        original_state = {k: v.clone() for k, v in model.state_dict().items()}
-        
-        data = torch.randn(32, 1)
-        target = torch.randn(32, 1)
-        loss_fn = nn.MSELoss()
-        
-        dir1 = [torch.randn_like(p) for p in model.parameters()]
-        dir2 = [torch.randn_like(p) for p in model.parameters()]
-        
-        _ = compute_loss_surface(model, data, target, dir1, dir2, loss_fn, samples=5)
-        
-        # Check if model parameters are restored
-        for (k1, v1), (k2, v2) in zip(model.state_dict().items(), original_state.items()):
-            self.assertTrue(torch.allclose(v1, v2))
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.fixture
+def landscape_params():
+    network_params = NetworkParams()
+    return LandscapeParams(
+        network=network_params,
+        method=VisualisationMethod.FILTERNORM,
+        data=TrainingDataType.SINREGRESSION,
+        loss=nn.MSELoss(),
+        training_samples=32,  # Smaller sample size for testing
+        surface_samples=10,  # Smaller surface samples for testing
+    )
+
+
+def test_landscape_params_creation(landscape_params):
+    params = landscape_params
+    assert isinstance(params.network, NetworkParams)
+    assert params.method == VisualisationMethod.FILTERNORM
+    assert params.data == TrainingDataType.SINREGRESSION
+    assert isinstance(params.loss, nn.MSELoss)
+    assert params.training_samples == 32
+    assert params.surface_samples == 10
+
+
+def test_generate_loss_landscape(landscape_params):
+    params = landscape_params
+    result = generate_loss_landscape(params)
+
+    # Check if result contains required keys
+    assert "surface" in result
+    assert "x_axis" in result
+    assert "y_axis" in result
+
+    # Check dimensions
+    assert len(result["x_axis"]) == params.surface_samples
+    assert len(result["y_axis"]) == params.surface_samples
+    assert len(result["surface"]) == params.surface_samples
+    assert len(result["surface"][0]) == params.surface_samples
+
+
+@pytest.mark.parametrize("in_size, out_size", [(1, 1), (4, 3), (3, 1)])
+def test_compute_loss_surface(landscape_params, in_size, out_size):
+    model = Model(landscape_params.network, in_size, out_size)
+    data = torch.randn(32, in_size)  # Random input data
+    target = torch.randn(32, out_size)  # Random target data
+    loss_fn = nn.MSELoss()
+
+    # Create dummy directions (same shape as model parameters)
+    dir1 = [torch.randn_like(p) for p in model.parameters()]
+    dir2 = [torch.randn_like(p) for p in model.parameters()]
+
+    samples = 5  # Small number for testing
+    alphas, betas, loss_surface, loss_surface_log = compute_loss_surface(
+        model, data, target, dir1, dir2, loss_fn, samples=samples
+    )
+
+    # Check shapes
+    assert alphas.shape == (samples,)
+    assert betas.shape == (samples,)
+    assert loss_surface.shape == (samples, samples)
+
+    # Check value ranges
+    assert torch.all(loss_surface >= 0)  # Loss should be non-negative
+    assert torch.isfinite(loss_surface).all()  # Loss should be finite
+    assert torch.all(loss_surface_log >= 0)  # Log loss should be non-negative
+    assert torch.isfinite(loss_surface_log).all()  # Log loss should be finite
+
+
+def test_model_state_preservation(landscape_params):
+    # Test that compute_loss_surface doesn't permanently modify the model
+    model = Model(landscape_params.network, 1, 1)
+    original_state = {k: v.clone() for k, v in model.state_dict().items()}
+
+    data = torch.randn(32, 1)
+    target = torch.randn(32, 1)
+    loss_fn = nn.MSELoss()
+
+    dir1 = [torch.randn_like(p) for p in model.parameters()]
+    dir2 = [torch.randn_like(p) for p in model.parameters()]
+
+    compute_loss_surface(model, data, target, dir1, dir2, loss_fn, samples=5)
+
+    # Check if model parameters are restored
+    for (k1, v1), (k2, v2) in zip(model.state_dict().items(), original_state.items()):
+        assert torch.allclose(v1, v2)
