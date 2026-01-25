@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import pandas as pd
 from pathlib import Path
 
@@ -135,18 +136,31 @@ def csv_to_training_data(filename: str):
     url = str(Path(__file__).resolve().parent.joinpath("data", "training", filename))
     df = pd.read_csv(url).dropna()
     
-    X = df.iloc[:, :-1].values # all but the last column
-    y = df.iloc[:, -1] # last column
+    # Convert numeric string columns to float
+    for col in df.columns[:-1]:
+        if df[col].dtype == 'object':
+            try:
+                pd.to_numeric(df[col], errors='raise')
+                df[col] = df[col].astype(float)
+            except ValueError:
+                pass  # leave as object for categorical
     
-    # Preprocess X: Convert string columns to categorical codes BEFORE creating tensor
-    # Categorical columns will be converted to multiple columns for one-hot encoding
-    for col in range(X.shape[1]):
-        if isinstance(X[0, col], str):  # Check if the column contains strings
-            # Convert to categorical codes and insert several columns for one-hot encoding
-            col_data = pd.Categorical(X[:, col])
+    # Build X column by column
+    X_list = []
+    for col in df.columns[:-1]:
+        if df[col].dtype == 'object':
+            # Categorical: one-hot encode
+            col_data = pd.Categorical(df[col])
             one_hot = pd.get_dummies(col_data).values
-            X = np.delete(X, col, axis=1)  # Remove original column
-            X = np.insert(X, col, one_hot, axis=1)  # Insert one-hot encoded columns
+            for i in range(one_hot.shape[1]):
+                X_list.append(one_hot[:, i])
+        else:
+            # Numeric: keep as is
+            X_list.append(df[col].values)
+    
+    X = np.column_stack(X_list)
+    
+    y = df.iloc[:, -1]
     
     # Now create the tensor (X is fully numeric)
     X_tensor = torch.tensor(X, dtype=torch.float32)

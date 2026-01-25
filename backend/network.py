@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import parse
+from parse import * 
 from enum import Enum
 
 class TrainingDataType(Enum):

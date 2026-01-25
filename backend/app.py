@@ -41,7 +41,7 @@ def generatelandscape():
     try:
         network = NetworkParams()
         method = VisualisationMethod.RANDOMDIRS
-        data = TrainingDataType.SINREGRESSION
+        data = TrainingDataType.CUSTOM
         params = LandscapeParams(network, method, data)
     except Exception as e:
         raise HTTPException(
@@ -110,6 +110,31 @@ def prepare_custom_dataset(rawdata: str):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to prepare custom dataset: {e} \n {traceback.format_exc()}")
+
+@app.get("/preparecustomdatasetsample")
+def prepare_custom_dataset_sample():
+    try:
+        # sample raw string data
+        rawdata = """feature1,feature2,feature3,target
+                    1.0,2.0,A,0
+                    2.0,3.5,B,1
+                    3.0,5.1,A,0
+                    4.0,7.2,C,1
+                    5.0,11.3,B,0
+                    """
+        import pandas as pd
+        from io import StringIO
+        
+        # Convert the raw CSV string to a pandas DataFrame
+        df = pd.read_csv(StringIO(rawdata))
+
+        # Save the DataFrame to a CSV file for later use
+        df.to_csv("data/training/custom_dataset.csv", index=False)
+        
+        return {"message": "Sample custom dataset saved successfully."}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to prepare sample custom dataset: {e} \n {traceback.format_exc()}")
 
 # Fetch the given JSON data file
 @app.get("/data/{filename}")
