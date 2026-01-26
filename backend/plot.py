@@ -2,10 +2,8 @@ from __future__ import annotations
 import numpy as np
 from matplotlib import cm
 from matplotlib.animation import FuncAnimation
-from losslandscape import generate_loss_landscape, LandscapeParams, VisualisationMethod, TrainingDataType
-from minimisers import animate_optimiser, MinimiserParams
-from network import NetworkParams
-import torch
+from losslandscape import *
+from minimisers import *
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting

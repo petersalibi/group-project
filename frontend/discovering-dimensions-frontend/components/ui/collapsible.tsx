@@ -10,26 +10,27 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export function Collapsible({
   children,
   title,
-}: PropsWithChildren & { title: string }) {
+  type,
+}: PropsWithChildren & { title: string; type?: 'subheading' | 'text' }) {
   const [isOpen, setIsOpen] = useState(false);
   const theme = useColorScheme() ?? 'light';
 
   return (
-    <ThemedView>
+    <ThemedView style={{ marginTop: 20 }}>
       <TouchableOpacity
-        style={styles.heading}
+        style={styles.subheading}
         onPress={() => setIsOpen((value) => !value)}
         activeOpacity={0.8}
       >
         <IconSymbol
           name='chevron.right'
-          size={18}
+          size={type === 'subheading' ? 24 : 18}
           weight='medium'
           color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />
 
-        <ThemedText type='defaultSemiBold'>{title}</ThemedText>
+        <ThemedText style={styles.subheading}>{title}</ThemedText>
       </TouchableOpacity>
       {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
     </ThemedView>
@@ -37,13 +38,15 @@ export function Collapsible({
 }
 
 const styles = StyleSheet.create({
-  heading: {
+  subheading: {
+    fontSize: 22,
+    fontWeight: '700',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   content: {
-    marginTop: 6,
+    marginTop: 10,
     marginLeft: 24,
   },
 });
