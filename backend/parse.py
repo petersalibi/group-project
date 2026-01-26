@@ -127,14 +127,15 @@ def parse_minimiser_params(params: dict):
     except Exception as e:
         raise ValueError(f"Error parsing minimiser parameters: {e}")
 
-# Convert csv file to torch tensors and data parameters
+# Convert csv data to torch tensors and data parameters
 # Assume last column are the training labels
 # Numeric data is treated as float32, categorical data as long
 # String data converted to categorical codes first
 # Returns X, y tensors and input/output dimensions
-def csv_to_training_data(filename: str):
-    url = str(Path(__file__).resolve().parent.joinpath("data", "training", filename))
-    df = pd.read_csv(url).dropna()
+def rawdata_to_training_data(rawdata: str):
+    # convert raw CSV string to pandas DataFrame
+    from io import StringIO
+    df = pd.read_csv(StringIO(rawdata)).dropna()
     
     # Convert numeric string columns to float
     for col in df.columns[:-1]:

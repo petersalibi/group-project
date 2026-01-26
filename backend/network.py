@@ -16,7 +16,7 @@ class TrainingData:
         self.X = X
         self.y = y
     
-    def __init__(self, type: TrainingDataType, n_samples=128):
+    def __init__(self, type: TrainingDataType, n_samples=128, rawdata=None):
         # set seeds for reproducibility
         torch.manual_seed(1066)
 
@@ -64,7 +64,7 @@ class TrainingData:
                 self.outputs = 1
             
             case TrainingDataType.CUSTOM:
-                self.X, self.y, self.inputs, self.outputs = csv_to_training_data("custom_dataset.csv")
+                self.X, self.y, self.inputs, self.outputs = rawdata_to_training_data(rawdata)
 
             case _:
                 raise ValueError("Training Data Type Not Found!")
