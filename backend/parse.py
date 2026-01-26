@@ -76,7 +76,10 @@ def parse_landscape_params(params: dict):
         scale = params.get("scale", 1)
         training_samples = params.get("training_samples", 128)
         surface_samples = params.get("surface_samples", 100)
+<<<<<<< HEAD
         rawdata = params.get("rawdata", None)
+=======
+>>>>>>> 9c1fd08e24f04216e41203d753d7929c438495c4
         
         landscape_params = LandscapeParams(
             network=network_params,
@@ -86,8 +89,12 @@ def parse_landscape_params(params: dict):
             loss=loss,
             scale=scale,
             training_samples=training_samples,
+<<<<<<< HEAD
             surface_samples=surface_samples,
             rawdata=rawdata
+=======
+            surface_samples=surface_samples
+>>>>>>> 9c1fd08e24f04216e41203d753d7929c438495c4
         )
         return landscape_params
     except Exception as e:

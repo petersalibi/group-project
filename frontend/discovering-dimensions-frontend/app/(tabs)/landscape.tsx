@@ -96,13 +96,16 @@ export default function LandscapeWithPath() {
     isPlaying,
     isPlacingMode,
     placingPathId,
+    currentParams,
+    networkViewId,
     handleLoadLandscapeButtonClick,
     handleLoadAllPathsButtonClick,
-    handleRemoveAllPaths,
+    handleClearPaths,
     togglePlayPause,
     handleZChange,
     handleLogPlotToggle,
     togglePlacingMode,
+    onViewNetwork,
   } = useLandscapeScene({
     activation,
     depth,
@@ -149,178 +152,195 @@ export default function LandscapeWithPath() {
     );
   };
 
+  function LossKey() {
+    return (
+      <View style={styles.lossKeyContainer}>
+        <Text style={styles.lossKeyText}>High Loss</Text>
+        {/* Gradient Bar */}
+        <View
+          style={[
+            styles.gradientBar,
+            Platform.OS === 'web' &&
+              ({
+                backgroundImage:
+                  'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))',
+              } as any),
+          ]}
+        />
+        <Text style={styles.lossKeyText}>Low Loss</Text>
+      </View>
+    );
+  }
+
   const isLoading = isLandscapeLoading || isPathLoading;
 
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: Colors[theme].landscapeBackground }}
-      onLayout={(event: LayoutChangeEvent) =>
-        setViewportHeight(event.nativeEvent.layout.height)
-      }
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        stickyHeaderIndices={[1]}
-        bounces={false} // Prevents overscrolling on iOS
-      >
-        {/* === Network Visualisation === */}
-        <View style={{ height: 400, width: '100%' }}>
+      {/* TOP BAR: Landscape Controls */}
+      <View style={styles.topBar}>
+        <LandscapeControls
+          data={data}
+          depth={depth}
+          width={width}
+          activation={activation}
+          method={method}
+          loss={loss}
+          zValue={zValue}
+          isLogPlot={isLogPlot}
+          isLandscapeLoading={isLandscapeLoading}
+          isLandscapeLoaded={isLandscapeLoaded}
+          isPathLoaded={isPathLoaded}
+          setData={setData}
+          setDepth={setDepth}
+          setWidth={setWidth}
+          setActivation={setActivation}
+          setMethod={setMethod}
+          setLoss={setLoss}
+          onLogPlotChange={handleLogPlotToggle}
+          onLoadLandscape={handleLoadLandscapeButtonClick}
+          onZChange={handleZChange}
+        />
+      </View>
+
+      {/* MAIN CONTENT */}
+      <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+        {/* LEFT: Network Visualisation */}
+        <View style={{ flex: 1, borderRightWidth: 1, borderColor: '#333' }}>
           <NetworkVis
             inputCount={inputs}
             depth={depth}
             width={width}
             activation={activation}
             outputCount={outputs}
+            weights={currentParams || []}
           />
         </View>
 
-        {/* TOP BAR: Landscape Controls */}
-        <View
-          style={styles.topBar}
-          onLayout={(event: LayoutChangeEvent) =>
-            setHeaderHeight(event.nativeEvent.layout.height)
-          }
-        >
-          <LandscapeControls
-            data={data}
-            depth={depth}
-            width={width}
-            activation={activation}
-            method={method}
-            loss={loss}
-            zValue={zValue}
-            isLogPlot={isLogPlot}
-            isLandscapeLoading={isLandscapeLoading}
-            isLandscapeLoaded={isLandscapeLoaded}
-            isPathLoaded={isPathLoaded}
-            setData={setData}
-            setDepth={setDepth}
-            setWidth={setWidth}
-            setActivation={setActivation}
-            setMethod={setMethod}
-            setLoss={setLoss}
-            onLogPlotChange={handleLogPlotToggle}
-            onLoadLandscape={handleLoadLandscapeButtonClick}
-            onZChange={handleZChange}
-          />
-        </View>
-
-        {/* MAIN LAYOUT: Canvas + Sidebar */}
-        <ThemedView
-          style={{
-            flexDirection: 'row',
-            overflow: 'hidden',
-            height:
-              viewportHeight > 0
-                ? viewportHeight - headerHeight
-                : Dimensions.get('window').height - 100,
-          }}
-          lightColor={Colors['light'].background}
-        >
-          {/* Canvas Container */}
-          <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
-
-          {/* Right Sidebar Container */}
-          <View
+        {/* RIGHT: Landscape Canvas + Sidebar */}
+        <View style={{ flex: 1 }}>
+          <ThemedView
             style={{
+              flex: 1,
               flexDirection: 'row',
-              alignItems: 'flex-start',
-              zIndex: 20,
-              height: '100%',
+              overflow: 'hidden',
             }}
+            lightColor={Colors['light'].background}
           >
-            {/* Toggle Button */}
-            <Pressable
-              onPress={() => setPathControlsVisible((prev) => !prev)}
-              style={styles.sidebarToggle}
+            {/* Canvas Container */}
+            <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
+
+            {isLandscapeLoaded && <LossKey />}
+
+            {/* Right Sidebar Container */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                zIndex: 20,
+                height: '100%',
+              }}
             >
-              <View
-                style={[
-                  {
-                    transform: [
-                      { rotate: pathControlsVisible ? '0deg' : '180deg' },
-                    ],
-                  },
-                ]}
+              {/* Toggle Button */}
+              <Pressable
+                onPress={() => setPathControlsVisible((prev) => !prev)}
+                style={styles.sidebarToggle}
               >
-                <IconSymbol name='chevron.right' size={30} color='white' />
-              </View>
-            </Pressable>
-
-            {/* Scrollable Sidebar Content */}
-            {pathControlsVisible && (
-              <ScrollView
-                style={styles.sidebar}
-                contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
-              >
-                {/* Path Count & Actions */}
-                <View style={styles.sidebarSection}>
-                  <Text style={styles.headerText}>Configuration</Text>
-
-                  <View style={styles.row}>
-                    <Text style={{ color: '#eee', fontSize: 12 }}>
-                      Number of Paths:
-                    </Text>
-                    <Picker
-                      selectedValue={numPaths}
-                      style={{ height: 28, width: 60, backgroundColor: '#eee' }}
-                      onValueChange={(itemValue) =>
-                        handleNumPathsChange(Number(itemValue))
-                      }
-                    >
-                      <Picker.Item label='1' value={1} />
-                      <Picker.Item label='2' value={2} />
-                      <Picker.Item label='3' value={3} />
-                    </Picker>
-                  </View>
-
-                  <View style={{ gap: 5 }}>
-                    <Button
-                      title={isPathLoading ? 'Loading...' : 'Generate Paths'}
-                      onPress={handleLoadAllPathsButtonClick}
-                      disabled={isLoading || !isLandscapeLoaded}
-                    />
-                    {isPathLoaded && (
-                      <Button
-                        title={'Clear Paths'}
-                        onPress={handleRemoveAllPaths}
-                        color='#ff4444'
-                      />
-                    )}
-                  </View>
+                <View
+                  style={[
+                    {
+                      transform: [
+                        { rotate: pathControlsVisible ? '0deg' : '180deg' },
+                      ],
+                    },
+                  ]}
+                >
+                  <IconSymbol name='chevron.right' size={30} color='white' />
                 </View>
-                {/* Animation */}
-                {isPathLoaded && (
+              </Pressable>
+
+              {/* Scrollable Sidebar Content */}
+              {pathControlsVisible && (
+                <ScrollView
+                  style={styles.sidebar}
+                  contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
+                >
+                  {/* Path Count & Actions */}
                   <View style={styles.sidebarSection}>
-                    <Text style={styles.headerText}>Animation</Text>
-                    <AnimationControls
-                      isPathLoaded={isPathLoaded}
-                      isPlaying={isPlaying}
-                      onTogglePlayPause={togglePlayPause}
-                    />
-                  </View>
-                )}
+                    <Text style={styles.headerText}>Configuration</Text>
 
-                {/* Individual Path Settings */}
-                <View style={{ gap: 8 }}>
-                  <Text style={styles.headerText}>Path Details</Text>
-                  {pathConfigs.map((config) => (
-                    <PathConfigControls
-                      key={config.id}
-                      config={config}
-                      onConfigChange={handleConfigChange}
-                      onPlaceStartPoint={() => togglePlacingMode(config.id)}
-                      isPlacing={isPlacingMode && placingPathId === config.id}
-                      isSceneLoading={isLoading}
-                      isLandscapeLoaded={isLandscapeLoaded}
-                    />
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        </ThemedView>
-      </ScrollView>
+                    <View style={styles.row}>
+                      <Text style={{ color: '#eee', fontSize: 12 }}>
+                        Number of Paths:
+                      </Text>
+                      <Picker
+                        selectedValue={numPaths}
+                        style={{
+                          height: 28,
+                          width: 60,
+                          backgroundColor: '#eee',
+                        }}
+                        onValueChange={(itemValue) =>
+                          handleNumPathsChange(Number(itemValue))
+                        }
+                      >
+                        <Picker.Item label='1' value={1} />
+                        <Picker.Item label='2' value={2} />
+                        <Picker.Item label='3' value={3} />
+                      </Picker>
+                    </View>
+
+                    <View style={{ gap: 5 }}>
+                      <Button
+                        title={isPathLoading ? 'Loading...' : 'Generate Paths'}
+                        onPress={handleLoadAllPathsButtonClick}
+                        disabled={isLoading || !isLandscapeLoaded}
+                      />
+                      {isPathLoaded && (
+                        <Button
+                          title={'Clear Paths'}
+                          onPress={handleClearPaths}
+                          color='#ff4444'
+                        />
+                      )}
+                    </View>
+                  </View>
+                  {/* Animation */}
+                  {isPathLoaded && (
+                    <View style={styles.sidebarSection}>
+                      <Text style={styles.headerText}>Animation</Text>
+                      <AnimationControls
+                        isPathLoaded={isPathLoaded}
+                        isPlaying={isPlaying}
+                        onTogglePlayPause={togglePlayPause}
+                      />
+                    </View>
+                  )}
+
+                  {/* Individual Path Settings */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={styles.headerText}>Path Details</Text>
+                    {pathConfigs.map((config) => (
+                      <PathConfigControls
+                        key={config.id}
+                        config={config}
+                        onConfigChange={handleConfigChange}
+                        onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                        onViewNetwork={() => onViewNetwork(config.id)}
+                        isPlacing={isPlacingMode && placingPathId === config.id}
+                        isSceneLoading={isLoading}
+                        isLandscapeLoaded={isLandscapeLoaded}
+                        isWatching={networkViewId === config.id}
+                      />
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </ThemedView>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -375,5 +395,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  lossKeyContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    zIndex: 10, // Ensure it sits above the canvas
+    pointerEvents: 'none', // Let clicks pass through to the canvas if needed
+  },
+  lossKeyText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  gradientBar: {
+    width: 12,
+    height: 80,
+    marginVertical: 4,
   },
 });

@@ -1,7 +1,8 @@
 export const depths = [
-  { id: 1, label: '2 Layers', value: 2 },
-  { id: 2, label: '3 Layers', value: 3 },
-  { id: 3, label: '4 Layers', value: 4 },
+  { id: 1, label: '1 Layer', value: 1 },
+  { id: 2, label: '2 Layers', value: 2 },
+  { id: 3, label: '3 Layers', value: 3 },
+  { id: 4, label: '4 Layers', value: 4 },
 ];
 
 export const widths = [
@@ -31,7 +32,7 @@ export const dataSets = [
 
 export const datasetFeatures: Record<string, number> = {
   SINREGRESSION: 1,
-  PENGUINS: 8,
+  PENGUINS: 4,
   PURPLECOLOURS: 3,
 };
 

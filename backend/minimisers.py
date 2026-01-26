@@ -16,7 +16,8 @@ class MinimiserParams:
                  learning_rate=0.01,
                  loss=nn.MSELoss(), 
                  epochs=300,
-                 lock_to_plane=False):
+                 lock_to_plane=False,
+                 rawdata=None):
         
         self.network = network
         self.data = data
@@ -28,6 +29,7 @@ class MinimiserParams:
         self.loss = loss
         self.epochs = epochs
         self.lock_to_plane = lock_to_plane
+        self.rawdata = rawdata
 
 def project_to_plane(theta_i, theta_0, dir1, dir2):
     v = theta_i - theta_0
@@ -48,7 +50,7 @@ def animate_optimiser(params: MinimiserParams):
     # set seeds for reproducibility
     torch.manual_seed(1066)
     
-    data = TrainingData(params.data)
+    data = TrainingData(params.data, rawdata=params.rawdata)
     if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)):
         if data.y.ndim == 1:
             data.y = data.y.view(-1, 1).float()
@@ -98,7 +100,8 @@ def animate_optimiser(params: MinimiserParams):
             optimiser.step()
 
             minimiser_path.append(( max(-1, min(1, float(a.item()))), max(-1, min(1, float(b.item())))))
-            parameters_path.append(flatten_params(model.parameters()).tolist())
+            # parameters_path.append(flatten_params(model.parameters()).tolist())
+            parameters_path.append(pos.detach().cpu().tolist())
 
     else:
         new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2

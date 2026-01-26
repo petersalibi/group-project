@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Platform, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { optimisers, lrs } from '@/constants/landscapeParams';
 
@@ -17,9 +17,11 @@ interface PathConfigControlsProps {
   config: PathConfig;
   onConfigChange: (id: number, field: keyof PathConfig, value: any) => void;
   onPlaceStartPoint: (id: number) => void;
+  onViewNetwork: (id: number) => void;
   isPlacing: boolean;
   isSceneLoading: boolean;
   isLandscapeLoaded: boolean;
+  isWatching: boolean;
 }
 
 export function PathConfigControls(props: PathConfigControlsProps) {
@@ -27,9 +29,11 @@ export function PathConfigControls(props: PathConfigControlsProps) {
     config,
     onConfigChange,
     onPlaceStartPoint,
+    onViewNetwork,
     isPlacing,
     isSceneLoading,
     isLandscapeLoaded,
+    isWatching,
   } = props;
 
   const { id, colorName, colorValue, optim, lr, startPoint } = config;
@@ -72,6 +76,12 @@ export function PathConfigControls(props: PathConfigControlsProps) {
             </Picker>
           </View>
         </View>
+        <View style={styles.paramGroup}>
+          <Text style={styles.coordsText}>
+            Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}
+            ]
+          </Text>
+        </View>
       </View>
 
       {/* Footer: Action & Status */}
@@ -92,9 +102,23 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           </Text>
         </Pressable>
 
-        <Text style={styles.coordsText}>
-          Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]
-        </Text>
+        <Pressable
+          onPress={() => onViewNetwork(id)}
+          disabled={isSceneLoading || !isLandscapeLoaded || isWatching}
+          style={[
+            styles.actionButton,
+            isWatching ? styles.buttonDisabled : null,
+          ]}
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              isWatching ? styles.buttonTextDisabled : null,
+            ]}
+          >
+            {isWatching ? 'Viewing on Network' : 'View on Network'}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -161,6 +185,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#444',
     alignItems: 'center',
+    backgroundColor: '#333',
   },
   buttonText: {
     color: '#fff',
@@ -169,7 +194,14 @@ const styles = StyleSheet.create({
   },
   coordsText: {
     color: '#fff',
-    fontSize: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 11,
+  },
+  buttonDisabled: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    paddingHorizontal: 0,
+  },
+  buttonTextDisabled: {
+    color: '#666',
   },
 });
