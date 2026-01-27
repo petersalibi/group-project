@@ -154,9 +154,9 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       </ThemedView>
 
       {data === 'CUSTOM' && (
-        <View style={{ marginLeft: 5 }}>
+        <View>
           <Button 
-            title="Upload CSV" 
+            title="Select CSV" 
             onPress={handleUploadPress} 
             color="#841584"
           />

@@ -9,7 +9,7 @@ import {
   Pressable,
   ScrollView,
   PanResponder,
-  Dimensions
+  useWindowDimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
@@ -128,11 +128,28 @@ export default function LandscapeWithPath() {
 
   // --- UI Handlers ---
 
+  const { width: windowWidth } = useWindowDimensions();
+
   // State for the left panel width
-  const [leftPanelWidth, setLeftPanelWidth] = useState(Dimensions.get('window').width * 0.5);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(windowWidth * 0.5);
 
   // Ref to track the width during the drag gesture
-  const leftPanelWidthRef = useRef(Dimensions.get('window').width * 0.5);
+  const leftPanelWidthRef = useRef(windowWidth * 0.5);
+
+  // Adjust panel width if window resizes
+  useEffect(() => {
+    const minWidth = 350;
+    const maxWidth = windowWidth - 350;
+
+    // If the window shrinks and cuts off the panel, clamp it to the new max
+    if (leftPanelWidth > maxWidth) {
+      setLeftPanelWidth(Math.max(minWidth, maxWidth));
+    }
+    // If the window grows/shrinks and the panel is too small, clamp to min
+    else if (leftPanelWidth < minWidth) {
+      setLeftPanelWidth(minWidth);
+    }
+  }, [windowWidth]); // Re-run this check whenever the window width changes
 
   // PanResponder to handle the drag
   const panResponder = useRef(
@@ -146,8 +163,10 @@ export default function LandscapeWithPath() {
         // Calculate new width
         const newWidth = leftPanelWidthRef.current + gestureState.dx;
         
-        // Clamp the width (Margin: 350)
-        if (newWidth > 350 && newWidth < Dimensions.get('window').width - 350) {
+        const minWidth = 0.3*windowWidth;
+        const maxWidth = 0.7*windowWidth;
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
           setLeftPanelWidth(newWidth);
         }
       },
@@ -253,14 +272,10 @@ export default function LandscapeWithPath() {
           {...panResponder.panHandlers}
           style={[
             {
-              width: 10,
+              width: 12,
               backgroundColor: '#2a2a2a',
-              borderRightWidth: 1,
-              borderLeftWidth: 1,
-              borderColor: '#111',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 100,
             },
             // Only apply the cursor style on Web
             Platform.select({
