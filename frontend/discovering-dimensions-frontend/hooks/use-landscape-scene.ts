@@ -70,7 +70,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   // --- Internal state refs ---
   const dataRef = useRef<string>(data);
-  const csvRef = useRef<number[][] | null>(null);
+  const csvRef = useRef<string | null>(null);
   const lossRef = useRef<string>(loss);
   const activationRef = useRef<string>(activation);
   const depthRef = useRef<number>(depth);
@@ -118,36 +118,16 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   }, [isPathLoaded]);
 
   /**
-   * Parses a CSV string into a number[][].
-   * Assumes no header, or that the backend handles headers.
+   * Parses a CSV file as a string
    */
-  const parseAndValidateCSV = (csvText: string): number[][] | null => {
-    const rows = csvText.trim().split('\n');
-    
-    if (rows.length === 0) return null;
-
-    const data: number[][] = [];
-    const expectedCols = rows[0].split(',').length;
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i].split(',').map((val) => parseFloat(val.trim()));
-
-      // Validation 1: Check consistency of column count
-      if (row.length !== expectedCols) {
-        console.error(`Row ${i} has invalid column count.`);
-        return null;
-      }
-
-      // Validation 2: Check for NaNs
-      if (row.some((val) => isNaN(val))) {
-        console.error(`Row ${i} contains non-numeric values.`);
-        return null;
-      }
-
-      data.push(row);
-    }
-
-    return data;
+  const parseAndValidateCSV = async (csv: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (e) => reject(e);
+      // Read the file as a string
+      reader.readAsText(csv, 'UTF-8');
+    });
   };
 
   /**
@@ -276,7 +256,6 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     const mesh = meshRef.current;
     if (!mesh) return;
 
-    setIsLandscapeLoaded(false);
     setIsPathLoading(true);
     // Clear all markers on generation
     Object.values(markersRef.current).forEach(({ ball, line }) => {
@@ -288,7 +267,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     try {
       const data = dataRef.current;
-      const csv = csvRef.current;
+      const csv = data === 'CUSTOM' ? csvRef.current : null;
       const activation = activationRef.current;
       const depth = depthRef.current;
       const width = widthRef.current;
@@ -296,9 +275,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config) => {
         console.log(config.startPoint);
-        const paramString = `/animateminimiser/${JSON.stringify({
+        const paramString = `/animateminimiser/${encodeURIComponent(JSON.stringify({
           network: { activation, depth, width },
-          data,
+          data: data,
           x_direction: xDirRef.current,
           y_direction: yDirRef.current,
           theta_0: originRef.current,
@@ -307,7 +286,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
           learning_rate: config.lr,
           loss: loss,
           lock_to_plane: config.locked,
-        })}`;
+          rawdata: csv,
+        }))}`;
         return api.get(paramString);
       });
 
@@ -368,14 +348,16 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     handleRemoveAllPaths();
     disposeObject(meshRef.current);
     meshRef.current = null;
-
+    var raw_data = null;
+    if (data === 'CUSTOM'){raw_data = csvRef.current}
     try {
-      const paramString = `/generatelandscape/${JSON.stringify({
+      const paramString = `/generatelandscape/${encodeURIComponent(JSON.stringify({
         network: { activation, depth, width },
-        method,
-        data,
-        loss,
-      })}`;
+        method: method,
+        data: data,
+        loss: loss,
+        rawdata: raw_data,
+      }))}`;
       const resp = await api.get(paramString);
       const dict = resp.data;
 
@@ -553,23 +535,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const handleUploadCsv = useCallback(async (file: File) => {
 
     try {
-      // Read the file
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.onerror = (e) => reject(e);
-        reader.readAsText(file);
-      });
-
-      // Parse and Verify
-      const parsedData = parseAndValidateCSV(text);
-
-      if (!parsedData) {
-        alert('Invalid CSV format. Please ensure the file contains only numeric data and consistent rows.');
-        return;
-      }
-      console.log(parsedData);
-      csvRef.current = parsedData;
+      // Parse as string
+      const csvString = await parseAndValidateCSV(file);
+      csvRef.current = csvString;
     } catch (err) {
       console.error('Failed to upload CSV:', err);
       alert('Failed to upload file.');

@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Platform, StyleSheet, View, Button, Switch } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Platform, StyleSheet, View, Button, Switch, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
   dataSets,
@@ -13,6 +13,7 @@ import {
   bceLoss,
 } from '@/constants/landscapeParams';
 import Slider from '@react-native-community/slider';
+import { NumericStepper } from '@/components/numeric-stepper';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
@@ -72,6 +73,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
   } = props;
 
   const hiddenFileInput = useRef<HTMLInputElement>(null);
+  const [datasetButtonText, setDatasetButtonText] = useState('Select CSV');
 
   const handleUploadPress = () => {
     if (Platform.OS === 'web') {
@@ -85,6 +87,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     const file = event.target.files[0];
     if (file && onUploadCsv) {
       onUploadCsv(file);
+      setDatasetButtonText('Change CSV');
     }
   };
 
@@ -156,7 +159,8 @@ export function LandscapeControls(props: LandscapeControlsProps) {
       {data === 'CUSTOM' && (
         <View>
           <Button 
-            title="Select CSV" 
+            title={datasetButtonText}
+            disabled={isPathLoaded}
             onPress={handleUploadPress} 
             color="#841584"
           />
@@ -165,33 +169,25 @@ export function LandscapeControls(props: LandscapeControlsProps) {
 
       <ThemedView style={styles.param}>
         <ThemedText type='default'>Depth:</ThemedText>
-        <Picker
-          id='depthSelect'
-          selectedValue={depth}
+        <NumericStepper
+          value={depth}
+          onChange={setDepth}
+          minValue={1}
+          maxValue={100}
           enabled={!isPathLoaded}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => setDepth(Number(itemValue))}
-        >
-          {depths.map((d) => (
-            <Picker.Item key={d.id} label={d.label} value={d.value} />
-          ))}
-        </Picker>
+        />
       </ThemedView>
 
       {depth > 1 && (
         <ThemedView style={styles.param}>
           <ThemedText type='default'>Width:</ThemedText>
-          <Picker
-            id='widthSelect'
-            selectedValue={width}
+          <NumericStepper
+            value={width}
+            onChange={setWidth}
+            minValue={1}
+            maxValue={100}
             enabled={!isPathLoaded}
-            style={{ height: 30 }}
-            onValueChange={(itemValue) => setWidth(Number(itemValue))}
-          >
-            {widths.map((w) => (
-              <Picker.Item key={w.id} label={w.label} value={w.value} />
-            ))}
-          </Picker>
+          />
         </ThemedView>
       )}
 
@@ -288,7 +284,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
 
 const styles = StyleSheet.create({
   param: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     gap: 5,
     padding: 5,
