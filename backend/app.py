@@ -5,8 +5,8 @@ import json
 from losslandscape import *
 from minimisers import *
 from network import *
-from utils import parse_landscape_params, parse_minimiser_params, print_landscape, sample_dir1, sample_dir2, sample_theta0
-
+from parse import *
+from utils import * 
 import traceback
 
 app = FastAPI()
@@ -41,7 +41,7 @@ def generatelandscape():
     try:
         network = NetworkParams()
         method = VisualisationMethod.RANDOMDIRS
-        data = TrainingDataType.SINREGRESSION
+        data = TrainingDataType.CUSTOM
         params = LandscapeParams(network, method, data)
     except Exception as e:
         raise HTTPException(

@@ -1,12 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from parse import * 
 from enum import Enum
 
 class TrainingDataType(Enum):
     SINREGRESSION = 0
     PENGUINS      = 1
     PURPLECOLOURS = 2
+    CUSTOM        = 3
 
 class TrainingData:
 
@@ -14,7 +16,7 @@ class TrainingData:
         self.X = X
         self.y = y
     
-    def __init__(self, type: TrainingDataType, n_samples=128):
+    def __init__(self, type: TrainingDataType, n_samples=128, rawdata=None):
         # set seeds for reproducibility
         torch.manual_seed(1066)
 
@@ -60,6 +62,9 @@ class TrainingData:
 
                 self.inputs = self.X.shape[1]
                 self.outputs = 1
+            
+            case TrainingDataType.CUSTOM:
+                self.X, self.y, self.inputs, self.outputs = rawdata_to_training_data(rawdata)
 
             case _:
                 raise ValueError("Training Data Type Not Found!")
