@@ -5,11 +5,13 @@ import {
   StyleSheet,
   Text,
   View,
+  ViewStyle,
   Button,
   Pressable,
   ScrollView,
   PanResponder,
-  useWindowDimensions
+  useWindowDimensions,
+  StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
@@ -47,6 +49,10 @@ const createDefaultPathConfig = (id: number): PathConfig => {
 
 export default function LandscapeWithPath() {
   const { theme } = useTheme();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
+  const isMobile = windowWidth < 768 || (isLandscape && windowHeight < 500);
+  const isMobileLandscape = isMobile && isLandscape;
   // --- Shared Landscape State ---
   const [activation, setActivation] = useState<string>('ReLU');
   const [inputs, setInputs] = useState<number>(1);
@@ -87,7 +93,7 @@ export default function LandscapeWithPath() {
 
   // --- Landscape Scene Hook ---
   const {
-    containerId,
+    containerRef,
     zValue,
     isLogPlot,
     isLandscapeLoading,
@@ -128,44 +134,38 @@ export default function LandscapeWithPath() {
 
   // --- UI Handlers ---
 
-  const { width: windowWidth } = useWindowDimensions();
-
   // State for the left panel width
   const [leftPanelWidth, setLeftPanelWidth] = useState(windowWidth * 0.5);
 
-  // Ref to track the width during the drag gesture
-  const leftPanelWidthRef = useRef(windowWidth * 0.5);
+  const latestWidthStateRef = useRef(leftPanelWidth);
+  const latestWindowWidthRef = useRef(windowWidth);
 
-  // Adjust panel width if window resizes
   useEffect(() => {
-    const minWidth = 350;
-    const maxWidth = windowWidth - 350;
+    latestWidthStateRef.current = leftPanelWidth;
+    latestWindowWidthRef.current = windowWidth;
+  }, [leftPanelWidth, windowWidth]);
 
-    // If the window shrinks and cuts off the panel, clamp it to the new max
-    if (leftPanelWidth > maxWidth) {
-      setLeftPanelWidth(Math.max(minWidth, maxWidth));
-    }
-    // If the window grows/shrinks and the panel is too small, clamp to min
-    else if (leftPanelWidth < minWidth) {
-      setLeftPanelWidth(minWidth);
-    }
-  }, [windowWidth]); // Re-run this check whenever the window width changes
+  const dragStartWidthRef = useRef(windowWidth * 0.5);
 
   // PanResponder to handle the drag
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => !isMobile, // Disable on mobile
       onPanResponderGrant: () => {
         // Sync the ref with the current state when drag starts
-        leftPanelWidthRef.current = leftPanelWidth;
+        dragStartWidthRef.current = latestWidthStateRef.current;
       },
       onPanResponderMove: (_, gestureState) => {
-        // Calculate new width
-        const newWidth = leftPanelWidthRef.current + gestureState.dx;
-        
-        const minWidth = 0.3*windowWidth;
-        const maxWidth = 0.7*windowWidth;
+        if (isMobile) return;
 
+        const currentWindowWidth = latestWindowWidthRef.current;
+        const newWidth = dragStartWidthRef.current + gestureState.dx;
+        
+        // Constrain to 20% - 80% of window width
+        const minWidth = currentWindowWidth * 0.20; 
+        const maxWidth = currentWindowWidth * 0.80;
+
+        // Clamp the value
         if (newWidth >= minWidth && newWidth <= maxWidth) {
           setLeftPanelWidth(newWidth);
         }
@@ -173,6 +173,23 @@ export default function LandscapeWithPath() {
       onPanResponderRelease: () => {},
     })
   ).current;
+
+  // Adjust panel width if window resizes
+  useEffect(() => {
+    if (isMobile) return;
+    
+    const minWidth = windowWidth * 0.20;
+    const maxWidth = windowWidth * 0.80;
+
+    // If the window shrinks and cuts off the panel, clamp it to the new max
+    if (leftPanelWidth > maxWidth) {
+      setLeftPanelWidth(maxWidth);
+    }
+    // If the window grows/shrinks and the panel is too small, clamp to min
+    else if (leftPanelWidth < minWidth) {
+      setLeftPanelWidth(minWidth);
+    }
+  }, [windowWidth, isMobile]);
 
   // Update path config array when user changes number of paths
   const handleNumPathsChange = (num: number) => {
@@ -208,11 +225,12 @@ export default function LandscapeWithPath() {
         <View
           style={[
             styles.gradientBar,
-            Platform.OS === 'web' &&
-              ({
-                backgroundImage:
-                  'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))',
-              } as any),
+            Platform.OS === 'web'
+              ? {
+                  backgroundImage:
+                    'linear-gradient(to bottom, hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), hsl(180, 80%, 50%), hsl(252, 80%, 50%))',
+                }
+              : { backgroundColor: '#888' }, // Fallback for native if no gradient lib
           ]}
         />
         <Text style={styles.lossKeyText}>Low Loss</Text>
@@ -222,10 +240,34 @@ export default function LandscapeWithPath() {
 
   const isLoading = isLandscapeLoading || isPathLoading;
 
+  // Adjusted Sidebar Style for Overlay behavior on Mobile Landscape
+  const sidebarContainerStyle: ViewStyle = isMobileLandscape
+    ? {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 50,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+      }
+    : {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 20,
+        height: '100%',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    };
+
   return (
     <SafeAreaView
+      edges={isMobileLandscape ? ['left', 'right'] : ['top', 'left', 'right']} // Remove top padding in landscape to save space
       style={{ flex: 1, backgroundColor: Colors[theme].landscapeBackground }}
     >
+      <StatusBar hidden={isMobileLandscape} />
       {/* TOP BAR: Landscape Controls */}
       <View style={styles.topBar}>
         <LandscapeControls
@@ -254,9 +296,15 @@ export default function LandscapeWithPath() {
       </View>
 
       {/* MAIN CONTENT */}
-      <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+      <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row', overflow: 'hidden' }}>
         {/* LEFT: Network Visualisation */}
-        <View style={{ width: leftPanelWidth, borderRightWidth: 1, borderColor: '#333' }}>
+        <View 
+          style={
+            isMobile
+              ? { height: '40%', width: '100%', borderBottomWidth: 1, borderColor: '#333' }
+              : { width: leftPanelWidth, height: '100%', borderRightWidth: 1, borderColor: '#333' }
+          }
+        >
           <NetworkVis
             inputCount={inputs}
             depth={depth}
@@ -268,27 +316,29 @@ export default function LandscapeWithPath() {
         </View>
 
         {/* --- DRAGGABLE HANDLE --- */}
-        <View
-          {...panResponder.panHandlers}
-          style={[
-            {
-              width: 12,
-              backgroundColor: '#2a2a2a',
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
-            // Only apply the cursor style on Web
-            Platform.select({
-              web: { cursor: 'col-resize' } as any,
-              default: {},
-            }),
-          ]}
-        >
-          <View style={{ width: 4, height: 30, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#555' }} />
-        </View>
+        {!isMobile && (
+          <View
+            {...panResponder.panHandlers}
+            style={[
+              {
+                width: 12,
+                backgroundColor: '#2a2a2a',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+              // Only apply the cursor style on Web
+              Platform.select({
+                web: { cursor: 'col-resize' } as any,
+                default: {},
+              }),
+            ]}
+          >
+            <View style={{ width: 4, height: 30, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#555' }} />
+          </View>
+        )}
 
         {/* RIGHT: Landscape Canvas + Sidebar */}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, position: 'relative' }}>
           <ThemedView
             style={{
               flex: 1,
@@ -298,28 +348,17 @@ export default function LandscapeWithPath() {
             lightColor={Colors['light'].background}
           >
             {/* Canvas Container */}
-            <View id={containerId} style={{ flex: 1, minWidth: 0 }} />
+            <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: '#000' }} />
 
             {isLandscapeLoaded && <LossKey />}
 
             {/* Right Sidebar Container */}
-            <View
-              style={{
-                position: 'absolute', 
-                right: 0,
-                top: 0,
-                bottom: 0,
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                zIndex: 20,
-                height: '100%',
-                pointerEvents: 'box-none'
-              }}
-            >
+            <View style={sidebarContainerStyle}>
               {/* Toggle Button */}
               <Pressable
                 onPress={() => setPathControlsVisible((prev) => !prev)}
                 style={styles.sidebarToggle}
+                hitSlop={10}
               >
                 <View
                   style={[
@@ -336,8 +375,17 @@ export default function LandscapeWithPath() {
 
               {/* Scrollable Sidebar Content */}
               {pathControlsVisible && (
+                <View style={{ 
+                    height: '100%', 
+                    backgroundColor: '#1c1c1cf0',
+                    width: isMobile ? (isMobileLandscape ? 300 : windowWidth * 0.8) : 280,
+                }}>
                 <ScrollView
-                  style={styles.sidebar}
+                  style={[
+                      styles.sidebarScrollView,
+                      // On mobile, max out at a smaller width if needed, or take mostly full screen
+                      isMobile && { width: windowWidth * 0.8 }, 
+                  ]}
                   contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
                 >
                   {/* Path Count & Actions */}
@@ -351,10 +399,11 @@ export default function LandscapeWithPath() {
                       <Picker
                         selectedValue={numPaths}
                         style={{
-                          height: 28,
+                          height: Platform.OS === 'ios' ? 100 : 28,
                           width: 60,
                           backgroundColor: '#eee',
                         }}
+                        itemStyle={{ fontSize: 14, height: 100 }}
                         onValueChange={(itemValue) =>
                           handleNumPathsChange(Number(itemValue))
                         }
@@ -410,6 +459,7 @@ export default function LandscapeWithPath() {
                     ))}
                   </View>
                 </ScrollView>
+                </View>
               )}
             </View>
           </ThemedView>
@@ -451,6 +501,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
+  },
+  sidebarScrollView: {
+     flex: 1,
+     padding: 10,
   },
   sidebarSection: {
     backgroundColor: '#2a2a2a',

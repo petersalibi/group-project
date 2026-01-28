@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, Switch } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Switch, useWindowDimensions, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { optimisers, lrs } from '@/constants/landscapeParams';
 
@@ -38,6 +38,8 @@ export function PathConfigControls(props: PathConfigControlsProps) {
   } = props;
 
   const { id, colorName, colorValue, optim, lr, locked, startPoint } = config;
+  const { width: windowWidth } = useWindowDimensions();
+  const isCompact = windowWidth < 380;
 
   return (
     <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
@@ -48,12 +50,14 @@ export function PathConfigControls(props: PathConfigControlsProps) {
 
       {/* Parameters Row */}
       <View style={styles.paramsGrid}>
-        <View style={styles.paramGroup}>
+        <View style={[styles.paramGroup, isCompact ? { width: '100%' } : { width: '48%' }]}>
           <Text style={styles.paramLabel}>Optimiser:</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={optim}
               style={styles.pickerStyle}
+              dropdownIconColor="white"
+              itemStyle={{ color: 'white', fontSize: 14, height: 40 }}
               onValueChange={(val) => onConfigChange(id, 'optim', String(val))}
             >
               {optimisers.map((o) => (
@@ -63,12 +67,14 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           </View>
         </View>
 
-        <View style={styles.paramGroup}>
+        <View style={[styles.paramGroup, isCompact ? { width: '100%' } : { width: '48%' }]}>
           <Text style={styles.paramLabel}>Learning Rate:</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={lr}
               style={styles.pickerStyle}
+              dropdownIconColor="white"
+              itemStyle={{ color: 'white', fontSize: 14, height: 40 }}
               onValueChange={(val) => onConfigChange(id, 'lr', Number(val))}
             >
               {lrs.map((l) => (
@@ -77,16 +83,18 @@ export function PathConfigControls(props: PathConfigControlsProps) {
             </Picker>
           </View>
         </View>
-        <View style={styles.paramGroup}>
+        <View style={[styles.paramGroup, { width: '100%' }]}>
           <Text style={styles.coordsText}>
             Start Point: [{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}
             ]
           </Text>
         </View>
-        <View style={styles.paramGroup}>
+        <View style={[styles.paramGroup, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }]}>
           <Text style={styles.paramLabel}>Locked to Plane:</Text>
             <Switch
               value={locked}
+              trackColor={{ false: '#444', true: colorValue }}
+              thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''}
               onValueChange={(val) => onConfigChange(id, 'locked', Boolean(val))}
             />
         </View>
@@ -139,7 +147,11 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
     borderLeftWidth: 3,
-    boxShadow: '0px 2px 2px rgba(0,0,0,0.3)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   pathTitle: {
     fontSize: 13,
@@ -168,13 +180,13 @@ const styles = StyleSheet.create({
   pickerContainer: {
     backgroundColor: '#2a2a2a',
     borderRadius: 4,
-    height: 26,
+    height: 40,
     justifyContent: 'center',
   },
   pickerStyle: {
     color: '#fff',
     backgroundColor: '#2a2a2a',
-    height: 26,
+    height: 40,
     fontSize: 11,
     borderWidth: 0,
     paddingLeft: 4,
@@ -187,13 +199,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#444',
     alignItems: 'center',
     backgroundColor: '#333',
+    flex: 1,
   },
   buttonText: {
     color: '#fff',
@@ -203,6 +216,7 @@ const styles = StyleSheet.create({
   coordsText: {
     color: '#fff',
     fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   buttonDisabled: {
     backgroundColor: 'transparent',

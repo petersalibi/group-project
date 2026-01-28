@@ -108,28 +108,36 @@ export function NumericStepper({
     );
     }
 
-    const styles = StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
+        height: 40,
+        maxHeight: 40,
+        width: 120, 
+        maxWidth: 120,
+        overflow: 'hidden', 
+        borderWidth: 1,
+        borderColor: '#444',
+        borderRadius: 8,
         backgroundColor: '#333',
-        borderRadius: 5,
-        overflow: 'hidden',
+        alignSelf: 'center',
     },
     button: {
-        padding: 8,
+        width: 35, 
+        height: '100%',
         backgroundColor: '#00aaff',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 35,
-        zIndex: 10,    // Forces button to sit visually "above" the input
+        zIndex: 10,
         elevation: 5,
     },
     valueContainer: {
-        width: 40,
+        flex: 1, 
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#333',
     },
     valueText: {
         fontSize: 16,
@@ -140,16 +148,21 @@ export function NumericStepper({
         fontSize: 16,
         fontWeight: 'bold',
         color: 'white',
+        width: '100%',
         height: '100%',
-        padding: 0, // Removes default padding on Android
+        padding: 0,
         textAlign: 'center',
         ...Platform.select({
-        web: { outlineStyle: 'none' } as any, // Hides blue outline on Web
+        web: { 
+            outlineStyle: 'none',
+            boxSizing: 'border-box',
+            minWidth: 0,
+        } as any,
         }),
     },
     disabledContainer: {
-        opacity: 0.6, 
-        backgroundColor: '#252525', 
+        opacity: 0.6,
+        backgroundColor: '#252525',
     },
     disabledButton: {
         backgroundColor: '#444',

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Platform, StyleSheet, View, Button, Switch, Pressable } from 'react-native';
+import { Platform, StyleSheet, View, Button, Switch, useWindowDimensions, DimensionValue } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
   dataSets,
@@ -72,6 +72,10 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     onUploadCsv,
   } = props;
 
+  // Detect if we are on a narrow screen (Mobile Web)
+  const { width: windowWidth } = useWindowDimensions();
+  const isCompact = windowWidth < 768;
+
   const hiddenFileInput = useRef<HTMLInputElement>(null);
   const [datasetButtonText, setDatasetButtonText] = useState('Select CSV');
 
@@ -116,6 +120,36 @@ export function LandscapeControls(props: LandscapeControlsProps) {
 
   const [losses, setLosses] = React.useState(regLosses);
 
+  // Helper to Render Pickers Consistently on Mobile/Desktop
+  const renderPicker = (
+    selectedValue: string,
+    onValueChange: (val: string) => void,
+    items: { id: number; label: string; value: string }[],
+    width: DimensionValue = 140
+  ) => (
+    <ThemedView style={[styles.pickerContainer, { width: isCompact ? '100%' : width }]}>
+      <Picker
+        selectedValue={selectedValue}
+        onValueChange={(itemValue) => onValueChange(String(itemValue))}
+        style={Platform.OS === 'web' ? styles.webPicker : styles.nativePicker}
+        enabled={!isPathLoaded}
+        dropdownIconColor="white"
+        mode="dropdown" // Android: use dropdown instead of dialog
+        itemStyle={{ color: 'white', fontSize: 14, height: 50 }}
+      >
+        {items.map((item) => (
+          <Picker.Item 
+            key={item.id} 
+            label={item.label} 
+            value={item.value} 
+            color={Platform.OS === 'android' ? 'black' : undefined}
+            style={{ fontSize: 14 }}
+          />
+        ))}
+      </Picker>
+    </ThemedView>
+  );
+
   // Z-slider is disabled if landscape isn't loaded OR is loading OR a path is loaded
   const zSliderDisabled =
     isLandscapeLoading || !isLandscapeLoaded || isPathLoaded;
@@ -123,11 +157,12 @@ export function LandscapeControls(props: LandscapeControlsProps) {
   return (
     <ThemedView
       style={{
-        flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+        flexDirection: 'row',
+        flexWrap: 'wrap', 
         alignItems: 'center',
+        justifyContent: isCompact ? 'center' : 'flex-start',
         padding: 10,
         gap: 10,
-        flexWrap: 'wrap',
       }}
       lightColor='#ecececff'
       darkColor='#2a2828ff'
@@ -141,20 +176,10 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           style={{ display: 'none' }}
         />
       )}
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Data Set:</ThemedText>
-        <Picker
-          id='dataSelect'
-          selectedValue={data}
-          enabled={!isPathLoaded}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => handleDataChange(String(itemValue))}
-        >
-          {dataSets.map((d) => (
-            <Picker.Item key={d.id} label={d.label} value={d.value} />
-          ))}
-        </Picker>
-      </ThemedView>
+      <View style={[styles.controlGroup, isCompact && styles.fullWidth]}>
+        <ThemedText type='default' style={styles.label}>Data Set:</ThemedText>
+        {renderPicker(data, handleDataChange, dataSets)}
+      </View>
 
       {data === 'CUSTOM' && (
         <View>
@@ -167,127 +192,148 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         </View>
       )}
 
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Depth:</ThemedText>
-        <NumericStepper
-          value={depth}
-          onChange={setDepth}
-          minValue={1}
-          maxValue={100}
-          enabled={!isPathLoaded}
-        />
-      </ThemedView>
-
-      {depth > 1 && (
-        <ThemedView style={styles.param}>
-          <ThemedText type='default'>Width:</ThemedText>
+      <View style={[styles.controlGroup, isCompact && styles.halfWidth]}>
+        <ThemedText type='default' style={styles.label}>Depth:</ThemedText>
+        <View style={styles.stepperWrapper}>
           <NumericStepper
-            value={width}
-            onChange={setWidth}
+            value={depth}
+            onChange={setDepth}
             minValue={1}
             maxValue={100}
             enabled={!isPathLoaded}
           />
-        </ThemedView>
+        </View>
+      </View>
+
+      {depth > 1 && (
+        <View style={[styles.controlGroup, isCompact && styles.halfWidth]}>
+          <ThemedText type='default' style={styles.label}>Width:</ThemedText>
+          <View style={styles.stepperWrapper}>
+            <NumericStepper
+              value={width}
+              onChange={setWidth}
+              minValue={1}
+              maxValue={100}
+              enabled={!isPathLoaded}
+            />
+          </View>
+        </View>
       )}
 
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Activation:</ThemedText>
-        <Picker
-          id='activationSelect'
-          selectedValue={activation}
-          enabled={!isPathLoaded}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => setActivation(String(itemValue))}
-        >
-          {activations.map((a) => (
-            <Picker.Item key={a.id} label={a.label} value={a.value} />
-          ))}
-        </Picker>
-      </ThemedView>
+      <View style={[styles.controlGroup, isCompact && styles.fullWidth]}>
+        <ThemedText type='default' style={styles.label}>Activation:</ThemedText>
+        {renderPicker(activation, setActivation, activations, 110)}
+      </View>
 
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Loss:</ThemedText>
-        <Picker
-          id='lossSelect'
-          selectedValue={loss}
-          enabled={!isPathLoaded}
-          style={{ height: 30 }}
-          onValueChange={(itemValue) => setLoss(String(itemValue))}
-        >
-          {losses.map((l) => (
-            <Picker.Item key={l.id} label={l.label} value={l.value} />
-          ))}
-        </Picker>
-      </ThemedView>
+      <View style={[styles.controlGroup, isCompact && styles.fullWidth]}>
+        <ThemedText type='default' style={styles.label}>Loss:</ThemedText>
+        {renderPicker(loss, setLoss, losses, 120)}
+      </View>
 
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Method:</ThemedText>
-        <Picker
-          id='methodSelect'
-          selectedValue={method}
-          style={{ height: 30 }}
-          enabled={!isPathLoaded}
-          onValueChange={(itemValue) => setMethod(String(itemValue))}
-        >
-          {methods.map((m) => (
-            <Picker.Item key={m.id} label={m.label} value={m.value} />
-          ))}
-        </Picker>
-      </ThemedView>
+      <View style={[styles.controlGroup, isCompact && styles.fullWidth]}>
+        <ThemedText type='default' style={styles.label}>Method:</ThemedText>
+        {renderPicker(method, setMethod, methods, 140)}
+      </View>
 
       {/* View prevents shrinking */}
-      <View style={{ width: 180 }}>
+      <View style={[styles.controlGroup, isCompact && styles.fullWidth, { paddingTop: 18 }]}>
         <Button
           title={isLandscapeLoading ? 'Loading...' : 'Generate Landscape'}
-          onPress={onLoadLandscape}
+          onPress={() => {
+            try {
+              onLoadLandscape();
+            } catch (e) {
+              alert("Error launching load: " + e);
+            }
+          }}
           disabled={isLandscapeLoading || isPathLoaded}
           color='#00aaff'
         />
       </View>
 
-      <ThemedView style={styles.param}>
-        <ThemedText type='default'>Log Plot:</ThemedText>
+      <View style={[styles.controlGroup, { flexDirection: 'column', alignItems: 'center' }]}>
+        <ThemedText type='default' style={styles.label}>Log Plot:</ThemedText>
         <Switch
           value={isLogPlot}
           onValueChange={onLogPlotChange}
           disabled={zSliderDisabled}
+          trackColor={{ false: "#767577", true: "#81b0ff" }}
+          thumbColor={isLogPlot ? "#f5dd4b" : "#f4f3f4"}
         />
-      </ThemedView>
+      </View>
 
-      <View
-        style={{
-          maxWidth: 160,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 5,
-        }}
-      >
-        <ThemedText type='default'>Z Scale:</ThemedText>
+      <View style={[styles.controlGroup, isCompact && styles.fullWidth, { alignItems: 'flex-start' }]}>
+        <ThemedText type='default' style={styles.label}>Z Scale: {zValue.toFixed(1)}</ThemedText>
         <Slider
-          style={{ width: 70, height: 40 }}
+          style={{ width: isCompact ? '100%' : 100, height: 40 }}
           minimumValue={0.001}
           step={0.1}
           maximumValue={5}
           value={zValue}
           onValueChange={onZChange}
-          minimumTrackTintColor={zSliderDisabled ? '#888888' : '#00aaffff'}
-          maximumTrackTintColor={zSliderDisabled ? '#444444' : '#0052c4ff'}
-          thumbTintColor={zSliderDisabled ? '#666666' : '#00b9e2ff'}
+          minimumTrackTintColor={zSliderDisabled ? '#888888' : '#00aaff'}
+          maximumTrackTintColor="#444"
+          thumbTintColor={zSliderDisabled ? '#666' : '#00b9e2'}
           disabled={zSliderDisabled}
         />
-        <ThemedText type='default'>{zValue.toFixed(1)}</ThemedText>
       </View>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  param: {
+  container: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 10,
+    gap: 12,
+  },
+  controlGroup: {
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: 5,
-    padding: 5,
-    borderRadius: 5,
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  label: {
+    fontSize: 12,
+    marginBottom: 2,
+    fontWeight: '600',
+  },
+  fullWidth: {
+    width: '100%',
+    marginBottom: 8,
+  },
+  halfWidth: {
+    width: '48%',
+  },
+  stepperWrapper: {
+    height: 40,
+    justifyContent: 'center',
+    alignSelf: 'flex-start', 
+  },
+  pickerContainer: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#444',
+    overflow: 'hidden', 
+    height: 40,
+    justifyContent: 'center',
+    backgroundColor: '#2a2a2a',
+  },
+  // Style specifically for Web
+  webPicker: {
+    width: '100%',
+    height: '100%',
+    color: 'white',
+    backgroundColor: '#2a2a2a',
+    borderWidth: 0,
+    outlineStyle: 'none',
+  } as any,
+  // Style for Native (iOS/Android)
+  nativePicker: {
+    width: '100%',
+    height: '100%',
+    color: 'white',
   },
 });

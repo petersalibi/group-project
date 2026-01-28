@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { View } from 'react-native';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -19,7 +20,6 @@ import { config } from 'process';
 
 // --- Constants ---
 const animationSpeed = 0.2;
-const containerId = 'container';
 
 // --- Reusable Three.js Vectors/Matrices ---
 const TEMP_BALL_POS = new THREE.Vector3();
@@ -29,6 +29,30 @@ const MOUSE_VECTOR = new THREE.Vector2();
 const TEMP_HIT_VECTOR = new THREE.Vector3();
 const LINE_TOP_OFFSET = new THREE.Vector3(0, 0.2, 0);
 const VIRTUAL_GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+// Helper function to get normalised device coordinates from an event
+const getNormalisedCoordinates = (event: any, rect: DOMRect) => {
+  let clientX, clientY;
+
+  // Check for Touch Events
+  if (event.touches && event.touches.length > 0) {
+    clientX = event.touches[0].clientX;
+    clientY = event.touches[0].clientY;
+  } else if (event.changedTouches && event.changedTouches.length > 0) {
+    // For touchend events
+    clientX = event.changedTouches[0].clientX;
+    clientY = event.changedTouches[0].clientY;
+  } else {
+    // Mouse Events
+    clientX = event.clientX;
+    clientY = event.clientY;
+  }
+
+  return {
+    x: ((clientX - rect.left) / rect.width) * 2 - 1,
+    y: -((clientY - rect.top) / rect.height) * 2 + 1
+  };
+};
 
 // --- Hook Props ---
 export interface UseLandscapeSceneProps {
@@ -342,8 +366,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
    */
   const loadAndBuildLandscape = useCallback(async () => {
     const scene = sceneRef.current;
-    if (!scene) return;
-
+    if (!scene) {
+      return;
+    };
     setIsLandscapeLoading(true);
     handleRemoveAllPaths();
     disposeObject(meshRef.current);
@@ -403,7 +428,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       }
       setIsLandscapeLoaded(true);
     } catch (err) {
-      console.error('Failed to load landscape:', err);
+      alert('Failed to load landscape:' + err);
       setIsLandscapeLoaded(false);
     } finally {
       setIsLandscapeLoading(false);
@@ -422,8 +447,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   // --- Event Handlers ---
 
-  const handleCanvasMouseMove = useCallback(
-    (event: MouseEvent) => {
+  const handleInputMove = useCallback(
+    (event: any) => {
+      if (event.type === 'touchmove' || event.type === 'touchstart') {
+         event.preventDefault(); 
+      }
       if (
         !rendererRef.current ||
         !cameraRef.current ||
@@ -438,8 +466,10 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       const { ball, line } = marker;
 
       const rect = rendererRef.current.domElement.getBoundingClientRect();
-      MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      const coords = getNormalisedCoordinates(event, rect);
+      if (isNaN(coords.x) || isNaN(coords.y)) return;
+
+      MOUSE_VECTOR.set(coords.x, coords.y);
       raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
 
       const intersects = raycasterRef.current.intersectObject(meshRef.current);
@@ -476,8 +506,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [placingPathId, getOrCreateMarker],
   );
 
-  const handleCanvasClick = useCallback(
-    (event: MouseEvent) => {
+  const handleInputClick = useCallback(
+    (event: any) => {
       if (
         !rendererRef.current ||
         !cameraRef.current ||
@@ -492,8 +522,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       if (!marker) return;
 
       const rect = rendererRef.current.domElement.getBoundingClientRect();
-      MOUSE_VECTOR.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      MOUSE_VECTOR.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      const coords = getNormalisedCoordinates(event, rect);
+      MOUSE_VECTOR.set(coords.x, coords.y);
       raycasterRef.current.setFromCamera(MOUSE_VECTOR, cameraRef.current);
 
       // Check for intersection with landscape mesh
@@ -646,130 +676,139 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     [placingPathId],
   );
 
-  // --- Scene Init Effect ---
-  useEffect(() => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+  // --- Scene Setup ---
+  const rafRef = useRef<number>(0);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  // The Callback Ref: React calls this function when the <View> is actually ready
+  const setContainerRef = useCallback((node: View | null) => {
+    if (!node) {
+       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+       if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
+       if (sceneRef.current && rendererRef.current) {
+         cleanupScene(sceneRef.current, rendererRef.current);
+       }
+       sceneRef.current = null;
+       rendererRef.current = null;
+       return;
+    }
+
+    if (sceneRef.current) return;
+
+    // Cast the View to a Div for Three.js
+    const container = node as unknown as HTMLDivElement;
+    console.log("Initializing Scene on:", container);
 
     const { scene, camera, renderer, controls } = initScene(container);
+    
     sceneRef.current = scene;
     cameraRef.current = camera;
     rendererRef.current = renderer;
     controlsRef.current = controls;
-
+    
     clockRef.current = new THREE.Clock();
     raycasterRef.current = new THREE.Raycaster();
 
-    let rafId = 0;
-    const animate = () => {
-      rafId = requestAnimationFrame(animate);
-
-      const clock = clockRef.current;
-      if (!clock) return;
-
-      controls.update();
-      renderer.render(scene, camera);
-
-      if (!isPlayingRef.current || !isPathLoadedRef.current) {
-        return;
-      }
-
-      const delta = clock.getDelta();
-      animationTimeRef.current += delta;
-      const elapsedTime = animationTimeRef.current;
-
-      // Loop over all active paths and animate them
-      for (let i = 0; i < pathLinesRef.current.length; i++) {
-        const pathLine = pathLinesRef.current[i];
-        const ball = ballsRef.current[i];
-        const animationDuration = animationDurationsRef.current[i];
-        const pts = pathPointsArrayRef.current[i];
-        const norms = pathNormalsArrayRef.current[i];
-
-        if (!pathLine || !ball || !animationDuration || !pts || !norms)
-          continue;
-
-        // Calculate this path's individual progress, stopping at 1.0
-        const pathProgress = elapsedTime / animationDuration;
-        if (pathProgress > 1.0 && animationDuration >= Math.max(...animationDurationsRef.current)) {
-          if (animationDuration >= Math.max(...animationDurationsRef.current)) {
-            setIsPlaying(false);
-            animationTimeRef.current = 0;
-          }
-          continue;
-        }
-        // Animate Line
-        const lineGeom = pathLine.geometry as LineGeometry;
-        const totalLineSegments = lineGeom.attributes.instanceStart.count;
-        const drawCount = Math.floor(pathProgress * totalLineSegments);
-        lineGeom.instanceCount = drawCount;
-
-        // Animate Ball
-        const totalBallSegments = pts.length - 1;
-        const currentSegmentFloat = pathProgress * totalBallSegments;
-        const segmentIndex = Math.floor(currentSegmentFloat);
-        const segmentProgress = currentSegmentFloat - segmentIndex;
-        const i1 = Math.min(segmentIndex, totalBallSegments);
-        const i2 = Math.min(i1 + 1, totalBallSegments);
-
-        if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-          TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-          TEMP_BALL_NORM.copy(norms[i1])
-            .lerp(norms[i2], segmentProgress)
-            .normalize();
-          const radius = (ball.geometry as any).parameters?.radius ?? 0;
-          TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-          ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
-        }
-        // Update current parameters of network (if network view is selected)
-        if (networkViewIdRef.current !== null && networkViewIdRef.current === i) {
-          const timeStep = Math.floor(pathProgress * (parametersArrayRef.current[i].length - 1));
-          if (timeStep >= parametersArrayRef.current[i].length) continue;
-          setCurrentParams(parametersArrayRef.current[networkViewIdRef.current][timeStep]);
-        }
-      }
-
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
-
+    // Resize Logic
     const onResize = () => {
-      if (!cameraRef.current || !rendererRef.current || !container) return;
-      
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-
-      cameraRef.current.aspect = width / height;
-      cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(width, height);
-
-      // Update line resolution uniforms if lines exist
-      pathLinesRef.current.forEach(line => {
-         if (line.material) {
-             (line.material as any).resolution.set(width, height);
-         }
-      });
+        if (!container || !camera || !renderer) return;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
     };
-    const resizeObserver = new ResizeObserver(() => {
-        onResize();
-    });
+
+    // Animation Loop
+    const animate = () => {
+       rafRef.current = requestAnimationFrame(animate);
+       
+       const clock = clockRef.current;
+       if (!clock || !scene || !camera || !renderer) return;
+
+       controls.update();
+       renderer.render(scene, camera);
+
+       if (isPlayingRef.current && isPathLoadedRef.current) {
+            const delta = clock.getDelta();
+            animationTimeRef.current += delta;
+            const elapsedTime = animationTimeRef.current;
+
+            for (let i = 0; i < pathLinesRef.current.length; i++) {
+                const pathLine = pathLinesRef.current[i];
+                const ball = ballsRef.current[i];
+                const animationDuration = animationDurationsRef.current[i];
+                const pts = pathPointsArrayRef.current[i];
+                const norms = pathNormalsArrayRef.current[i];
+
+                if (!pathLine || !ball || !animationDuration || !pts || !norms) continue;
+
+                const pathProgress = elapsedTime / animationDuration;
+                
+                // Stop if finished
+                if (pathProgress > 1.0) {
+                     // Check if this was the longest path to stop global playing
+                     if (animationDuration >= Math.max(...animationDurationsRef.current)) {
+                        setIsPlaying(false);
+                        animationTimeRef.current = 0;
+                     }
+                     continue;
+                }
+
+                // Animate Line
+                const lineGeom = pathLine.geometry as LineGeometry;
+                const totalLineSegments = lineGeom.attributes.instanceStart.count;
+                const drawCount = Math.floor(pathProgress * totalLineSegments);
+                lineGeom.instanceCount = drawCount;
+
+                // Animate Ball
+                const totalBallSegments = pts.length - 1;
+                const currentSegmentFloat = pathProgress * totalBallSegments;
+                const segmentIndex = Math.floor(currentSegmentFloat);
+                const segmentProgress = currentSegmentFloat - segmentIndex;
+                const i1 = Math.min(segmentIndex, totalBallSegments);
+                const i2 = Math.min(i1 + 1, totalBallSegments);
+
+                if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
+                    TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
+                    TEMP_BALL_NORM.copy(norms[i1]).lerp(norms[i2], segmentProgress).normalize();
+                    const radius = (ball.geometry as any).parameters?.radius ?? 0;
+                    TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
+                    ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
+                }
+                
+                // Update Network Params
+                if (networkViewIdRef.current !== null && networkViewIdRef.current === i) {
+                    const timeStep = Math.floor(pathProgress * (parametersArrayRef.current[i].length - 1));
+                    if (timeStep < parametersArrayRef.current[i].length) {
+                        setCurrentParams(parametersArrayRef.current[networkViewIdRef.current][timeStep]);
+                    }
+                }
+            }
+       }
+    };
+    
+    // Start everything
+    animate();
+    
+    const resizeObserver = new ResizeObserver(onResize);
     resizeObserver.observe(container);
-    window.addEventListener('resize', onResize);
+    resizeObserverRef.current = resizeObserver;
+    
+    // Initial resize to ensure canvas isn't 0x0
     onResize();
 
-    return () => {
-      cancelAnimationFrame(rafId);
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', onResize);
-      cleanupScene(scene, renderer);
-    };
   }, []);
 
   // --- Placing Mode Effect ---
   useEffect(() => {
     const canvas = rendererRef.current?.domElement;
     if (!canvas) return;
+
+    // Disable camera controls when placing mode is active so touch doesn't rotate camera
+    if (controlsRef.current) {
+        controlsRef.current.enabled = !isPlacingMode;
+    }
 
     if (isPlacingMode && placingPathId !== null) {
       const marker = getOrCreateMarker(placingPathId);
@@ -784,29 +823,35 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         marker.line.visible = false;
       }
 
-      canvas.addEventListener('mousemove', handleCanvasMouseMove);
-      canvas.addEventListener('click', handleCanvasClick);
+      canvas.addEventListener('mousemove', handleInputMove);
+      canvas.addEventListener('touchstart', handleInputMove, { passive: false });
+      canvas.addEventListener('touchmove', handleInputMove, { passive: false });
+      canvas.addEventListener('click', handleInputClick);
+      canvas.addEventListener('touchend', handleInputClick);
       canvas.style.cursor = 'none';
     } else {
       canvas.style.cursor = 'auto';
     }
 
     return () => {
-      canvas.removeEventListener('mousemove', handleCanvasMouseMove);
-      canvas.removeEventListener('click', handleCanvasClick);
+      canvas.removeEventListener('mousemove', handleInputMove);
+      canvas.removeEventListener('touchstart', handleInputMove);
+      canvas.removeEventListener('touchmove', handleInputMove);
+      canvas.removeEventListener('click', handleInputClick);
+      canvas.removeEventListener('touchend', handleInputClick);
       canvas.style.cursor = 'auto';
     };
   }, [
     isPlacingMode,
     placingPathId,
     getOrCreateMarker,
-    handleCanvasMouseMove,
-    handleCanvasClick,
+    handleInputMove,
+    handleInputClick,
   ]);
 
   // --- Return values ---
   return {
-    containerId,
+    containerRef: setContainerRef,
     zValue,
     isLogPlot,
     isLandscapeLoading,

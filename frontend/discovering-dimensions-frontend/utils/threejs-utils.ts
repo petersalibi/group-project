@@ -8,13 +8,14 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
  * Creates the scene, camera, renderer, lights, and controls.
  */
 export function initScene(container: HTMLElement) {
-  // Scene
+  const width = container.clientWidth;
+  const height = container.clientHeight;
   const scene = new THREE.Scene();
 
   // Camera
   const camera = new THREE.PerspectiveCamera(
     45,
-    window.innerWidth / window.innerHeight,
+    width / height,
     0.1,
     1000,
   );
@@ -23,6 +24,8 @@ export function initScene(container: HTMLElement) {
 
   // Renderer
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(width, height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -30,11 +33,15 @@ export function initScene(container: HTMLElement) {
   renderer.domElement.style.top = '0';
   renderer.domElement.style.left = '0';
   renderer.domElement.style.zIndex = '1';
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
   container.appendChild(renderer.domElement);
 
   // Controls
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
   controls.update();
 
   // Lights
@@ -201,6 +208,7 @@ export function createOrUpdatePathLine(
   positions: number[],
   existingLine: Line2 | null,
   color: string,
+  canvasSize: { width: number; height: number } = { width: window.innerWidth, height: window.innerHeight }
 ) {
   if (existingLine) {
     (existingLine.geometry as LineGeometry).setPositions(positions);
@@ -219,8 +227,8 @@ export function createOrUpdatePathLine(
     toneMapped: false,
   }) as any;
   lineMaterial.resolution = new THREE.Vector2(
-    window.innerWidth,
-    window.innerHeight,
+    canvasSize.width,
+    canvasSize.height,
   );
   const line2 = new Line2(lineGeometry as any, lineMaterial);
   (line2.geometry as any).instanceCount = 0;
@@ -317,20 +325,27 @@ export function createGhostObjects(
  * Handles window resize events for camera and line material.
  */
 export function handleResize(
+  container: HTMLElement,
   camera: THREE.PerspectiveCamera,
   renderer: THREE.WebGLRenderer,
-  pathLine: Line2 | null,
+  pathLines: Line2[] | Line2 | null,
 ) {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  const width = container.clientWidth;
+  const height = container.clientHeight;
 
-  if (pathLine) {
-    const mat = pathLine.material as any;
-    if (mat && mat.resolution) {
-      mat.resolution.set(window.innerWidth, window.innerHeight);
-    }
-  }
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(window.devicePixelRatio); 
+  const lines = Array.isArray(pathLines) ? pathLines : (pathLines ? [pathLines] : []);
+  
+  lines.forEach(line => {
+      const mat = line.material as any;
+      if (mat && mat.resolution) {
+        mat.resolution.set(width, height);
+      }
+  });
 }
 
 /**
