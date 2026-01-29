@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
@@ -6,7 +6,7 @@ from losslandscape import *
 from minimisers import *
 from network import *
 from parse import *
-from utils import * 
+from utils import *
 import traceback
 
 app = FastAPI()
@@ -20,11 +20,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/generatelandscape/{params}")
-def generatelandscape(params: str):
+
+@app.post("/generatelandscape")
+async def generatelandscape(params: Request):
     import json
+
     try:
-        params_dict = json.loads(params)
+        params_dict = json.loads(await params.body())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
 
@@ -32,12 +34,15 @@ def generatelandscape(params: str):
         # construct LandscapeParams from parsed dict
         lp = parse_landscape_params(params_dict)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to construct LandscapeParams: {e}")
-    
+        raise HTTPException(
+            status_code=400, detail=f"Failed to construct LandscapeParams: {e}"
+        )
+
     return generate_loss_landscape(lp)
 
+
 @app.get("/generatelandscapesample")
-def generatelandscape():
+def generatelandscapesample():
     try:
         network = NetworkParams()
         method = VisualisationMethod.RANDOMDIRS
@@ -45,8 +50,9 @@ def generatelandscape():
         params = LandscapeParams(network, method, data)
     except Exception as e:
         raise HTTPException(
-            status_code=400, detail=f"Failed to construct default LandscapeParams: {e}")
-    
+            status_code=400, detail=f"Failed to construct default LandscapeParams: {e}"
+        )
+
     try:
         # generate the landscape
         landscape = generate_loss_landscape(params)
@@ -54,11 +60,15 @@ def generatelandscape():
         return landscape
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
+            status_code=500,
+            detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}",
+        )
+
 
 @app.get("/animateminimiser/{params}")
 def animateminimiser(params: str):
     import json
+
     try:
         params_dict = json.loads(params)
     except Exception as e:
@@ -68,31 +78,42 @@ def animateminimiser(params: str):
         # construct MinimiserParams from parsed dict
         mp = parse_minimiser_params(params_dict)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to construct MinimiserParams: {e}")
-    
+        raise HTTPException(
+            status_code=400, detail=f"Failed to construct MinimiserParams: {e}"
+        )
+
     try:
         paths = animate_optimiser(mp)
         return paths
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
+            status_code=500,
+            detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}",
+        )
+
 
 @app.get("/animateminimisersample")
 def animateminimisersample():
     try:
         network = NetworkParams()
         data = TrainingDataType.SINREGRESSION
-        params = MinimiserParams(network, data, sample_dir1, sample_dir2, sample_theta0, lock_to_plane=True)
+        params = MinimiserParams(
+            network, data, sample_dir1, sample_dir2, sample_theta0, lock_to_plane=True
+        )
     except Exception as e:
         raise HTTPException(
-            status_code=400, detail=f"Failed to construct default MinimiserParams: {e}")
-    
+            status_code=400, detail=f"Failed to construct default MinimiserParams: {e}"
+        )
+
     try:
         paths = animate_optimiser(params)
         return paths
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
+            status_code=500,
+            detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}",
+        )
+
 
 # Fetch the given JSON data file
 @app.get("/data/{filename}")

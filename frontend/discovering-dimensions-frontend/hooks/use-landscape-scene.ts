@@ -50,7 +50,7 @@ const getNormalisedCoordinates = (event: any, rect: DOMRect) => {
 
   return {
     x: ((clientX - rect.left) / rect.width) * 2 - 1,
-    y: -((clientY - rect.top) / rect.height) * 2 + 1
+    y: -((clientY - rect.top) / rect.height) * 2 + 1,
   };
 };
 
@@ -299,19 +299,21 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config) => {
         console.log(config.startPoint);
-        const paramString = `/animateminimiser/${encodeURIComponent(JSON.stringify({
-          network: { activation, depth, width },
-          data: data,
-          x_direction: xDirRef.current,
-          y_direction: yDirRef.current,
-          theta_0: originRef.current,
-          init_xy: config.startPoint,
-          optimiser: config.optim,
-          learning_rate: config.lr,
-          loss: loss,
-          lock_to_plane: config.locked,
-          rawdata: csv,
-        }))}`;
+        const paramString = `/animateminimiser/${encodeURIComponent(
+          JSON.stringify({
+            network: { activation, depth, width },
+            data: data,
+            x_direction: xDirRef.current,
+            y_direction: yDirRef.current,
+            theta_0: originRef.current,
+            init_xy: config.startPoint,
+            optimiser: config.optim,
+            learning_rate: config.lr,
+            loss: loss,
+            lock_to_plane: config.locked,
+            rawdata: csv,
+          }),
+        )}`;
         return api.get(paramString);
       });
 
@@ -320,12 +322,17 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Process all responses
       responses.forEach((resp, index) => {
         const pathData = resp.data;
-        const path_arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
-        const parameters_arr = pathData.parameters_path?.data ?? pathData.parameters_path;
+        const path_arr =
+          pathData.minimiser_path?.data ?? pathData.minimiser_path;
+        const parameters_arr =
+          pathData.parameters_path?.data ?? pathData.parameters_path;
 
         if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
-        } else if (!Array.isArray(parameters_arr) || parameters_arr.length < 2) {
+        } else if (
+          !Array.isArray(parameters_arr) ||
+          parameters_arr.length < 2
+        ) {
           throw new Error(`Invalid parameters data for path ${index + 1}`);
         }
 
@@ -368,22 +375,24 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     const scene = sceneRef.current;
     if (!scene) {
       return;
-    };
+    }
     setIsLandscapeLoading(true);
     handleRemoveAllPaths();
     disposeObject(meshRef.current);
     meshRef.current = null;
-    var raw_data = null;
-    if (data === 'CUSTOM'){raw_data = csvRef.current}
+    let raw_data = null;
+    if (data === 'CUSTOM') {
+      raw_data = csvRef.current;
+    }
     try {
-      const paramString = `/generatelandscape/${encodeURIComponent(JSON.stringify({
+      const paramString = {
         network: { activation, depth, width },
         method: method,
         data: data,
         loss: loss,
         rawdata: raw_data,
-      }))}`;
-      const resp = await api.get(paramString);
+      };
+      const resp = await api.post('/generatelandscape', paramString);
       const dict = resp.data;
 
       dataRef.current = data;
@@ -401,7 +410,11 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       xDirRef.current = dict.x_direction || null;
       yDirRef.current = dict.y_direction || null;
 
-      const { mesh, geoWidth, geoHeight } = createLandscapeMesh(isLogPlot, dict, zValue);
+      const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
+        isLogPlot,
+        dict,
+        zValue,
+      );
       scene.add(mesh);
       meshRef.current = mesh;
 
@@ -419,9 +432,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
         cameraDist *= 1.5; // Zoom out multiplier
 
         cameraRef.current.position.set(
-            center.x, 
-            center.y + cameraDist * 0.7, // Height
-            center.z + cameraDist * 0.7  // Depth
+          center.x,
+          center.y + cameraDist * 0.7, // Height
+          center.z + cameraDist * 0.7, // Depth
         );
         cameraRef.current.updateProjectionMatrix();
         controlsRef.current.update();
@@ -450,7 +463,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   const handleInputMove = useCallback(
     (event: any) => {
       if (event.type === 'touchmove' || event.type === 'touchstart') {
-         event.preventDefault(); 
+        event.preventDefault();
       }
       if (
         !rendererRef.current ||
@@ -563,7 +576,6 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   );
 
   const handleUploadCsv = useCallback(async (file: File) => {
-
     try {
       // Parse as string
       const csvString = await parseAndValidateCSV(file);
@@ -600,29 +612,30 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
     setIsPlaying((prev) => !prev);
   }, [isPlaying]);
 
-  const handleLogPlotToggle = useCallback(
-    () => {
-      console.log('Toggling log plot. Current value:', isLogPlot);
-      if (!sceneRef.current) return;
-      setIsLandscapeLoading(true);
-      handleRemoveAllPaths();
-      disposeObject(meshRef.current);
-      meshRef.current = null;
-      const { mesh, geoWidth, geoHeight } = createLandscapeMesh(!isLogPlot, dictRef.current, zValue);
-      sceneRef.current.add(mesh);
-      meshRef.current = mesh;
+  const handleLogPlotToggle = useCallback(() => {
+    console.log('Toggling log plot. Current value:', isLogPlot);
+    if (!sceneRef.current) return;
+    setIsLandscapeLoading(true);
+    handleRemoveAllPaths();
+    disposeObject(meshRef.current);
+    meshRef.current = null;
+    const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
+      !isLogPlot,
+      dictRef.current,
+      zValue,
+    );
+    sceneRef.current.add(mesh);
+    meshRef.current = mesh;
 
-      const diag = Math.hypot(geoWidth, geoHeight);
-      if (cameraRef.current && controlsRef.current) {
-        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
-        controlsRef.current.target.set(0, 0, 0);
-        controlsRef.current.update();
-      }
-      setIsLogPlot((prev) => !prev);
-      setIsLandscapeLoading(false);
-    },
-    [isLogPlot, zValue, handleRemoveAllPaths],
-  );
+    const diag = Math.hypot(geoWidth, geoHeight);
+    if (cameraRef.current && controlsRef.current) {
+      cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
+    setIsLogPlot((prev) => !prev);
+    setIsLandscapeLoading(false);
+  }, [isLogPlot, zValue, handleRemoveAllPaths]);
 
   const handleZChange = useCallback(
     (val: number) => {
@@ -683,121 +696,132 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   // The Callback Ref: React calls this function when the <View> is actually ready
   const setContainerRef = useCallback((node: View | null) => {
     if (!node) {
-       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-       if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
-       if (sceneRef.current && rendererRef.current) {
-         cleanupScene(sceneRef.current, rendererRef.current);
-       }
-       sceneRef.current = null;
-       rendererRef.current = null;
-       return;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
+      if (sceneRef.current && rendererRef.current) {
+        cleanupScene(sceneRef.current, rendererRef.current);
+      }
+      sceneRef.current = null;
+      rendererRef.current = null;
+      return;
     }
 
     if (sceneRef.current) return;
 
     // Cast the View to a Div for Three.js
     const container = node as unknown as HTMLDivElement;
-    console.log("Initializing Scene on:", container);
+    console.log('Initializing Scene on:', container);
 
     const { scene, camera, renderer, controls } = initScene(container);
-    
+
     sceneRef.current = scene;
     cameraRef.current = camera;
     rendererRef.current = renderer;
     controlsRef.current = controls;
-    
+
     clockRef.current = new THREE.Clock();
     raycasterRef.current = new THREE.Raycaster();
 
     // Resize Logic
     const onResize = () => {
-        if (!container || !camera || !renderer) return;
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
+      if (!container || !camera || !renderer) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
     };
 
     // Animation Loop
     const animate = () => {
-       rafRef.current = requestAnimationFrame(animate);
-       
-       const clock = clockRef.current;
-       if (!clock || !scene || !camera || !renderer) return;
+      rafRef.current = requestAnimationFrame(animate);
 
-       controls.update();
-       renderer.render(scene, camera);
+      const clock = clockRef.current;
+      if (!clock || !scene || !camera || !renderer) return;
 
-       if (isPlayingRef.current && isPathLoadedRef.current) {
-            const delta = clock.getDelta();
-            animationTimeRef.current += delta;
-            const elapsedTime = animationTimeRef.current;
+      controls.update();
+      renderer.render(scene, camera);
 
-            for (let i = 0; i < pathLinesRef.current.length; i++) {
-                const pathLine = pathLinesRef.current[i];
-                const ball = ballsRef.current[i];
-                const animationDuration = animationDurationsRef.current[i];
-                const pts = pathPointsArrayRef.current[i];
-                const norms = pathNormalsArrayRef.current[i];
+      if (isPlayingRef.current && isPathLoadedRef.current) {
+        const delta = clock.getDelta();
+        animationTimeRef.current += delta;
+        const elapsedTime = animationTimeRef.current;
 
-                if (!pathLine || !ball || !animationDuration || !pts || !norms) continue;
+        for (let i = 0; i < pathLinesRef.current.length; i++) {
+          const pathLine = pathLinesRef.current[i];
+          const ball = ballsRef.current[i];
+          const animationDuration = animationDurationsRef.current[i];
+          const pts = pathPointsArrayRef.current[i];
+          const norms = pathNormalsArrayRef.current[i];
 
-                const pathProgress = elapsedTime / animationDuration;
-                
-                // Stop if finished
-                if (pathProgress > 1.0) {
-                     // Check if this was the longest path to stop global playing
-                     if (animationDuration >= Math.max(...animationDurationsRef.current)) {
-                        setIsPlaying(false);
-                        animationTimeRef.current = 0;
-                     }
-                     continue;
-                }
+          if (!pathLine || !ball || !animationDuration || !pts || !norms)
+            continue;
 
-                // Animate Line
-                const lineGeom = pathLine.geometry as LineGeometry;
-                const totalLineSegments = lineGeom.attributes.instanceStart.count;
-                const drawCount = Math.floor(pathProgress * totalLineSegments);
-                lineGeom.instanceCount = drawCount;
+          const pathProgress = elapsedTime / animationDuration;
 
-                // Animate Ball
-                const totalBallSegments = pts.length - 1;
-                const currentSegmentFloat = pathProgress * totalBallSegments;
-                const segmentIndex = Math.floor(currentSegmentFloat);
-                const segmentProgress = currentSegmentFloat - segmentIndex;
-                const i1 = Math.min(segmentIndex, totalBallSegments);
-                const i2 = Math.min(i1 + 1, totalBallSegments);
-
-                if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-                    TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-                    TEMP_BALL_NORM.copy(norms[i1]).lerp(norms[i2], segmentProgress).normalize();
-                    const radius = (ball.geometry as any).parameters?.radius ?? 0;
-                    TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-                    ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
-                }
-                
-                // Update Network Params
-                if (networkViewIdRef.current !== null && networkViewIdRef.current === i) {
-                    const timeStep = Math.floor(pathProgress * (parametersArrayRef.current[i].length - 1));
-                    if (timeStep < parametersArrayRef.current[i].length) {
-                        setCurrentParams(parametersArrayRef.current[networkViewIdRef.current][timeStep]);
-                    }
-                }
+          // Stop if finished
+          if (pathProgress > 1.0) {
+            // Check if this was the longest path to stop global playing
+            if (
+              animationDuration >= Math.max(...animationDurationsRef.current)
+            ) {
+              setIsPlaying(false);
+              animationTimeRef.current = 0;
             }
-       }
+            continue;
+          }
+
+          // Animate Line
+          const lineGeom = pathLine.geometry as LineGeometry;
+          const totalLineSegments = lineGeom.attributes.instanceStart.count;
+          const drawCount = Math.floor(pathProgress * totalLineSegments);
+          lineGeom.instanceCount = drawCount;
+
+          // Animate Ball
+          const totalBallSegments = pts.length - 1;
+          const currentSegmentFloat = pathProgress * totalBallSegments;
+          const segmentIndex = Math.floor(currentSegmentFloat);
+          const segmentProgress = currentSegmentFloat - segmentIndex;
+          const i1 = Math.min(segmentIndex, totalBallSegments);
+          const i2 = Math.min(i1 + 1, totalBallSegments);
+
+          if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
+            TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
+            TEMP_BALL_NORM.copy(norms[i1])
+              .lerp(norms[i2], segmentProgress)
+              .normalize();
+            const radius = (ball.geometry as any).parameters?.radius ?? 0;
+            TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
+            ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
+          }
+
+          // Update Network Params
+          if (
+            networkViewIdRef.current !== null &&
+            networkViewIdRef.current === i
+          ) {
+            const timeStep = Math.floor(
+              pathProgress * (parametersArrayRef.current[i].length - 1),
+            );
+            if (timeStep < parametersArrayRef.current[i].length) {
+              setCurrentParams(
+                parametersArrayRef.current[networkViewIdRef.current][timeStep],
+              );
+            }
+          }
+        }
+      }
     };
-    
+
     // Start everything
     animate();
-    
+
     const resizeObserver = new ResizeObserver(onResize);
     resizeObserver.observe(container);
     resizeObserverRef.current = resizeObserver;
-    
+
     // Initial resize to ensure canvas isn't 0x0
     onResize();
-
   }, []);
 
   // --- Placing Mode Effect ---
@@ -807,7 +831,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     // Disable camera controls when placing mode is active so touch doesn't rotate camera
     if (controlsRef.current) {
-        controlsRef.current.enabled = !isPlacingMode;
+      controlsRef.current.enabled = !isPlacingMode;
     }
 
     if (isPlacingMode && placingPathId !== null) {
@@ -824,7 +848,9 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       }
 
       canvas.addEventListener('mousemove', handleInputMove);
-      canvas.addEventListener('touchstart', handleInputMove, { passive: false });
+      canvas.addEventListener('touchstart', handleInputMove, {
+        passive: false,
+      });
       canvas.addEventListener('touchmove', handleInputMove, { passive: false });
       canvas.addEventListener('click', handleInputClick);
       canvas.addEventListener('touchend', handleInputClick);
