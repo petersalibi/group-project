@@ -87,6 +87,16 @@ def animateminimisersample():
         raise HTTPException(
             status_code=500, detail=f"Failed to animate optimiser: {e} \n {traceback.format_exc()}")
 
+# Get the shape of the dataset from raw CSV data
+@app.post("/getdatasetshape")
+def getdatasetshape(rawcsv : str):
+    try:
+        _, _, inputs, outputs = rawdata_to_training_data(rawcsv)
+        return {"inputs": inputs, "outputs": outputs}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get dataset shape: {e} \n {traceback.format_exc()}")
+    
 # Fetch the given JSON data file
 @app.get("/data/{filename}")
 def get_data(filename: str):
