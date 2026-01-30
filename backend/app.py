@@ -20,24 +20,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/generatelandscape/{params}")
-def generatelandscape(params: str):
-    import json
-    try:
-        params_dict = json.loads(params)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
-
+@app.post("/generatelandscape")
+def generatelandscape(params: dict):
     try:
         # construct LandscapeParams from parsed dict
-        lp = parse_landscape_params(params_dict)
+        lp = parse_landscape_params(params)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to construct LandscapeParams: {e}")
     
-    return generate_loss_landscape(lp)
+    try:
+        # generate the landscape
+        return generate_loss_landscape(lp)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
 
 @app.get("/generatelandscapesample")
-def generatelandscape():
+def generatelandscapesample():
     try:
         network = NetworkParams()
         method = VisualisationMethod.RANDOMDIRS
@@ -56,17 +55,11 @@ def generatelandscape():
         raise HTTPException(
             status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
 
-@app.get("/animateminimiser/{params}")
-def animateminimiser(params: str):
-    import json
-    try:
-        params_dict = json.loads(params)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
-
+@app.post("/animateminimiser")
+def animateminimiser(params: dict):
     try:
         # construct MinimiserParams from parsed dict
-        mp = parse_minimiser_params(params_dict)
+        mp = parse_minimiser_params(params)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to construct MinimiserParams: {e}")
     
