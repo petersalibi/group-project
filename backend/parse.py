@@ -77,7 +77,6 @@ def parse_landscape_params(params: dict):
         training_samples = params.get("training_samples", 128)
         surface_samples = params.get("surface_samples", 100)
         rawdata = params.get("rawdata", None)
-        
         landscape_params = LandscapeParams(
             network=network_params,
             method=method,

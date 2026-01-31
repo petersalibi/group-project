@@ -20,25 +20,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.post("/generatelandscape")
-async def generatelandscape(params: Request):
-    import json
-
-    try:
-        params_dict = json.loads(await params.body())
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
-
+def generatelandscape(params: dict):
     try:
         # construct LandscapeParams from parsed dict
-        lp = parse_landscape_params(params_dict)
+        lp = parse_landscape_params(params)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to construct LandscapeParams: {e}")
+    
+    try:
+        # generate the landscape
+        return generate_loss_landscape(lp)
     except Exception as e:
         raise HTTPException(
-            status_code=400, detail=f"Failed to construct LandscapeParams: {e}"
-        )
-
-    return generate_loss_landscape(lp)
+            status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
 
 
 @app.get("/generatelandscapesample")
@@ -65,18 +60,11 @@ def generatelandscapesample():
         )
 
 
-@app.get("/animateminimiser/{params}")
-def animateminimiser(params: str):
-    import json
-
-    try:
-        params_dict = json.loads(params)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON params: {e}")
-
+@app.post("/animateminimiser")
+def animateminimiser(params: dict):
     try:
         # construct MinimiserParams from parsed dict
-        mp = parse_minimiser_params(params_dict)
+        mp = parse_minimiser_params(params)
     except Exception as e:
         raise HTTPException(
             status_code=400, detail=f"Failed to construct MinimiserParams: {e}"
@@ -115,6 +103,16 @@ def animateminimisersample():
         )
 
 
+# Get the shape of the dataset from raw CSV data
+@app.post("/getdatasetshape")
+def getdatasetshape(rawcsv : str):
+    try:
+        _, _, inputs, outputs = rawdata_to_training_data(rawcsv)
+        return {"inputs": inputs, "outputs": outputs}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get dataset shape: {e} \n {traceback.format_exc()}")
+    
 # Fetch the given JSON data file
 @app.get("/data/{filename}")
 def get_data(filename: str):
