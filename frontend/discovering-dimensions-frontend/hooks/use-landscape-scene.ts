@@ -80,6 +80,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
   } = props;
 
   // --- UI State ---
+  const [datasetInputs, setDatasetInputs] = useState<number | null>(null);
+  const [datasetOutputs, setDatasetOutputs] = useState<number | null>(null);
   const [zValue, setZValue] = useState<number>(1);
   const [isLogPlot, setIsLogPlot] = useState<boolean>(false);
   const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
@@ -298,9 +300,7 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       const loss = lossRef.current;
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config) => {
-        console.log(config.startPoint);
-        const paramString = `/animateminimiser/${encodeURIComponent(
-          JSON.stringify({
+        const paramString = {
             network: { activation, depth, width },
             data: data,
             x_direction: xDirRef.current,
@@ -312,9 +312,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
             loss: loss,
             lock_to_plane: config.locked,
             rawdata: csv,
-          }),
-        )}`;
-        return api.get(paramString);
+        };
+        return api.post('/animateminimiser', paramString);
       });
 
       const responses = await Promise.all(pathPromises);
@@ -580,6 +579,15 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
       // Parse as string
       const csvString = await parseAndValidateCSV(file);
       csvRef.current = csvString;
+
+      // Get dataset shape from API
+      const resp = await api.post('/getdatasetshape', { rawcsv: csvString });
+      const dict = resp.data;
+      if (!dict.inputs || !dict.outputs) { throw new Error("Invalid dataset shape response"); }
+      console.log('Dataset shape:', dict.inputs, dict.outputs);
+      setDatasetInputs(dict.inputs);
+      setDatasetOutputs(dict.outputs);
+
     } catch (err) {
       console.error('Failed to upload CSV:', err);
       alert('Failed to upload file.');
@@ -710,7 +718,6 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
     // Cast the View to a Div for Three.js
     const container = node as unknown as HTMLDivElement;
-    console.log('Initializing Scene on:', container);
 
     const { scene, camera, renderer, controls } = initScene(container);
 
@@ -877,6 +884,8 @@ export function useLandscapeScene(props: UseLandscapeSceneProps) {
 
   // --- Return values ---
   return {
+    customDatasetInputs: datasetInputs,
+    customDatasetOutputs: datasetOutputs,
     containerRef: setContainerRef,
     zValue,
     isLogPlot,

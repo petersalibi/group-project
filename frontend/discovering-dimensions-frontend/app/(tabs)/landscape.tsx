@@ -18,6 +18,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useLandscapeScene } from '@/hooks/use-landscape-scene';
 import { LandscapeControls } from '@/components/landscape-controls';
 import { AnimationControls } from '@/components/animation-controls';
+import { NumericStepper } from '@/components/numeric-stepper';
 import {
   PathConfigControls,
   PathConfig,
@@ -73,11 +74,6 @@ export default function LandscapeWithPath() {
   }, [headerHeight, viewportHeight, pathControlsVisible]);
 
   useEffect(() => {
-    setInputs(datasetFeatures[data] || 1);
-    setOutputs(datasetOutputs[data] || 1);
-  }, [data]);
-
-  useEffect(() => {
     if (Platform.OS === 'web') {
       setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
@@ -93,6 +89,8 @@ export default function LandscapeWithPath() {
 
   // --- Landscape Scene Hook ---
   const {
+    customDatasetInputs,
+    customDatasetOutputs,
     containerRef,
     zValue,
     isLogPlot,
@@ -133,6 +131,16 @@ export default function LandscapeWithPath() {
   });
 
   // --- UI Handlers ---
+
+  useEffect(() => {
+    if (data === 'CUSTOM' && customDatasetInputs !== null && customDatasetOutputs !== null) {
+      setInputs(customDatasetInputs);
+      setOutputs(customDatasetOutputs);
+    } else {
+      setInputs(datasetFeatures[data] || 1);
+      setOutputs(datasetOutputs[data] || 1);
+    }
+  }, [data, customDatasetInputs, customDatasetOutputs]);
 
   // State for the left panel width
   const [leftPanelWidth, setLeftPanelWidth] = useState(windowWidth * 0.5);
@@ -281,6 +289,7 @@ export default function LandscapeWithPath() {
           isLogPlot={isLogPlot}
           isLandscapeLoading={isLandscapeLoading}
           isLandscapeLoaded={isLandscapeLoaded}
+          isPathLoading={isPathLoading}
           isPathLoaded={isPathLoaded}
           setData={setData}
           setDepth={setDepth}
@@ -396,22 +405,12 @@ export default function LandscapeWithPath() {
                       <Text style={{ color: '#eee', fontSize: 12 }}>
                         Number of Paths:
                       </Text>
-                      <Picker
-                        selectedValue={numPaths}
-                        style={{
-                          height: Platform.OS === 'ios' ? 100 : 28,
-                          width: 60,
-                          backgroundColor: '#eee',
-                        }}
-                        itemStyle={{ fontSize: 14, height: 100 }}
-                        onValueChange={(itemValue) =>
-                          handleNumPathsChange(Number(itemValue))
-                        }
-                      >
-                        <Picker.Item label='1' value={1} />
-                        <Picker.Item label='2' value={2} />
-                        <Picker.Item label='3' value={3} />
-                      </Picker>
+                      <NumericStepper
+                        value={numPaths}
+                        onChange={handleNumPathsChange}
+                        minValue={1}
+                        maxValue={5}
+                      />
                     </View>
 
                     <View style={{ gap: 5 }}>
@@ -450,6 +449,7 @@ export default function LandscapeWithPath() {
                         config={config}
                         onConfigChange={handleConfigChange}
                         onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                        networkViewable={depth <= 10 && width <= 10}
                         onViewNetwork={() => onViewNetwork(config.id)}
                         isPlacing={isPlacingMode && placingPathId === config.id}
                         isSceneLoading={isLoading}

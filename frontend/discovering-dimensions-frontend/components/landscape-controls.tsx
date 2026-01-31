@@ -31,6 +31,7 @@ interface LandscapeControlsProps {
   isLandscapeLoading: boolean;
   isLandscapeLoaded: boolean;
   isPathLoaded: boolean;
+  isPathLoading: boolean;
 
   // Setters
   setData: (value: string) => void;
@@ -60,6 +61,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
     isLandscapeLoading,
     isLandscapeLoaded,
     isPathLoaded,
+    isPathLoading,
     setData,
     setDepth,
     setWidth,
@@ -132,7 +134,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         selectedValue={selectedValue}
         onValueChange={(itemValue) => onValueChange(String(itemValue))}
         style={Platform.OS === 'web' ? styles.webPicker : styles.nativePicker}
-        enabled={!isPathLoaded}
+        enabled={!isPathLoaded && !isPathLoading}
         dropdownIconColor="white"
         mode="dropdown" // Android: use dropdown instead of dialog
         itemStyle={{ color: 'white', fontSize: 14, height: 50 }}
@@ -152,7 +154,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
 
   // Z-slider is disabled if landscape isn't loaded OR is loading OR a path is loaded
   const zSliderDisabled =
-    isLandscapeLoading || !isLandscapeLoaded || isPathLoaded;
+    isLandscapeLoading || !isLandscapeLoaded || isPathLoaded || isPathLoading;
 
   return (
     <ThemedView
@@ -185,7 +187,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
         <View>
           <Button 
             title={datasetButtonText}
-            disabled={isPathLoaded}
+            disabled={isPathLoaded || isPathLoading}
             onPress={handleUploadPress} 
             color="#841584"
           />
@@ -200,7 +202,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
             onChange={setDepth}
             minValue={1}
             maxValue={100}
-            enabled={!isPathLoaded}
+            enabled={!isPathLoaded && !isPathLoading}
           />
         </View>
       </View>
@@ -214,7 +216,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
               onChange={setWidth}
               minValue={1}
               maxValue={100}
-              enabled={!isPathLoaded}
+              enabled={!isPathLoaded && !isPathLoading}
             />
           </View>
         </View>
@@ -246,7 +248,7 @@ export function LandscapeControls(props: LandscapeControlsProps) {
               alert("Error launching load: " + e);
             }
           }}
-          disabled={isLandscapeLoading || isPathLoaded}
+          disabled={isLandscapeLoading || isPathLoaded || isPathLoading}
           color='#00aaff'
         />
       </View>
@@ -257,7 +259,6 @@ export function LandscapeControls(props: LandscapeControlsProps) {
           value={isLogPlot}
           onValueChange={onLogPlotChange}
           disabled={zSliderDisabled}
-          trackColor={{ false: "#767577", true: "#81b0ff" }}
           thumbColor={isLogPlot ? "#f5dd4b" : "#f4f3f4"}
         />
       </View>

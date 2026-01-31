@@ -123,18 +123,8 @@ export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: numbe
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2;
   mesh.receiveShadow = true;
-
-  const wireframeMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    opacity: 0.1,
-    transparent: true,
-    wireframe: true,
-  });
-  const wireframeMesh = new THREE.Mesh(geometry, wireframeMaterial);
-  wireframeMesh.position.y = 0.001;
-  mesh.add(wireframeMesh);
-
   mesh.scale.set(1, 1, zValue);
+  
   return { mesh, geoWidth, geoHeight };
 }
 

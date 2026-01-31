@@ -18,6 +18,7 @@ interface PathConfigControlsProps {
   config: PathConfig;
   onConfigChange: (id: number, field: keyof PathConfig, value: any) => void;
   onPlaceStartPoint: (id: number) => void;
+  networkViewable: boolean;
   onViewNetwork: (id: number) => void;
   isPlacing: boolean;
   isSceneLoading: boolean;
@@ -30,6 +31,7 @@ export function PathConfigControls(props: PathConfigControlsProps) {
     config,
     onConfigChange,
     onPlaceStartPoint,
+    networkViewable,
     onViewNetwork,
     isPlacing,
     isSceneLoading,
@@ -93,7 +95,6 @@ export function PathConfigControls(props: PathConfigControlsProps) {
           <Text style={styles.paramLabel}>Locked to Plane:</Text>
             <Switch
               value={locked}
-              trackColor={{ false: '#444', true: colorValue }}
               thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''}
               onValueChange={(val) => onConfigChange(id, 'locked', Boolean(val))}
             />
@@ -117,24 +118,26 @@ export function PathConfigControls(props: PathConfigControlsProps) {
             {isPlacing ? 'Cancel' : 'Place Start Point'}
           </Text>
         </Pressable>
-
-        <Pressable
-          onPress={() => onViewNetwork(id)}
-          disabled={isSceneLoading || !isLandscapeLoaded || isWatching}
-          style={[
-            styles.actionButton,
-            isWatching ? styles.buttonDisabled : null,
-          ]}
-        >
-          <Text
+        
+        {networkViewable && (
+          <Pressable
+            onPress={() => onViewNetwork(id)}
+            disabled={isSceneLoading || !isLandscapeLoaded || isWatching}
             style={[
-              styles.buttonText,
-              isWatching ? styles.buttonTextDisabled : null,
+              styles.actionButton,
+              isWatching ? styles.buttonDisabled : null,
             ]}
           >
-            {isWatching ? 'Viewing on Network' : 'View on Network'}
-          </Text>
-        </Pressable>
+            <Text
+              style={[
+                styles.buttonText,
+                isWatching ? styles.buttonTextDisabled : null,
+              ]}
+            >
+              {isWatching ? 'Viewing on Network' : 'View on Network'}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );

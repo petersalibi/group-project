@@ -72,4 +72,6 @@ export const PATH_COLORS = [
   { name: 'Red', value: '#ff0000' },
   { name: 'Green', value: '#00ff00' },
   { name: 'Yellow', value: '#ffff00' },
+  { name: 'Blue', value: '#0000ff' },
+  { name: 'Purple', value: '#800080' },
 ];

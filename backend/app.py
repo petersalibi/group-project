@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
@@ -105,7 +105,7 @@ def animateminimisersample():
 
 # Get the shape of the dataset from raw CSV data
 @app.post("/getdatasetshape")
-def getdatasetshape(rawcsv : str):
+def getdatasetshape(rawcsv: str = Body(..., embed=True)):
     try:
         _, _, inputs, outputs = rawdata_to_training_data(rawcsv)
         return {"inputs": inputs, "outputs": outputs}
