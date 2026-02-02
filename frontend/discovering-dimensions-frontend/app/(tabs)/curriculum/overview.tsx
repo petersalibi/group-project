@@ -2,12 +2,12 @@ import { UnorderedList } from '@/components/text-list';
 import { ThemedText } from '@/components/themed-text';
 import { useRouter } from 'expo-router';
 
-export default function CurriculumIndex() {
+export default function CurriculumOverview() {
   const router = useRouter();
 
   return (
     <>
-      <ThemedText type='title'>Introduction</ThemedText>
+      <ThemedText type='title'>Overview</ThemedText>
       <ThemedText type='text'>
         {'\n'}
         The Discovering Dimensions Loss Landscape tool is designed to help you

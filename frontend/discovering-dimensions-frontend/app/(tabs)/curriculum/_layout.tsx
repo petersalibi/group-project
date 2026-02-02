@@ -3,7 +3,6 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
 import { View, Platform, ScrollView } from 'react-native';
-import { OrderedList } from '@/components/text-list';
 import { useEffect, useRef } from 'react';
 
 export default function CurriculumScreen() {
@@ -26,6 +25,7 @@ export default function CurriculumScreen() {
           width: '100%',
         }}
       >
+        {/* Sidebar */}
         <View>
           <ThemedView
             style={{
@@ -45,51 +45,67 @@ export default function CurriculumScreen() {
                 marginBottom: 10,
               }}
             >
-              Contents
+              Roadmap
             </ThemedText>
             <ThemedView>
-              <ThemedText
+              <View
                 style={{
-                  marginTop: 10,
-                  pointerEvents: pathname === '/curriculum' ? 'none' : 'auto',
+                  marginLeft: 2,
+                  paddingLeft: 10,
+                  borderLeftWidth: 2,
+                  borderLeftColor: '#ccc',
                 }}
-                type={pathname === '/curriculum' ? 'text' : 'link'}
-                onPress={() => router.navigate('/curriculum')}
               >
-                Introduction
-              </ThemedText>
-              <OrderedList>
-                <ThemedText
-                  style={{
-                    pointerEvents:
-                      pathname === '/curriculum/stage-1' ? 'none' : 'auto',
-                  }}
-                  type={pathname === '/curriculum/stage-1' ? 'text' : 'link'}
-                  onPress={() => router.navigate('/curriculum/stage-1')}
-                >
-                  Introducing loss
-                </ThemedText>
-                <ThemedText
-                  style={{
-                    pointerEvents:
-                      pathname === '/curriculum/stage-2' ? 'none' : 'auto',
-                  }}
-                  type={pathname === '/curriculum/stage-2' ? 'text' : 'link'}
-                  onPress={() => router.navigate('/curriculum/stage-2')}
-                >
-                  Features of loss landscapes
-                </ThemedText>
-                <ThemedText
-                  style={{
-                    pointerEvents:
-                      pathname === '/curriculum/stage-3' ? 'none' : 'auto',
-                  }}
-                  type={pathname === '/curriculum/stage-3' ? 'text' : 'link'}
-                  onPress={() => router.navigate('/curriculum/stage-3')}
-                >
-                  Advanced loss landscape techniques
-                </ThemedText>
-              </OrderedList>
+                {[
+                  { label: 'Overview', route: '/curriculum/overview' },
+                  { label: 'Introducing loss', route: '/curriculum/stage-1' },
+                  {
+                    label: 'Features of loss landscapes',
+                    route: '/curriculum/stage-2',
+                  },
+                  {
+                    label: 'Advanced loss landscape techniques',
+                    route: '/curriculum/stage-3',
+                  },
+                ].map((item) => (
+                  <View
+                    key={item.route}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginTop: 10,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 8,
+                        backgroundColor:
+                          pathname === item.route ? '#007AFF' : '#ccc',
+                        marginLeft: -18,
+                        marginRight: 12,
+                        outlineStyle: 'solid',
+                        outlineWidth: 2,
+                        outlineColor: pathname === item.route ? '#ccc' : '#999',
+                      }}
+                    />
+                    <ThemedText
+                      style={{
+                        pointerEvents:
+                          pathname === item.route ? 'none' : 'auto',
+                        maxWidth: 180,
+                      }}
+                      type={
+                        pathname === item.route ? 'text' : 'linknounderline'
+                      }
+                      onPress={() => router.push(item.route)}
+                    >
+                      {item.label}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
             </ThemedView>
           </ThemedView>
         </View>
