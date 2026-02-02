@@ -13,7 +13,7 @@ export default function RootLayout() {
   const path: string = usePathname();
   const titleMap: { [key: string]: string } = {
     '/': 'Home',
-    '/curriculum': 'Introduction | Curriculum',
+    '/curriculum/overview': 'Overview | Curriculum',
     '/curriculum/stage-1': 'Introducing loss | Curriculum',
     '/curriculum/stage-2': 'Features of loss landscapes | Curriculum',
     '/curriculum/stage-3': 'Advanced loss landscape techniques | Curriculum',
