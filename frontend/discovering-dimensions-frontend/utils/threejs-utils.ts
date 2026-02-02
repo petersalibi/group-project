@@ -45,7 +45,7 @@ export function initScene(container: HTMLElement) {
   controls.update();
 
   // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
   const hemiLight = new THREE.HemisphereLight(0x4488ff, 0x000000, 0.5);
   scene.add(hemiLight);
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
