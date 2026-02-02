@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   StyleSheet,
-  Text,
   Pressable,
   Platform,
   type TextProps,
@@ -24,6 +23,7 @@ export type ThemedTextProps = TextProps & {
     | 'subsubheading'
     | 'subsubsubheading'
     | 'link'
+    | 'linknounderline'
     | 'caption';
 };
 
@@ -61,7 +61,7 @@ export function ThemedText({
 
   // Reset hover animation and colour if link turns to text
   useEffect(() => {
-    if (type !== 'link') {
+    if (type !== 'link' && type !== 'linknounderline') {
       hoverAnim.stopAnimation();
       hoverAnim.setValue(0);
     }
@@ -78,7 +78,7 @@ export function ThemedText({
   };
 
   const linkHoverEvents =
-    type === 'link' && Platform.OS === 'web'
+    (type === 'link' || type === 'linknounderline') && Platform.OS === 'web'
       ? {
           onHoverIn: () => {
             animateHover(1);
@@ -98,7 +98,7 @@ export function ThemedText({
   });
 
   // Special wrapper for links
-  if (type === 'link') {
+  if (type === 'link' || type === 'linknounderline') {
     return (
       <Pressable {...linkHoverEvents}>
         <Animated.Text
@@ -106,10 +106,11 @@ export function ThemedText({
             {
               color: animatedColor, // theme color base
               cursor: Platform.OS === 'web' ? 'pointer' : 'none',
-              textDecorationLine: 'underline',
+              textDecorationLine: type === 'link' ? 'underline' : 'none',
               textDecorationColor: hoverColor,
             },
-            styles.link,
+            type === 'link' && styles.link,
+            type === 'linknounderline' && styles.linknounderline,
             style,
           ]}
           {...rest}
@@ -198,6 +199,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   link: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: '#46d1ffff',
+  },
+  linknounderline: {
     fontSize: 16,
     lineHeight: 26,
     color: '#46d1ffff',
