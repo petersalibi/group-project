@@ -195,7 +195,7 @@ export default function Home() {
           }}
         >
           <ThemedText style={{ fontSize: 14 }}>
-            © 2025 Discovering Dimensions. All rights reserved.
+            © 2026 Discovering Dimensions. All rights reserved.
           </ThemedText>
         </ThemedView>
       )}
