@@ -134,7 +134,7 @@ def parse_minimiser_params(params: dict):
 # Assume last column are the training labels
 # Numeric data is treated as float32, categorical data as long
 # String data converted to categorical codes first
-# Returns X, y tensors and input/output dimensions
+# Returns X, y tensors, input/output dimensions and column labels
 def rawdata_to_training_data(rawdata: str):
     # convert raw CSV string to pandas DataFrame
     from io import StringIO
@@ -180,4 +180,16 @@ def rawdata_to_training_data(rawdata: str):
     inputs = X_tensor.shape[1]
     outputs = len(pd.unique(y)) if y.dtype == 'object' or pd.api.types.is_categorical_dtype(y) else 1
     
-    return X_tensor, y_tensor, inputs, outputs
+    # gets the original column labels, expanding for one-hot encoded columns
+    # label column is included at the end
+    column_labels = []
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            col_data = pd.Categorical(df[col])
+            for category in col_data.cat.categories:
+                column_labels.append(f"{col}_{category}")
+        else:
+            column_labels.append(col)
+
+
+    return X_tensor, y_tensor, inputs, outputs, column_labels
