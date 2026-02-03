@@ -26,9 +26,21 @@ class LandscapeParams:
 
 def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
-
     model = Model(landscape_params.network, data.inputs, data.outputs)
+    
     dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
+    
+    k=1
+    pca_mean = None
+    if landscape_params.method == VisualisationMethod.PCAMINIMISER :
+        pca_trajectories = get_pca_directions(None, landscape_params.args, transformed_points=True)
+
+        landscape_params.scale = [k*pca_trajectories[:, 0].min(), k*pca_trajectories[:, 0].max(),
+                                  k*pca_trajectories[: , 1].min(), k*pca_trajectories[:, 1].max()]
+        
+        # args contains your list of 300 weight vectors
+        traj_tensors = [torch.tensor(p) for p in landscape_params.args]
+        pca_mean = torch.mean(torch.stack(traj_tensors), dim=0)
 
     # Torch.inference_mode makes the nn not waste computation by calculating gradients
     with torch.inference_mode():
@@ -37,7 +49,8 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
                                                         landscape_params.loss, 
                                                         landscape_params.surface_samples,
                                                         landscape_params.scale,
-                                                        verbose=verbose)
+                                                        verbose=verbose,
+                                                        pca_mean = pca_mean)
 
     return {"surface": loss_surface.tolist(),
             "surface_log": loss_surface_log.tolist(),
@@ -45,22 +58,34 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "y_axis": yAxis.tolist(),
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
-            "theta_0": flatten_params(model.parameters()).tolist()}
+            "theta_0": flatten_params(model.parameters()).tolist(),
+            "pca_mean" : pca_mean}
 
-def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False):
+def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False, pca_mean = None):
+
+    if not ( isinstance(scale, list) or isinstance(scale, tuple) ) :
+        scale = [-scale, scale, -scale, scale]
+        
+    alpha_min, alpha_max, beta_min, beta_max = scale
 
     if verbose:
         start = time.time()
 
-    # set all parameters to zero
-    for p in model.parameters():
-        p.data.zero_()
+    if pca_mean is not None:
+            # This aligns the Map (0,0) with the Ball (0,0)
+            set_params_from_vector(model, pca_mean)
 
     # backup original state
     saved = {k: v.clone() for k,v in model.state_dict().items()}
 
-    alphas = torch.linspace(-scale, scale, samples)
-    betas  = torch.linspace(-scale, scale, samples)
+    # # set all parameters to zero
+    # for p in model.parameters():
+    #     p.data.zero_()
+
+
+
+    alphas = torch.linspace(alpha_min, alpha_max, samples)
+    betas  = torch.linspace(beta_min, beta_max, samples)
     loss_surface = torch.zeros(samples, samples)
 
     if y.ndim==1 and isinstance(loss, (torch.nn.BCELoss, torch.nn.BCEWithLogitsLoss)):
@@ -74,8 +99,10 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
 
         for j, b in enumerate(betas):
 
-            for p, d1, d2 in zip(params_list, dir1, dir2):
-                p.data.copy_(a*d1 + b*d2)
+            # To this:
+            for (name, p), d1, d2 in zip(model.named_parameters(), dir1, dir2):
+                # We take the original weight (saved[name]) and ADD the PCA offsets
+                p.data.copy_(saved[name] + a*d1 + b*d2)
 
             loss_surface[i,j] = loss(model(X), y).item()
 

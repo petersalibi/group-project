@@ -87,12 +87,14 @@ def get_filterwise_directions(model):
 
 def get_pca_directions(model, minimiser_trajectories, 
                        add_random_noise : bool = True, 
-                       n_points : int =1, sigma : float = 0.02) -> tuple[list[list[float]]]:
+                       n_points : int =1, sigma : float = 0.02,
+                       transformed_points : bool = False) -> tuple[list[list[float]]]:
     # Convert List[List[float]] to Tensor
     trajectory_tensors = [
         torch.tensor(p, dtype=torch.float32)
         for p in minimiser_trajectories
     ]
+    
 
     X = torch.stack(trajectory_tensors).cpu().numpy()
 
@@ -103,22 +105,25 @@ def get_pca_directions(model, minimiser_trajectories,
         X = np.vstack([X, perturbations])
 
     # Center trajectory (critical)
-    X = ( X - X.mean(axis=0, keepdims=True) ) / ( X.std(axis=0, keepdims=True) + 1e-10 )
+    X = ( X - X.mean(axis=0, keepdims=True) )  / ( X.std(axis=0, keepdims=True) + 1e-10 )
 
     pca = PCA(n_components=2)
-    
     pca.fit(X)
+    
+    # PCA-transformed points; these correspond directly to the loss points on the loss path!
+    if transformed_points: return pca.transform(X)
 
     # PCA unit directions
     pc1 = torch.tensor(pca.components_[0], dtype=torch.float32)
     pc2 = torch.tensor(pca.components_[1], dtype=torch.float32)
 
-    # Scale by sqrt of explained variance
-    scale1 = pca.explained_variance_[0] ** 0.5
-    scale2 = pca.explained_variance_[1] ** 0.5
 
-    pc1 = pc1 * scale1
-    pc2 = pc2 * scale2
+    # # Scale by sqrt of explained variance
+    # scale1 = pca.explained_variance_[0] ** 0.5
+    # scale2 = pca.explained_variance_[1] ** 0.5
+
+    # pc1 = pc1 * scale1
+    # pc2 = pc2 * scale2
 
     # Unflatten into parameter-shaped tensors
     dir1, dir2 = [], []

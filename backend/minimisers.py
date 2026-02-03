@@ -70,7 +70,7 @@ def animate_optimiser(params: MinimiserParams):
         )
         fidelity = 1.0
     else:
-        fidelity = _train_free(
+        fidelity, loss_path = _train_free(
             params, model, data, minimiser_path, parameters_path
         )
 
@@ -81,6 +81,7 @@ def animate_optimiser(params: MinimiserParams):
         "minimiser_path": minimiser_path,
         "parameters_path": parameters_path,
         "fidelity": fidelity,
+        "loss_path" : loss_path
     }
 
 def _prepare_data_and_model(params):
@@ -143,6 +144,8 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
     # full_path_length should always be >= plane_path_length
     full_path_length = 0.0
     plane_path_length = 0.0
+    
+    loss_path = []
 
     for i in range(params.epochs):
         print_progress_bar(i, params.epochs, prefix="Progress:", suffix="Complete", length=50)
@@ -166,9 +169,10 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
 
         minimiser_path.append((a, b))
         parameters_path.append(theta.tolist())
+        loss_path.append(loss.item())
 
     fidelity = plane_path_length / (full_path_length + 1e-12) # avoid div by zero
-    return fidelity
+    return fidelity, loss_path
 
 
 
