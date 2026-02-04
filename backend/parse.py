@@ -173,7 +173,7 @@ def rawdata_to_training_data(rawdata: str):
     if y.dtype == 'object' or pd.api.types.is_categorical_dtype(y):
         y_cat = y.astype('category')
         codes = y_cat.cat.codes.values
-        y_tensor = torch.tensor(codes, dtype=torch.float32)
+        y_tensor = torch.tensor(codes, dtype=torch.long)
     else:
         y_tensor = torch.tensor(y.values, dtype=torch.float32)
     

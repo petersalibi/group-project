@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Platform, StyleSheet, View, Button, Switch, useWindowDimensions, DimensionValue } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import {
@@ -21,6 +21,8 @@ import { ThemedView } from './themed-view';
 interface LandscapeControlsProps {
   // State values
   data: string;
+  inputs: number;
+  outputs: number;
   depth: number;
   width: number;
   activation: string;
@@ -51,6 +53,8 @@ interface LandscapeControlsProps {
 export function LandscapeControls(props: LandscapeControlsProps) {
   const {
     data,
+    inputs,
+    outputs,
     depth,
     width,
     activation,
@@ -100,25 +104,41 @@ export function LandscapeControls(props: LandscapeControlsProps) {
   const handleDataChange = (itemValue: string) => {
     if (itemValue === data) return;
     setData(itemValue);
+  };
 
-    switch (itemValue) {
+  useEffect(() => {
+    let newLosses = regLosses; // Default fallback
+
+    switch (data) {
       case 'SINREGRESSION':
-        setLosses(regLosses);
-        setLoss(regLosses[0].value);
+        newLosses = regLosses;
         break;
       case 'PENGUINS':
-        setLosses(ceLoss);
-        setLoss(ceLoss[0].value);
+        newLosses = ceLoss;
         break;
       case 'PURPLECOLOURS':
-        setLosses(bceLoss);
-        setLoss(bceLoss[0].value);
+        newLosses = bceLoss;
         break;
       case 'CUSTOM':
-        setLosses(allLosses);
-        setLoss(allLosses[0].value);
+        // Now this logic runs automatically if 'outputs' changes!
+        if (outputs > 1) {
+          newLosses = ceLoss;
+        } else {
+          newLosses = regLosses; // Default for outputs === 1
+        }
+        break;
     }
-  };
+
+    setLosses(newLosses);
+    
+    // Optional: Reset the selected loss to the first option if the current selection 
+    // is no longer valid for the new list.
+    const isCurrentLossValid = newLosses.some(l => l.value === loss);
+    if (!isCurrentLossValid) {
+        setLoss(newLosses[0].value);
+    }
+
+  }, [data, outputs]); // <--- The critical part: Run whenever these change
 
   const [losses, setLosses] = React.useState(regLosses);
 

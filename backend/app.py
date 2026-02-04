@@ -26,12 +26,14 @@ def generatelandscape(params: dict):
         # construct LandscapeParams from parsed dict
         lp = parse_landscape_params(params)
     except Exception as e:
+        print(traceback.format_exc())
         raise HTTPException(status_code=400, detail=f"Failed to construct LandscapeParams: {e}")
     
     try:
         # generate the landscape
         return generate_loss_landscape(lp)
     except Exception as e:
+        print(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Failed to generate loss landscape: {e} \n {traceback.format_exc()}")
 

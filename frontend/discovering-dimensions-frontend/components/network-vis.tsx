@@ -126,9 +126,9 @@ const NetworkWeightKey = () => (
 );
 
 const FONT_FAMILY = Platform.select({
-  ios: 'Menlo',
-  android: 'monospace',
-  default: 'Courier',
+  ios: 'System',
+  android: 'sans-serif',
+  default: 'Arial',
 });
 
 export default function NetworkVis({
@@ -463,36 +463,55 @@ export default function NetworkVis({
           })}
         </G>
         {displayNodes.map((n) => {
-          // --- Render Ellipsis Nodes ---
+          // Render Ellipsis Nodes
           if (n.type === 'ellipsis-v' || n.type === 'ellipsis-h') {
-             return (
-                <G key={n.id} opacity={n.opacity}>
-                    <SvgText
-                        x={n.x}
-                        y={n.y + (n.type === 'ellipsis-v' ? 5 : 5)} // mild visual centering adjustment
-                        fill="#fff"
-                        fontSize="24"
-                        fontWeight="bold"
-                        fontFamily={FONT_FAMILY}
-                        textAnchor="middle"
-                    >
-                        {n.type === 'ellipsis-v' ? '⋮' : '…'}
-                    </SvgText>
-                    {n.truncatedCount && (
-                      <SvgText
-                        x={n.type === 'ellipsis-v' ? n.x + 8 : n.x} // Right of vertical, Center of horizontal
-                        y={n.type === 'ellipsis-v' ? n.y : n.y - 15} // Center of vertical, Above horizontal
-                        fill="#fff"
-                        fontSize="10"
-                        fontWeight="bold"
-                        fontFamily={FONT_FAMILY}
-                        textAnchor={n.type === 'ellipsis-v' ? 'start' : 'middle'}
-                      >
-                        {n.type === 'ellipsis-v' ? `+${n.truncatedCount}` : `${n.truncatedCount} LAYERS`}
-                      </SvgText>
-                    )}
-                </G>
-             );
+            const isVertical = n.type === 'ellipsis-v';
+            const offset = isVertical ? 25 : 60;
+            
+            return (
+              <G key={n.id} opacity={n.opacity}>
+                <SvgText
+                  x={isVertical ? n.x : n.x - offset}
+                  y={isVertical ? n.y - offset : n.y + 3}
+                  fill="#ffffff"
+                  fontSize="50"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  fontFamily={FONT_FAMILY}
+                >
+                  {isVertical ? '⋮' : '…'}
+                </SvgText>
+
+                {n.truncatedCount && (
+                  <SvgText
+                    x={n.x}
+                    y={n.y + 4}
+                    fill="#fff"
+                    fontSize="12"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                    fontFamily={FONT_FAMILY}
+                    letterSpacing={0.1}
+                  >
+                    {isVertical 
+                      ? `${n.truncatedCount} Nodes` 
+                      : `${n.truncatedCount} Layers`}
+                  </SvgText>
+                )}
+
+                <SvgText
+                  x={isVertical ? n.x : n.x + offset}
+                  y={isVertical ? n.y + offset + 30 : n.y + 3}
+                  fill="#fff"
+                  fontSize="50"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  fontFamily={FONT_FAMILY}
+                >
+                  {isVertical ? '⋮' : '…'}
+                </SvgText>
+              </G>
+            );
           }
 
           // --- Render Standard Nodes ---

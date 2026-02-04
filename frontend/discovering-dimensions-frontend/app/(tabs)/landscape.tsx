@@ -131,7 +131,6 @@ export default function LandscapeWithPath() {
   });
 
   // --- UI Handlers ---
-
   useEffect(() => {
     if (data === 'CUSTOM' && customDatasetInputs !== null && customDatasetOutputs !== null) {
       setInputs(customDatasetInputs);
@@ -280,6 +279,8 @@ export default function LandscapeWithPath() {
       <View style={styles.topBar}>
         <LandscapeControls
           data={data}
+          inputs={inputs}
+          outputs={outputs}
           depth={depth}
           width={width}
           activation={activation}
