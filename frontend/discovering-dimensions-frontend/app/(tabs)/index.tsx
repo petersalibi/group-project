@@ -1,4 +1,4 @@
-import { Image, Platform, View, Dimensions, Pressable } from 'react-native';
+import { Platform, View, Pressable } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedBackground } from '@/components/themed-background';
@@ -11,7 +11,6 @@ import Animated, {
   ZoomOut,
   withSpring,
 } from 'react-native-reanimated';
-import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
 import Svg, { Line } from 'react-native-svg';
 
@@ -48,11 +47,11 @@ function Neuron({
         onHoverOut={() => (scale.value = withSpring(1))}
         onPressIn={() => (scale.value = withSpring(1.08))}
         onPressOut={() => (scale.value = withSpring(1))}
-        style={{ 
-          width: size, 
-          height: size, 
-          alignItems: 'center', 
-          justifyContent: 'center' 
+        style={{
+          width: size,
+          height: size,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <Animated.View
@@ -64,21 +63,21 @@ function Neuron({
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: '#00c2cc',
-                ...(Platform.OS === 'web'
-                  ? {
-                      backgroundImage:
-                        'linear-gradient(180deg, #22f3ff 0%, #00c2cc 100%)',
-                      boxShadow:
-                        id === 'landscape'
-                          ? '0 0 60px rgba(34, 243, 255, 0.6)'
-                          : '0 0 30px rgba(34, 243, 255, 0.35)',
-                    }
-                  : {
-                      shadowColor: '#22f3ff',
-                      shadowOpacity: id === 'landscape' ? 0.6 : 0.35,
-                      shadowRadius: id === 'landscape' ? 24 : 16,
-                      elevation: id === 'landscape' ? 12 : 8,
-                    }),
+              ...(Platform.OS === 'web'
+                ? {
+                    backgroundImage:
+                      'linear-gradient(180deg, #22f3ff 0%, #00c2cc 100%)',
+                    boxShadow:
+                      id === 'landscape'
+                        ? '0 0 60px rgba(34, 243, 255, 0.6)'
+                        : '0 0 30px rgba(34, 243, 255, 0.35)',
+                  }
+                : {
+                    shadowColor: '#22f3ff',
+                    shadowOpacity: id === 'landscape' ? 0.6 : 0.35,
+                    shadowRadius: id === 'landscape' ? 24 : 16,
+                    elevation: id === 'landscape' ? 12 : 8,
+                  }),
               zIndex: 10,
             },
             animatedStyle,
@@ -90,7 +89,7 @@ function Neuron({
               fontWeight: '600',
               textAlign: 'center',
             }}
-            darkColor="#000"
+            darkColor='#000'
           >
             {label}
           </ThemedText>
@@ -111,47 +110,110 @@ function CurriculumNetwork() {
       }}
     >
       <Svg
-        width="100%"
-        height="100%"
+        width='100%'
+        height='100%'
         style={{ position: 'absolute', top: 0, left: 0 }}
       >
         {/* Input (16.6%) -> Hidden (50%) */}
-        <Line x1="16.66%" y1={Y_TOP} x2="50%" y2={Y_TOP} stroke="#fff" strokeWidth={2} opacity={0.5} />
-        <Line x1="16.66%" y1={Y_TOP} x2="50%" y2={Y_BOTTOM} stroke="#fff" strokeWidth={2} opacity={0.5} />
-        <Line x1="16.66%" y1={Y_BOTTOM} x2="50%" y2={Y_TOP} stroke="#fff" strokeWidth={2} opacity={0.5} />
-        <Line x1="16.66%" y1={Y_BOTTOM} x2="50%" y2={Y_BOTTOM} stroke="#fff" strokeWidth={2} opacity={0.5} />
+        <Line
+          x1='16.66%'
+          y1={Y_TOP}
+          x2='50%'
+          y2={Y_TOP}
+          stroke='#fff'
+          strokeWidth={2}
+          opacity={0.5}
+        />
+        <Line
+          x1='16.66%'
+          y1={Y_TOP}
+          x2='50%'
+          y2={Y_BOTTOM}
+          stroke='#fff'
+          strokeWidth={2}
+          opacity={0.5}
+        />
+        <Line
+          x1='16.66%'
+          y1={Y_BOTTOM}
+          x2='50%'
+          y2={Y_TOP}
+          stroke='#fff'
+          strokeWidth={2}
+          opacity={0.5}
+        />
+        <Line
+          x1='16.66%'
+          y1={Y_BOTTOM}
+          x2='50%'
+          y2={Y_BOTTOM}
+          stroke='#fff'
+          strokeWidth={2}
+          opacity={0.5}
+        />
 
         {/* Hidden (50%) -> Output (83.3%) */}
-        <Line x1="50%" y1={Y_TOP} x2="83.33%" y2={Y_MIDDLE} stroke="#fff" strokeWidth={2} opacity={0.5} />
-        <Line x1="50%" y1={Y_BOTTOM} x2="83.33%" y2={Y_MIDDLE} stroke="#fff" strokeWidth={2} opacity={0.5} />
+        <Line
+          x1='50%'
+          y1={Y_TOP}
+          x2='83.33%'
+          y2={Y_MIDDLE}
+          stroke='#fff'
+          strokeWidth={2}
+          opacity={0.5}
+        />
+        <Line
+          x1='50%'
+          y1={Y_BOTTOM}
+          x2='83.33%'
+          y2={Y_MIDDLE}
+          stroke='#fff'
+          strokeWidth={2}
+          opacity={0.5}
+        />
       </Svg>
 
       <View style={{ flexDirection: 'row', width: '100%', height: '100%' }}>
-        
         <View style={{ width: '33.33%', height: '100%', alignItems: 'center' }}>
           <View style={{ position: 'absolute', top: 0 }}>
-             <Neuron id="loss1" label="What is Loss?" href="/curriculum/loss" />
+            <Neuron id='loss1' label='What is Loss?' href='/curriculum/loss' />
           </View>
           <View style={{ position: 'absolute', top: Y_BOTTOM - NODE_RADIUS }}>
-             <Neuron id="loss2" label="Neurons & Layers" href="/curriculum/networks" />
+            <Neuron
+              id='loss2'
+              label='Neurons & Layers'
+              href='/curriculum/networks'
+            />
           </View>
         </View>
 
         <View style={{ width: '33.33%', height: '100%', alignItems: 'center' }}>
-           <View style={{ position: 'absolute', top: 0 }}>
-            <Neuron id="opt1" label="Optimisation" href="/curriculum/optimisation" />
-           </View>
-           <View style={{ position: 'absolute', top: Y_BOTTOM - NODE_RADIUS }}>
-            <Neuron id="opt2" label="Activation" href="/curriculum/activation" />
-           </View>
+          <View style={{ position: 'absolute', top: 0 }}>
+            <Neuron
+              id='opt1'
+              label='Optimisation'
+              href='/curriculum/optimisation'
+            />
+          </View>
+          <View style={{ position: 'absolute', top: Y_BOTTOM - NODE_RADIUS }}>
+            <Neuron
+              id='opt2'
+              label='Activation'
+              href='/curriculum/activation'
+            />
+          </View>
         </View>
 
         <View style={{ width: '33.33%', height: '100%', alignItems: 'center' }}>
-           <View style={{ position: 'absolute', top: Y_MIDDLE - (150/2) }}>
-            <Neuron id="landscape" label="Loss Landscapes" href="/landscape" size={150} />
-           </View>
+          <View style={{ position: 'absolute', top: Y_MIDDLE - 150 / 2 }}>
+            <Neuron
+              id='landscape'
+              label='Loss Landscapes'
+              href='/landscape'
+              size={150}
+            />
+          </View>
         </View>
-
       </View>
 
       <ThemedText
@@ -163,8 +225,8 @@ function CurriculumNetwork() {
           maxWidth: 600,
         }}
       >
-        Start from the fundamentals and progress through the network, as 
-        each concept feeds into the final loss landscape visualisation.
+        Start from the fundamentals and progress through the network, as each
+        concept feeds into the final loss landscape visualisation.
       </ThemedText>
     </View>
   );
@@ -204,7 +266,10 @@ export default function Home() {
           minHeight: '100%',
         }}
       >
-        <Animated.View entering={FadeIn.duration(1000)} exiting={ZoomOut.duration(500)}>
+        <Animated.View
+          entering={FadeIn.duration(1000)}
+          exiting={ZoomOut.duration(500)}
+        >
           <Animated.View style={titleAnimatedStyle}>
             <ThemedText
               style={{
@@ -228,8 +293,8 @@ export default function Home() {
             maxWidth: 700,
           }}
         >
-          Learn how neural networks learn — from loss and optimisation
-          to the geometry of loss landscapes.
+          Learn how neural networks learn — from loss and optimisation to the
+          geometry of loss landscapes.
         </ThemedText>
 
         {/* Curriculum Network */}
@@ -247,7 +312,7 @@ export default function Home() {
           }}
         >
           <ThemedText style={{ fontSize: 14 }}>
-            © 2025 Discovering Dimensions
+            © 2026 Discovering Dimensions
           </ThemedText>
         </ThemedView>
       )}
