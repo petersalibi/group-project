@@ -72,6 +72,16 @@ export default function CurriculumScreen() {
                 <ThemedText
                   style={{
                     pointerEvents:
+                      pathname === '/curriculum/loss' ? 'none' : 'auto',
+                  }}
+                  type={pathname === '/curriculum/loss' ? 'text' : 'link'}
+                  onPress={() => router.navigate('/curriculum/loss')}
+                >
+                  Understanding loss
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    pointerEvents:
                       pathname === '/curriculum/stage-2' ? 'none' : 'auto',
                   }}
                   type={pathname === '/curriculum/stage-2' ? 'text' : 'link'}
