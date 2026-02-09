@@ -11,8 +11,9 @@ type IconProps = {
 };
 
 function useIconColor(propColor?: string) {
-  const { theme } = useTheme();
-  return propColor || theme.colors.primary;
+  const { theme, isDark } = useTheme();
+  const brandAccent = isDark ? '#C6F382' : '#353F91';
+  return propColor || brandAccent;
 }
 
 export function DataIcon({ size = 24, color }: IconProps) {
@@ -96,7 +97,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
 
-export function LandscapeLoadingIcon({ isLoading, size = 300, colour = "white" }) {
+export function LandscapeLoadingIcon({ isLoading, size = 300 }) {
   // Animation Values
   const liftAnim = React.useRef(new Animated.Value(0)).current;
   const lineAnim = React.useRef(new Animated.Value(0)).current;
@@ -207,7 +208,7 @@ export function LandscapeLoadingIcon({ isLoading, size = 300, colour = "white" }
               outputRange: [0, 0, q.opacity, q.opacity],
               extrapolate: 'clamp'
             });
-            return <AnimatedPolygon key={`q${i}`} points={pts} fill={colour} opacity={opacity} />;
+            return <AnimatedPolygon key={`q${i}`} points={pts} fill={useIconColor()} opacity={opacity} />;
           })}
 
           {/* Lines */}
@@ -222,7 +223,7 @@ export function LandscapeLoadingIcon({ isLoading, size = 300, colour = "white" }
             );
             return (
               <AnimatedLine key={`l${i}`}
-                x1={start.x} x2={end.x} stroke={colour} strokeWidth="0.3" opacity={opacity}
+                x1={start.x} x2={end.x} stroke={useIconColor()} strokeWidth="0.3" opacity={opacity}
                 y1={liftAnim.interpolate({ inputRange: [0, 1], outputRange: [start.y, start.targetY] })}
                 y2={liftAnim.interpolate({ inputRange: [0, 1], outputRange: [end.y, end.targetY] })}
               />
@@ -231,7 +232,7 @@ export function LandscapeLoadingIcon({ isLoading, size = 300, colour = "white" }
 
           {/* Dots */}
           {dots.map((d, i) => (
-            <AnimatedCircle key={`d${i}`} cx={d.x} fill={colour} opacity={vanishAnim}
+            <AnimatedCircle key={`d${i}`} cx={d.x} fill={useIconColor()} opacity={vanishAnim}
               cy={liftAnim.interpolate({ inputRange: [0, 1], outputRange: [d.y, d.targetY] })}
               r={vanishAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] })}
             />
@@ -247,7 +248,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
     zIndex: 20,
   },
 });

@@ -191,7 +191,7 @@ export function VisualisationPage() {
             )}
 
             {/* Canvas Container */}
-            <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: '#000' }} />
+            <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: 'transparent' }} />
             
             {/*
             <View style={styles.playbackBar}>
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   pathCard: { padding: 12, backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 8, borderLeftWidth: 4, gap: 12 },
   pathTitle: { fontSize: 10, fontWeight: '900' },
   exportBtn: { marginTop: 10 },
-  engineContainer: { flex: 1, backgroundColor: '#000000', overflow: 'hidden', position: 'relative' },
+  engineContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.1)', overflow: 'hidden', position: 'relative' },
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
   hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
   hudTitle: { color: 'white', fontSize: 18, fontWeight: '800' },
