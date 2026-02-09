@@ -103,7 +103,6 @@ function DropdownMenuSeparator() {
   return <View style={[styles.separator, { backgroundColor: theme.colors.border }]} />;
 }
 
-// Styles to maintain the high-density "Design Lab" look
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,

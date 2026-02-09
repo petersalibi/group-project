@@ -15,7 +15,8 @@ import { Slider } from "../components/slider";
 import { NumberInput } from "../components/number-input";
 import { Button } from "../components/button";
 import { Progress } from "../components/progress";
-// Import your new Dropdown components
+import { LandscapeLoadingIcon } from "../components/icons/icons";
+
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -23,13 +24,34 @@ import {
   DropdownMenuItem 
 } from "../components/dropdown-menu";
 
-export function VisualizationPage() {
+import { useLossLandscape } from "../hooks/loss-landscape";
+
+export function VisualisationPage() {
   const { theme, isDark } = useTheme();
   const brandAccent = isDark ? '#C6F382' : '#353F91';
   
-  const [meshDepth, setMeshDepth] = useState(50);
-  const [activation, setActivation] = useState("ReLU");
+  const [activation, setActivation] = useState<string>('ReLU');
+  const [inputs, setInputs] = useState<number>(1);
+  const [depth, setDepth] = useState<number>(2);
+  const [width, setWidth] = useState<number>(10);
+  const [outputs, setOutputs] = useState<number>(1);
+  const [method, setMethod] = useState<string>('RANDOMDIRS');
+  const [data, setData] = useState<string>('SINREGRESSION');
+  const [loss, setLoss] = useState<string>('MSELoss');
   const [optimizer, setOptimizer] = useState("SGD");
+
+  const { 
+    isLandscapeLoading,
+    onGenerateLandscape,
+    containerRef,
+  } = useLossLandscape({
+    activation,
+    depth,
+    width,
+    method,
+    data,
+    loss,
+  });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -78,11 +100,11 @@ export function VisualizationPage() {
             <View style={styles.controlGroup}>
               <View style={styles.rowBetween}>
                 <Text style={styles.label}>MESH DEPTH</Text>
-                <Text style={[styles.label, { color: brandAccent }]}>{meshDepth}</Text>
+                <Text style={[styles.label, { color: brandAccent }]}>{depth}</Text>
               </View>
               <Slider 
-                value={meshDepth} 
-                onValueChange={setMeshDepth} 
+                value={depth} 
+                onValueChange={setDepth} 
                 minimumValue={10} 
                 maximumValue={100} 
               />
@@ -102,6 +124,14 @@ export function VisualizationPage() {
                 </View>
               </View>
             </View>
+
+            <Button
+              variant="secondary"
+              disabled={isLandscapeLoading}
+              onPress={() => {onGenerateLandscape()}}
+              style={styles.exportBtn}>
+              Generate Landscape
+            </Button>
 
             {/* PATH DETAILS CARD */}
             <View style={styles.controlGroup}>
@@ -153,12 +183,17 @@ export function VisualizationPage() {
               <RotateCcw size={18} color="white" />
               <RefreshCw size={18} color="white" />
             </View>
+            
+            {isLandscapeLoading && (
+              <View style={styles.hudOverlay}>
+                <LandscapeLoadingIcon isLoading={isLandscapeLoading} />
+              </View>
+            )}
 
-            <View style={styles.hudOverlay}>
-               <Text style={styles.hudTitle}>3D Loss Landscape Visualization</Text>
-               <Text style={styles.hudSubtitle}>Interactive 3D surface rendering</Text>
-            </View>
-
+            {/* Canvas Container */}
+            <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: '#000' }} />
+            
+            {/*
             <View style={styles.playbackBar}>
               <View style={styles.playbackActions}>
                 <SkipBack size={20} color="white" />
@@ -170,6 +205,7 @@ export function VisualizationPage() {
               </View>
               <Text style={styles.frameCounter}>51/120</Text>
             </View>
+            */}
           </View>
         </DockPanel>
 
@@ -198,9 +234,9 @@ const styles = StyleSheet.create({
   pathCard: { padding: 12, backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 8, borderLeftWidth: 4, gap: 12 },
   pathTitle: { fontSize: 10, fontWeight: '900' },
   exportBtn: { marginTop: 10 },
-  engineContainer: { flex: 1, backgroundColor: '#5B62B3', overflow: 'hidden' },
+  engineContainer: { flex: 1, backgroundColor: '#000000', overflow: 'hidden', position: 'relative' },
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
-  hudOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
   hudTitle: { color: 'white', fontSize: 18, fontWeight: '800' },
   hudSubtitle: { color: 'white', opacity: 0.7, fontSize: 12, marginTop: 4 },
   playbackBar: { position: 'absolute', bottom: 20, left: 20, right: 20, height: 54, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 16 },
