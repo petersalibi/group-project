@@ -34,6 +34,7 @@ export interface UseVisualisationProps {
   width: number;
   method: string;
   data: string;
+  csv: string;
   loss: string;
 }
 
@@ -44,6 +45,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         width,
         method,
         data,
+        csv,
         loss,
     } = props;
 
@@ -64,10 +66,10 @@ export function useVisualisation(props: UseVisualisationProps) {
 
     // --- Internal state refs ---
     const dataRef = useRef<string>(data);
-    const csvRef = useRef<string | null>(null);
     const lossRef = useRef<string>(loss);
     const activationRef = useRef<string>(activation);
     const depthRef = useRef<number>(depth);
+    const csvRef = useRef<string | null>(csv);
     const widthRef = useRef<number>(width);
     const dictRef = useRef<any>(null);
     const originRef = useRef<number[] | null>(null);
@@ -269,7 +271,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         meshRef.current = null;
         let raw_data = null;
         if (data === 'CUSTOM') {
-        raw_data = csvRef.current;
+            raw_data = csv;
         }
         try {
         const paramString = {
@@ -283,6 +285,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         const dict = resp.data;
 
         dataRef.current = data;
+        csvRef.current = csv;
         lossRef.current = loss;
         activationRef.current = activation;
         depthRef.current = depth;
@@ -353,6 +356,7 @@ export function useVisualisation(props: UseVisualisationProps) {
 
     return {
         isLandscapeLoading,
+        isLandscapeLoaded,
         handleGenerateLandscapeButtonClick,
         containerRef: setContainerRef,
     }

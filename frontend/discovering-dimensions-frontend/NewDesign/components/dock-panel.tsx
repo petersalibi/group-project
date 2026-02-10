@@ -26,7 +26,7 @@ export function DockPanel({ id, title, children }: { id: string, title: string, 
       tw.value = withTiming(slot.w);
       th.value = withTiming(slot.h);
     }
-  }, [slot, isDragging.value]);
+  }, [slot, isDragging, tx, ty, tw, th]);
 
   const pan = Gesture.Pan()
     .onStart(() => { 
@@ -53,13 +53,13 @@ export function DockPanel({ id, title, children }: { id: string, title: string, 
   }));
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View style={[{ backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, overflow: 'hidden' }, animStyle]}>
+    <Animated.View style={[{ backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, overflow: 'hidden' }, animStyle]}>
+      <GestureDetector gesture={pan}>
         <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
           <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>
         </View>
-        <View style={{ flex: 1 }}>{children}</View>
-      </Animated.View>
-    </GestureDetector>
+      </GestureDetector>
+      <View style={{ flex: 1 }}>{children}</View>
+    </Animated.View>
   );
 }

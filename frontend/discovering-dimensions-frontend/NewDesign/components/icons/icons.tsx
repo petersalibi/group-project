@@ -93,9 +93,19 @@ export function ModelIcon({ size = 24, color }: IconProps) {
   );
 }
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedLine = Animated.createAnimatedComponent(Line);
-const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
+const makeAnimated = (Component) => {
+  const Wrapped = React.forwardRef(({ collapsable, ...props }, ref) => (
+    <Component ref={ref} {...props} />
+  ));
+  // Set a display name for debugging (optional)
+  Wrapped.displayName = `Animated${Component.displayName || Component.name}`;
+  return Animated.createAnimatedComponent(Wrapped);
+};
+
+// 2. Create your Animated components using the helper
+const AnimatedCircle = makeAnimated(Circle);
+const AnimatedLine = makeAnimated(Line);
+const AnimatedPolygon = makeAnimated(Polygon);
 
 export function LandscapeLoadingIcon({ isLoading, size = 300 }) {
   // Animation Values

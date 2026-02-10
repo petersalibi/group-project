@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { Platform, View, ScrollView, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { 
   Play, SkipBack, SkipForward, Maximize2, 
@@ -11,7 +11,8 @@ import { LayoutManager } from "../components/docking-provider";
 import { DockPanel } from "../components/dock-panel";
 import { StatsGroupPanel } from "../components/stats-group-panel";
 import { Text } from "../components/text";
-import { Slider } from "../components/slider";
+import { VerticalSlider } from "../components/vertical-slider";
+import { Switch } from "../components/switch";
 import { NumberInput } from "../components/number-input";
 import { Button } from "../components/button";
 import { Progress } from "../components/progress";
@@ -24,6 +25,8 @@ import {
   DropdownMenuItem 
 } from "../components/dropdown-menu";
 
+import { dataSets, activations, methods, allLosses, regLosses, ceLoss, bceLoss } from '../constants/constants';
+
 import { useLossLandscape } from "../hooks/loss-landscape";
 
 export function VisualisationPage() {
@@ -31,18 +34,27 @@ export function VisualisationPage() {
   const brandAccent = isDark ? '#C6F382' : '#353F91';
   
   const [activation, setActivation] = useState<string>('ReLU');
-  const [inputs, setInputs] = useState<number>(1);
   const [depth, setDepth] = useState<number>(2);
   const [width, setWidth] = useState<number>(10);
-  const [outputs, setOutputs] = useState<number>(1);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
   const [data, setData] = useState<string>('SINREGRESSION');
   const [loss, setLoss] = useState<string>('MSELoss');
+  const [losses, setLosses] = useState(regLosses);
+  const [logPlot, setLogPlot] = useState(true);
+  const [zValue, setZValue] = useState(1);
   const [optimizer, setOptimizer] = useState("SGD");
 
   const { 
     isLandscapeLoading,
+    isLandscapeLoaded,
     onGenerateLandscape,
+    onUploadCsv,
+    loadingCsv,
+    csvLoaded,
+    datasetInputs,
+    setDatasetInputs,
+    datasetOutputs,
+    setDatasetOutputs,
     containerRef,
   } = useLossLandscape({
     activation,
@@ -53,28 +65,118 @@ export function VisualisationPage() {
     loss,
   });
 
+  const hiddenFileInput = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<String | null>(null)
+
+  const handleUploadPress = () => {
+    if (Platform.OS === 'web') {
+      hiddenFileInput.current?.click();
+    } else {
+      if (onUploadCsv) onUploadCsv(null); 
+    }
+  };
+
+  const handleWebFileChange = (event: any) => {
+    const file = event.target.files[0];
+    if (file && onUploadCsv) {
+      onUploadCsv(file);
+      setFileName(file.name);
+    }
+  };
+
+  // Adjust inputs/outputs when dataset changes
+  useEffect(() => {
+    switch (data) {
+      case 'SINREGRESSION':
+        setDatasetInputs(1);
+        setDatasetOutputs(1);
+        break;
+      case 'PENGUINS':
+        setDatasetInputs(4);
+        setDatasetOutputs(3);
+        break;
+      case 'PURPLECOLOURS':
+        setDatasetInputs(3);
+        setDatasetOutputs(1);
+        break;
+    }
+  }, [data])
+
+  // Adjust losses when dataset changes
+  useEffect(() => {
+    let newLosses = regLosses;
+
+    switch (data) {
+      case 'SINREGRESSION':
+        newLosses = regLosses;
+        break;
+      case 'PENGUINS':
+        newLosses = ceLoss;
+        break;
+      case 'PURPLECOLOURS':
+        newLosses = bceLoss;
+        break;
+      case 'CUSTOM':
+        newLosses = datasetOutputs > 1 ? ceLoss : regLosses;
+        break;
+    }
+
+    setLosses(newLosses);
+    setLoss(newLosses[0].value);
+
+  }, [data, datasetOutputs]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <LayoutManager>
         
         <DockPanel id="CONFIG" title="MODEL CONFIGURATION">
           <ScrollView contentContainerStyle={styles.sidebarContent}>
+
+            {Platform.OS === 'web' && (
+              <input
+                type="file"
+                accept=".csv"
+                ref={hiddenFileInput}
+                onChange={handleWebFileChange}
+                style={{ display: 'none' }}
+              />
+            )}
             
             {/* DATASET DROPDOWN */}
             <View style={styles.controlGroup}>
               <Text style={styles.label}>DATASET</Text>
+              {data === 'CUSTOM' && (
+                <Text style={styles.subLabel}>{csvLoaded && !loadingCsv ? fileName : ""}</Text>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>MNIST</Text>
+                    <Text style={styles.dropdownValue}>{dataSets[0].label}</Text>
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={() => {}}><Text>MNIST</Text></DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => {}}><Text>CIFAR-10</Text></DropdownMenuItem>
+                  {dataSets.map((item) => (
+                    <DropdownMenuItem key={item.id} onSelect={() => {setData(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </View>
+            {data === 'CUSTOM' && (
+              <View style={styles.controlGroup}>
+                <Button 
+                  disabled={loadingCsv}
+                  onPress={handleUploadPress}
+                >
+                  {loadingCsv 
+                    ? "Uploading..." 
+                    : csvLoaded 
+                      ? "Change File" 
+                      : "Select File"
+                  }
+                </Button>
+              </View>
+            )}
 
             {/* ACTIVATION DROPDOWN */}
             <View style={styles.controlGroup}>
@@ -83,20 +185,44 @@ export function VisualisationPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{activation}</Text>
+                    <Text style={styles.dropdownValue}>{activations[0].label}</Text>
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {['ReLU', 'Sigmoid', 'Tanh'].map((opt) => (
-                    <DropdownMenuItem key={opt} onSelect={() => setActivation(opt)}>
-                      <Text>{opt}</Text>
-                    </DropdownMenuItem>
+                  {activations.map((item) => (
+                    <DropdownMenuItem key={item.id} onSelect={() => {setActivation(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Text style={styles.subLabel}>Loss</Text>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
+                    <Text style={styles.dropdownValue}>{losses[0].label}</Text>
+                  </View>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {losses.map((item) => (
+                    <DropdownMenuItem key={item.id} onSelect={() => {setLoss(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Text style={styles.subLabel}>Method</Text>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
+                    <Text style={styles.dropdownValue}>{methods[0].label}</Text>
+                  </View>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {methods.map((item) => (
+                    <DropdownMenuItem key={item.id} onSelect={() => {setMethod(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </View>
 
-            {/* MESH DEPTH SLIDER */}
+            {/*
             <View style={styles.controlGroup}>
               <View style={styles.rowBetween}>
                 <Text style={styles.label}>MESH DEPTH</Text>
@@ -109,6 +235,7 @@ export function VisualisationPage() {
                 maximumValue={100} 
               />
             </View>
+            */}
 
             {/* ARCHITECTURE WITH STACKED NUMBER INPUTS */}
             <View style={styles.controlGroup}>
@@ -116,12 +243,14 @@ export function VisualisationPage() {
               <View style={styles.rowGap}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.subLabel}>Depth</Text>
-                  <NumberInput defaultValue={3} min={1} max={10} />
+                  <NumberInput defaultValue={3} value={depth} step={1} min={1} max={100} onChange={setDepth} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.subLabel}>Width</Text>
-                  <NumberInput defaultValue={10} min={1} max={128} />
-                </View>
+                {depth > 1 && (
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subLabel}>Width</Text>
+                    <NumberInput defaultValue={10} value={width} min={1} max={100} onChange={setWidth} />
+                  </View>
+                )}
               </View>
             </View>
 
@@ -176,13 +305,34 @@ export function VisualisationPage() {
         </DockPanel>
 
         {/* ENGINE AREA */}
-        <DockPanel id="ENGINE" title="LOSS LANDSCAPE VISUALIZATION">
+        <DockPanel id="ENGINE" title="LOSS LANDSCAPE VISUALISATION">
           <View style={styles.engineContainer}>
             <View style={styles.engineHeader}>
+              {isLandscapeLoaded && !isLandscapeLoading && (
+                <Text style={styles.label}>LOG PLOT</Text>
+              ) && (
+                <Switch checked={logPlot} onCheckedChange={setLogPlot}/>
+              )}
               <Maximize2 size={18} color="white" />
               <RotateCcw size={18} color="white" />
               <RefreshCw size={18} color="white" />
             </View>
+            
+            {isLandscapeLoaded && !isLandscapeLoading && (
+              <View style={styles.rightSidebar}>
+                <Text style={styles.label}>Z SCALE</Text>
+                <View style={{ marginTop: 16, height: '25%' }}> 
+                  <VerticalSlider 
+                    value={zValue} 
+                    onValueChange={setZValue} 
+                    min={0.001} 
+                    max={5} 
+                    step={0.01} 
+                    height={parent.innerHeight * 0.25}
+                  />
+                </View>
+              </View>
+            )}
             
             {isLandscapeLoading && (
               <View style={styles.hudOverlay}>
@@ -236,6 +386,8 @@ const styles = StyleSheet.create({
   exportBtn: { marginTop: 10 },
   engineContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.1)', overflow: 'hidden', position: 'relative' },
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
+  rightSidebar: { position: 'absolute', right: 0, top: '20%', bottom: '20%', zIndex: 10, alignItems: 'center', paddingRight: 16, gap: 10 },
+  verticalSliderWrapper: { transform: [{ rotate: '-90deg' }], width: 100, justifyContent: 'center', alignItems: 'center' },
   hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
   hudTitle: { color: 'white', fontSize: 18, fontWeight: '800' },
   hudSubtitle: { color: 'white', opacity: 0.7, fontSize: 12, marginTop: 4 },

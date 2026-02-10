@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { View } from 'react-native';
 import { useVisualisation } from './visualisation';
+import { useLandscapeControls } from './landscape-controls';
 
 export interface UseLossLandscapeProps {
   activation: string;
@@ -22,10 +23,15 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
     } = props;
 
     const {
-        isLandscapeLoading,
-        containerRef,
-        handleGenerateLandscapeButtonClick,
-    } = useVisualisation({
+        handleUploadCsv,
+        loadingCsv,
+        csvLoaded,
+        csv,
+        datasetInputs,
+        setDatasetInputs,
+        datasetOutputs,
+        setDatasetOutputs
+    } = useLandscapeControls({
         activation,
         depth,
         width,
@@ -34,9 +40,32 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         loss,
     });
 
+    const {
+        isLandscapeLoading,
+        isLandscapeLoaded,
+        containerRef,
+        handleGenerateLandscapeButtonClick,
+    } = useVisualisation({
+        activation,
+        depth,
+        width,
+        method,
+        data,
+        csv,
+        loss,
+    });
+
     return {
         isLandscapeLoading,
+        isLandscapeLoaded,
         onGenerateLandscape: handleGenerateLandscapeButtonClick,
+        onUploadCsv: handleUploadCsv,
+        loadingCsv,
+        csvLoaded,
+        datasetInputs,
+        setDatasetInputs,
+        datasetOutputs,
+        setDatasetOutputs,
         containerRef,
     }
 }

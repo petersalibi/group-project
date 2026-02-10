@@ -1,0 +1,64 @@
+export const activations = [
+  { id: 1, label: 'ReLU', value: 'ReLU' },
+  { id: 2, label: 'Tanh', value: 'Tanh' },
+  { id: 3, label: 'Sigmoid', value: 'Sigmoid' },
+  { id: 4, label: 'LeakyReLU', value: 'LeakyReLU' },
+];
+
+export const methods = [
+  { id: 1, label: 'Random Directions', value: 'RANDOMDIRS' },
+  { id: 2, label: 'Filter-wise Normalised Directions', value: 'FILTERNORM' },
+  { id: 3, label: 'PCA Directions', value: 'PCAMINIMISER' },
+];
+
+export const dataSets = [
+  { id: 1, label: 'Sine Regression', value: 'SINREGRESSION' },
+  { id: 2, label: 'Penguins', value: 'PENGUINS' },
+  { id: 3, label: 'Purple Colours', value: 'PURPLECOLOURS' },
+  { id: 4, label: 'Custom', value: 'CUSTOM'}
+];
+
+export const datasetFeatures: Record<string, number> = {
+  SINREGRESSION: 1,
+  PENGUINS: 4,
+  PURPLECOLOURS: 3,
+};
+
+export const datasetOutputs: Record<string, number> = {
+  SINREGRESSION: 1,
+  PENGUINS: 3,
+  PURPLECOLOURS: 1,
+};
+
+export const optimisers = [
+  { id: 1, label: 'SGD', value: 'SGD' },
+  { id: 2, label: 'Adam', value: 'Adam' },
+  { id: 3, label: 'RMSProp', value: 'RMSprop' },
+];
+
+export const allLosses= [
+  { id: 1, label: 'MSE', value: 'MSELoss' },
+  { id: 2, label: 'L1', value: 'L1Loss' },
+  { id: 3, label: 'Cross-Entropy', value: 'CrossEntropyLoss' },
+  { id: 4, label: 'Binary Cross-Entropy', value: 'BCELoss' }
+]
+export const regLosses = [
+  { id: 1, label: 'MSE', value: 'MSELoss' },
+  { id: 2, label: 'L1', value: 'L1Loss' },
+]
+export const ceLoss = [{ id: 1, label: 'Cross-Entropy', value: 'CrossEntropyLoss' }]
+export const bceLoss = [{ id: 1, label: 'Binary Cross-Entropy', value: 'BCELoss' }]
+
+export const lrs = [
+  { id: 1, label: '0.01', value: 0.01 },
+  { id: 2, label: '0.02', value: 0.02 },
+  { id: 3, label: '0.05', value: 0.05 },
+];
+
+export const PATH_COLORS = [
+  { name: 'Red', value: '#ff0000' },
+  { name: 'Green', value: '#00ff00' },
+  { name: 'Yellow', value: '#ffff00' },
+  { name: 'Blue', value: '#0000ff' },
+  { name: 'Purple', value: '#800080' },
+];
