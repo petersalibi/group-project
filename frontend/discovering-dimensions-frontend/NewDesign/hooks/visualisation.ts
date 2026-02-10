@@ -50,10 +50,10 @@ export function useVisualisation(props: UseVisualisationProps) {
     } = props;
 
     // --- UI State ---
+    const [zValue, setZValue] = useState(1);
+    const [logPlot, setLogPlot] = useState(true);
     const [datasetInputs, setDatasetInputs] = useState<number | null>(null);
     const [datasetOutputs, setDatasetOutputs] = useState<number | null>(null);
-    const [zValue, setZValue] = useState<number>(1);
-    const [isLogPlot, setIsLogPlot] = useState<boolean>(false);
     const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
     const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
     const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
@@ -301,7 +301,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         yDirRef.current = dict.y_direction || null;
 
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
-            isLogPlot,
+            logPlot,
             dict,
             zValue,
         );
@@ -343,11 +343,41 @@ export function useVisualisation(props: UseVisualisationProps) {
         method,
         data,
         loss,
-        isLogPlot,
+        logPlot,
         zValue,
         sceneRef,
         // handleRemoveAllPaths,
     ]);
+
+    const handleZChange = useCallback((val: number) => {
+        setZValue(val);
+        if (meshRef.current) {
+            meshRef.current.scale.z = val;
+        }
+    }, [isPathLoaded] );
+
+    const handleLogPlotToggle = useCallback(() => {
+        if (!sceneRef.current) return;
+        setIsLandscapeLoading(true);
+        disposeObject(meshRef.current);
+        meshRef.current = null;
+        const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
+        !logPlot,
+        dictRef.current,
+        zValue,
+        );
+        sceneRef.current.add(mesh);
+        meshRef.current = mesh;
+
+        const diag = Math.hypot(geoWidth, geoHeight);
+        if (cameraRef.current && controlsRef.current) {
+        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+        }
+        setLogPlot((prev) => !prev);
+        setIsLandscapeLoading(false);
+    }, [logPlot, zValue]);
 
     const handleGenerateLandscapeButtonClick = useCallback(
         () => loadAndBuildLandscape(),
@@ -358,6 +388,10 @@ export function useVisualisation(props: UseVisualisationProps) {
         isLandscapeLoading,
         isLandscapeLoaded,
         handleGenerateLandscapeButtonClick,
+        logPlot,
+        handleLogPlotToggle,
+        zValue,
+        handleZChange,
         containerRef: setContainerRef,
     }
 };

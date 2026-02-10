@@ -40,14 +40,16 @@ export function VisualisationPage() {
   const [data, setData] = useState<string>('SINREGRESSION');
   const [loss, setLoss] = useState<string>('MSELoss');
   const [losses, setLosses] = useState(regLosses);
-  const [logPlot, setLogPlot] = useState(true);
-  const [zValue, setZValue] = useState(1);
   const [optimizer, setOptimizer] = useState("SGD");
 
   const { 
     isLandscapeLoading,
     isLandscapeLoaded,
     onGenerateLandscape,
+    logPlot,
+    handleLogPlotToggle,
+    zValue,
+    handleZChange,
     onUploadCsv,
     loadingCsv,
     csvLoaded,
@@ -311,7 +313,7 @@ export function VisualisationPage() {
               {isLandscapeLoaded && !isLandscapeLoading && (
                 <Text style={styles.label}>LOG PLOT</Text>
               ) && (
-                <Switch checked={logPlot} onCheckedChange={setLogPlot}/>
+                <Switch checked={logPlot} onCheckedChange={handleLogPlotToggle}/>
               )}
               <Maximize2 size={18} color="white" />
               <RotateCcw size={18} color="white" />
@@ -324,8 +326,8 @@ export function VisualisationPage() {
                 <View style={{ marginTop: 16, height: '25%' }}> 
                   <VerticalSlider 
                     value={zValue} 
-                    onValueChange={setZValue} 
-                    min={0.001} 
+                    onValueChange={handleZChange} 
+                    min={0.01} 
                     max={5} 
                     step={0.01} 
                     height={parent.innerHeight * 0.25}
