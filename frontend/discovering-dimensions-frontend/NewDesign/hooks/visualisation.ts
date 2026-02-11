@@ -8,13 +8,14 @@ import api from '../src/api';
 import {
   initScene,
   createLandscapeMesh,
-  project2DPathTo3D,
+  updateMeshColors,
   createOrUpdatePathLine,
   createBall,
   createGhostObjects,
   handleResize,
   cleanupScene,
 } from '../utils/threejs-utils';
+import { gradientPresets } from '../constants/constants';
 
 // --- Constants ---
 const animationSpeed = 0.2;
@@ -33,6 +34,8 @@ export interface UseVisualisationProps {
   depth: number;
   width: number;
   method: string;
+  dir1: number;
+  dir2: number;
   data: string;
   csv: string;
   loss: string;
@@ -44,6 +47,8 @@ export function useVisualisation(props: UseVisualisationProps) {
         depth,
         width,
         method,
+        dir1,
+        dir2,
         data,
         csv,
         loss,
@@ -124,6 +129,30 @@ export function useVisualisation(props: UseVisualisationProps) {
         } else {
             (obj as any).material.dispose();
         }
+        }
+    };
+
+    const setCameraControls = () => {
+        if (cameraRef.current && controlsRef.current && meshRef.current) {
+            const box = new THREE.Box3().setFromObject(meshRef.current);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            controlsRef.current.target.copy(center);
+            const maxDim = Math.max(size.x, size.z);
+            const fov = cameraRef.current.fov * (Math.PI / 180);
+            let cameraDist = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+            cameraDist *= 1.5; // Zoom out multiplier
+
+            cameraRef.current.position.set(
+            center.x,
+            center.y + cameraDist * 0.7, // Height
+            center.z + cameraDist * 0.7, // Depth
+            );
+            cameraRef.current.updateProjectionMatrix();
+            controlsRef.current.update();
         }
     };
 
@@ -270,9 +299,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         disposeObject(meshRef.current);
         meshRef.current = null;
         let raw_data = null;
-        if (data === 'CUSTOM') {
-            raw_data = csv;
-        }
+        if (data === 'CUSTOM') raw_data = csv;
+        let dirs = null;
+        if (method === 'TWOPARAMETERS') dirs = [dir1, dir2];
         try {
         const paramString = {
             network: { activation, depth, width },
@@ -280,6 +309,7 @@ export function useVisualisation(props: UseVisualisationProps) {
             data: data,
             loss: loss,
             rawdata: raw_data,
+            args: dirs,
         };
         const resp = await api.post('/generatelandscape', paramString);
         const dict = resp.data;
@@ -308,28 +338,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         scene.add(mesh);
         meshRef.current = mesh;
 
-        if (cameraRef.current && controlsRef.current) {
-            const box = new THREE.Box3().setFromObject(mesh);
-            const center = new THREE.Vector3();
-            box.getCenter(center);
-            const size = new THREE.Vector3();
-            box.getSize(size);
-
-            controlsRef.current.target.copy(center);
-            const maxDim = Math.max(size.x, size.z);
-            const fov = cameraRef.current.fov * (Math.PI / 180);
-            let cameraDist = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
-            cameraDist *= 1.5; // Zoom out multiplier
-
-            cameraRef.current.position.set(
-            center.x,
-            center.y + cameraDist * 0.7, // Height
-            center.z + cameraDist * 0.7, // Depth
-            );
-            cameraRef.current.updateProjectionMatrix();
-            controlsRef.current.update();
-        }
+        setCameraControls();
         setIsLandscapeLoaded(true);
+        
         } catch (err) {
             alert('Failed to load landscape:' + err);
             setIsLandscapeLoaded(false);
@@ -358,29 +369,55 @@ export function useVisualisation(props: UseVisualisationProps) {
 
     const handleLogPlotToggle = useCallback(() => {
         if (!sceneRef.current) return;
+        console.log("Toggled")
         setIsLandscapeLoading(true);
         disposeObject(meshRef.current);
         meshRef.current = null;
-        const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
-        !logPlot,
-        dictRef.current,
-        zValue,
-        );
+
+        const { mesh, geoWidth, geoHeight } = createLandscapeMesh(!logPlot, dictRef.current, zValue);
         sceneRef.current.add(mesh);
         meshRef.current = mesh;
 
-        const diag = Math.hypot(geoWidth, geoHeight);
-        if (cameraRef.current && controlsRef.current) {
-        cameraRef.current.position.set(0, diag * 0.8, diag * 1.1);
-        controlsRef.current.target.set(0, 0, 0);
-        controlsRef.current.update();
-        }
         setLogPlot((prev) => !prev);
         setIsLandscapeLoading(false);
-    }, [logPlot, zValue]);
 
-    const handleGenerateLandscapeButtonClick = useCallback(
-        () => loadAndBuildLandscape(),
+    }, [zValue, logPlot]);
+
+    const handleRefresh = useCallback(() => {
+        if (!sceneRef.current) return;
+
+        if (meshRef.current && dictRef.current) {
+
+            meshRef.current.scale.z = 1;
+
+            setIsLandscapeLoading(true);
+            disposeObject(meshRef.current);
+            
+            // Recreate mesh forcing Log=true and Z=1
+            const { mesh } = createLandscapeMesh(true, dictRef.current, 1);
+            
+            sceneRef.current.add(mesh);
+            meshRef.current = mesh;
+            setIsLandscapeLoading(false);
+
+            setCameraControls();
+        }
+
+        setZValue(1);
+        setLogPlot(true);
+
+    }, [zValue, logPlot]);
+
+    const handleColorSelect = useCallback((themeId: string) => {
+        const mesh = meshRef.current;
+        const preset = gradientPresets.find(p => p.id === themeId); 
+        const colors = preset ? preset.colors : null;
+        if (mesh && colors) {
+            updateMeshColors(mesh, colors);
+        }
+    }, []);
+
+    const handleGenerateLandscapeButtonClick = useCallback(() => loadAndBuildLandscape(),
         [loadAndBuildLandscape],
     );
 
@@ -392,6 +429,8 @@ export function useVisualisation(props: UseVisualisationProps) {
         handleLogPlotToggle,
         zValue,
         handleZChange,
+        handleRefresh,
+        handleColorSelect,
         containerRef: setContainerRef,
     }
 };

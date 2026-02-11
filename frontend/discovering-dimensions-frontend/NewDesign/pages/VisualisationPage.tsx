@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Platform, View, ScrollView, StyleSheet } from "react-native";
+import { Platform, View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import Animated, { FadeInLeft, FadeOutLeft } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Play, SkipBack, SkipForward, Maximize2, 
   RotateCcw, RefreshCw, Eye, Network, Palette 
@@ -25,7 +27,7 @@ import {
   DropdownMenuItem 
 } from "../components/dropdown-menu";
 
-import { dataSets, activations, methods, allLosses, regLosses, ceLoss, bceLoss } from '../constants/constants';
+import { dataSets, activations, methods, regLosses, ceLoss, bceLoss, gradientPresets, datasetFeatures } from '../constants/constants';
 
 import { useLossLandscape } from "../hooks/loss-landscape";
 
@@ -37,10 +39,15 @@ export function VisualisationPage() {
   const [depth, setDepth] = useState<number>(2);
   const [width, setWidth] = useState<number>(10);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
+  const [dir1, setDir1] = useState<number | null>(null);
+  const [dir2, setDir2] = useState<number | null>(null);
   const [data, setData] = useState<string>('SINREGRESSION');
+  const [inputs, setInputs] = useState(['x']);
+  const [outputs, setOutputs] = useState(1);
   const [loss, setLoss] = useState<string>('MSELoss');
   const [losses, setLosses] = useState(regLosses);
   const [optimizer, setOptimizer] = useState("SGD");
+  const [showPalette, setShowPalette] = useState(false);
 
   const { 
     isLandscapeLoading,
@@ -50,11 +57,13 @@ export function VisualisationPage() {
     handleLogPlotToggle,
     zValue,
     handleZChange,
+    handleRefresh,
+    handleColorSelect,
     onUploadCsv,
     loadingCsv,
     csvLoaded,
-    datasetInputs,
-    setDatasetInputs,
+    datasetParameters,
+    setDatasetParameters,
     datasetOutputs,
     setDatasetOutputs,
     containerRef,
@@ -63,6 +72,8 @@ export function VisualisationPage() {
     depth,
     width,
     method,
+    dir1,
+    dir2,
     data,
     loss,
   });
@@ -86,23 +97,34 @@ export function VisualisationPage() {
     }
   };
 
-  // Adjust inputs/outputs when dataset changes
+  // Adjust inputs/outputs/parameters when dataset changes
   useEffect(() => {
     switch (data) {
       case 'SINREGRESSION':
-        setDatasetInputs(1);
-        setDatasetOutputs(1);
+        setInputs(['x']);
+        setOutputs(1);
         break;
       case 'PENGUINS':
-        setDatasetInputs(4);
-        setDatasetOutputs(3);
+        setInputs(['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']);
+        setOutputs(3);
         break;
       case 'PURPLECOLOURS':
-        setDatasetInputs(3);
-        setDatasetOutputs(1);
+        setInputs(['R', 'G', 'B']);
+        setOutputs(1);
         break;
+      case 'CUSTOM':
+        if (csvLoaded) {
+          setInputs(datasetParameters);
+          setOutputs(datasetOutputs);
+        } else {
+          setInputs(null);
+          setOutputs(null);
+        }
     }
-  }, [data])
+    if (inputs && inputs.length < 2) {
+      setMethod(methods[0].value);
+    }
+  }, [data, datasetParameters, datasetOutputs, inputs])
 
   // Adjust losses when dataset changes
   useEffect(() => {
@@ -217,27 +239,59 @@ export function VisualisationPage() {
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {methods.map((item) => (
-                    <DropdownMenuItem key={item.id} onSelect={() => {setMethod(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                  {methods
+                  .filter(item => item.value !== 'TWOPARAMETERS' || (inputs && inputs.length > 1))
+                  .map((item) => (
+                    <DropdownMenuItem 
+                      key={item.id} 
+                      onSelect={() => {
+                        setMethod(item.value);
+                        if (item.value === 'TWOPARAMETERS' && inputs && inputs.length > 1) {
+                          setDir1(0);
+                          setDir2(1);
+                        }
+                      }}
+                    >
+                      <Text>{item.label}</Text>
+                    </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </View>
-
-            {/*
-            <View style={styles.controlGroup}>
-              <View style={styles.rowBetween}>
-                <Text style={styles.label}>MESH DEPTH</Text>
-                <Text style={[styles.label, { color: brandAccent }]}>{depth}</Text>
+              {method == 'TWOPARAMETERS' && inputs && inputs.length > 1 && (
+              <View>
+              <Text style={styles.subLabel}>Direction 1</Text>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
+                    <Text style={styles.dropdownValue}>{inputs[0]}</Text>
+                  </View>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {inputs.map((item, index) => (
+                    <DropdownMenuItem key={index} onSelect={() => setDir1(index)}>
+                      <Text>{item}</Text>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Text style={styles.subLabel}>Direction 2</Text>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
+                    <Text style={styles.dropdownValue}>{inputs[1]}</Text>
+                  </View>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {inputs.map((item, index) => (
+                    <DropdownMenuItem key={index} onSelect={() => setDir2(index)}>
+                      <Text>{item}</Text>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               </View>
-              <Slider 
-                value={depth} 
-                onValueChange={setDepth} 
-                minimumValue={10} 
-                maximumValue={100} 
-              />
+              )}
             </View>
-            */}
 
             {/* ARCHITECTURE WITH STACKED NUMBER INPUTS */}
             <View style={styles.controlGroup}>
@@ -312,12 +366,15 @@ export function VisualisationPage() {
             <View style={styles.engineHeader}>
               {isLandscapeLoaded && !isLandscapeLoading && (
                 <Text style={styles.label}>LOG PLOT</Text>
-              ) && (
+              )}
+              {isLandscapeLoaded && !isLandscapeLoading && (
                 <Switch checked={logPlot} onCheckedChange={handleLogPlotToggle}/>
               )}
               <Maximize2 size={18} color="white" />
               <RotateCcw size={18} color="white" />
-              <RefreshCw size={18} color="white" />
+              <TouchableOpacity onPress={handleRefresh}>
+                <RefreshCw size={18} color="white" />
+              </TouchableOpacity>
             </View>
             
             {isLandscapeLoaded && !isLandscapeLoading && (
@@ -333,6 +390,39 @@ export function VisualisationPage() {
                     height={parent.innerHeight * 0.25}
                   />
                 </View>
+              </View>
+            )}
+
+            {isLandscapeLoaded && !isLandscapeLoading && (
+              <View style={styles.bottomLeftPalette}>
+                <TouchableOpacity 
+                  onPress={() => setShowPalette(!showPalette)}
+                  style={[{ zIndex: 20 }]} 
+                >
+                  <Palette size={18} color="white" />
+                </TouchableOpacity>
+                {showPalette && (
+                  <Animated.View 
+                    entering={FadeInLeft.duration(300).springify()} 
+                    exiting={FadeOutLeft.duration(200)}
+                    style={styles.paletteRow}
+                  >
+                    {gradientPresets.map((preset) => (
+                      <TouchableOpacity 
+                        key={preset.id} 
+                        onPress={() => handleColorSelect(preset.id)}
+                        style={styles.gradientSwatchContainer}
+                      >
+                        <LinearGradient
+                          colors={preset.colors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.gradientSwatch}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </Animated.View>
+                )}
               </View>
             )}
             
@@ -390,6 +480,10 @@ const styles = StyleSheet.create({
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
   rightSidebar: { position: 'absolute', right: 0, top: '20%', bottom: '20%', zIndex: 10, alignItems: 'center', paddingRight: 16, gap: 10 },
   verticalSliderWrapper: { transform: [{ rotate: '-90deg' }], width: 100, justifyContent: 'center', alignItems: 'center' },
+  bottomLeftPalette: { position: 'absolute', bottom: 8, left: 16, flexDirection: 'row', alignItems: 'center', minHeight: 42, gap: 12, zIndex: 10 },
+  paletteRow: { flexDirection: 'row', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', padding: 6, paddingLeft: 12, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  gradientSwatchContainer: { width: 28, height: 28, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  gradientSwatch: { flex: 1, width: '100%', height: '100%' },
   hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
   hudTitle: { color: 'white', fontSize: 18, fontWeight: '800' },
   hudSubtitle: { color: 'white', opacity: 0.7, fontSize: 12, marginTop: 4 },

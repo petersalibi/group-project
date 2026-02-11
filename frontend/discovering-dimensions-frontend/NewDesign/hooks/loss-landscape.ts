@@ -8,6 +8,8 @@ export interface UseLossLandscapeProps {
   depth: number;
   width: number;
   method: string;
+  dir1: number;
+  dir2: number;
   data: string;
   loss: string;
 }
@@ -18,6 +20,8 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         depth,
         width,
         method,
+        dir1,
+        dir2,
         data,
         loss,
     } = props;
@@ -27,8 +31,8 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         loadingCsv,
         csvLoaded,
         csv,
-        datasetInputs,
-        setDatasetInputs,
+        datasetParameters,
+        setDatasetParameters,
         datasetOutputs,
         setDatasetOutputs
     } = useLandscapeControls({
@@ -49,11 +53,15 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         handleLogPlotToggle,
         zValue,
         handleZChange,
+        handleRefresh,
+        handleColorSelect,
     } = useVisualisation({
         activation,
         depth,
         width,
         method,
+        dir1,
+        dir2,
         data,
         csv,
         loss,
@@ -67,11 +75,13 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         handleLogPlotToggle,
         zValue,
         handleZChange,
+        handleRefresh,
+        handleColorSelect,
         onUploadCsv: handleUploadCsv,
         loadingCsv,
         csvLoaded,
-        datasetInputs,
-        setDatasetInputs,
+        datasetParameters,
+        setDatasetParameters,
         datasetOutputs,
         setDatasetOutputs,
         containerRef,

@@ -44,16 +44,29 @@ export function initScene(container: HTMLElement) {
   controls.dampingFactor = 0.05;
   controls.update();
 
-  // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-  const hemiLight = new THREE.HemisphereLight(0x4488ff, 0x000000, 0.5);
-  scene.add(hemiLight);
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-  directionalLight.position.set(2, 5, 3);
-  directionalLight.castShadow = true;
-  directionalLight.shadow.mapSize.width = 1024;
-  directionalLight.shadow.mapSize.height = 1024;
-  scene.add(directionalLight);
+  scene.add(new THREE.AmbientLight(0xffffff, 3.0));
+
+  const overheadLight = new THREE.DirectionalLight(0xffffff, 2.5); // High intensity (2.5)
+  overheadLight.position.set(0, 200, 0);
+  overheadLight.castShadow = true;
+  
+  // Optimize shadow map for overhead view
+  overheadLight.shadow.mapSize.width = 2048; 
+  overheadLight.shadow.mapSize.height = 2048;
+  overheadLight.shadow.camera.near = 0.5;
+  overheadLight.shadow.camera.far = 50;
+  // Increase shadow camera size to cover the whole landscape from above
+  overheadLight.shadow.camera.left = -20;
+  overheadLight.shadow.camera.right = 20;
+  overheadLight.shadow.camera.top = 20;
+  overheadLight.shadow.camera.bottom = -20;
+
+  scene.add(overheadLight);
+
+  const underLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  underLight.position.set(0, -20, 0);
+
+  scene.add(underLight);
 
   return { scene, camera, renderer, controls };
 }
@@ -89,22 +102,42 @@ export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: numbe
   const range = maxZ - minZ || 1;
   const baseZScale = Math.min(geoWidth, geoHeight) * 0.2;
 
+  const RAINBOW = ['#9333ea', '#3b82f6', '#22d3ee', '#4ade80', '#eab308', '#ef4444'];
+  const segmentCount = RAINBOW.length - 1;
+
   const colors = new Float32Array(vertexCount * 3);
   let v = 0;
+
+  const _c1 = new THREE.Color();
+  const _c2 = new THREE.Color();
+  const _finalColor = new THREE.Color();
+
   for (let j = 0; j <= heightSegments; j++) {
     for (let i = 0; i <= widthSegments; i++) {
       const row = heightSegments - j;
       const col = i;
       const zVal = zGrid[row][col];
       positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
-      const color = new THREE.Color().setHSL(
-        (1 - (zVal - minZ) / range) * 0.7,
-        0.8,
-        0.5,
-      );
-      colors[v * 3] = color.r;
-      colors[v * 3 + 1] = color.g;
-      colors[v * 3 + 2] = color.b;
+      const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
+      
+      // Map 0-1 to segments
+      const scaledT = t * segmentCount;
+      const index = Math.floor(scaledT);
+      const localT = scaledT - index;
+
+      // Get the two neighboring colors
+      const hex1 = RAINBOW[Math.min(index, segmentCount)];
+      const hex2 = RAINBOW[Math.min(index + 1, segmentCount)];
+      
+      // Interpolate
+      _c1.set(hex1);
+      _c2.set(hex2);
+      _finalColor.copy(_c1).lerp(_c2, localT);
+
+      // Apply
+      colors[v * 3] = _finalColor.r;
+      colors[v * 3 + 1] = _finalColor.g;
+      colors[v * 3 + 2] = _finalColor.b;
       v++;
     }
   }
@@ -116,16 +149,84 @@ export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: numbe
     vertexColors: true,
     side: THREE.DoubleSide,
     flatShading: false,
-    metalness: 0.2,
+    metalness: 0.5,
     roughness: 0.5,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2;
   mesh.receiveShadow = true;
+  mesh.castShadow = true;
   mesh.scale.set(1, 1, zValue);
   
   return { mesh, geoWidth, geoHeight };
+}
+
+/**
+ * Helper to interpolate colors from a palette array based on a 0-1 value (t).
+ */
+function getColorAtT(t: number, colors: string[], target: THREE.Color) {
+  // Clamp values
+  if (t <= 0) return target.set(colors[0]);
+  if (t >= 1) return target.set(colors[colors.length - 1]);
+
+  const segmentCount = colors.length - 1;
+  const scaledT = t * segmentCount;
+  const index = Math.floor(scaledT);       // The lower color index
+  const localT = scaledT - index;          // The interpolation factor between lower and upper
+
+  const c1 = new THREE.Color(colors[index]);
+  const c2 = new THREE.Color(colors[Math.min(index + 1, segmentCount)]);
+  
+  return target.copy(c1).lerp(c2, localT);
+}
+
+/**
+ * Updates an existing mesh's vertex colors based on a new color palette.
+ */
+export function updateMeshColors(mesh: THREE.Mesh, palette: string[]) {
+  if (!mesh || !mesh.geometry) return;
+
+  const geom = mesh.geometry;
+  const posAttr = geom.attributes.position;
+  const count = posAttr.count;
+
+  // Find the Min and Max height of the geometry
+  let minH = Infinity;
+  let maxH = -Infinity;
+
+  for (let i = 0; i < count; i++) {
+    const z = posAttr.getZ(i);
+    if (z < minH) minH = z;
+    if (z > maxH) maxH = z;
+  }
+
+  const range = maxH - minH || 1;
+
+  if (!geom.attributes.color) {
+    geom.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+  }
+  const colAttr = geom.attributes.color;
+  const tempColor = new THREE.Color();
+
+  // Iterate through vertices and color them
+  for (let i = 0; i < count; i++) {
+    const z = posAttr.getZ(i);
+    const t = (z - minH) / range;
+
+    getColorAtT(t, palette, tempColor);
+
+    colAttr.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+  }
+
+  colAttr.needsUpdate = true;
+
+  if (!Array.isArray(mesh.material)) {
+    if (!mesh.material.vertexColors) {
+        mesh.material.vertexColors = true;
+        mesh.material.needsUpdate = true;
+    }
+  }
 }
 
 /**

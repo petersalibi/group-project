@@ -23,7 +23,7 @@ export function useLandscapeControls(props: UseLandscapeControlsProps){
     const dataRef = useRef<string>(data);
     const [csv, setCsv] = useState<string | null>(null);
 
-    const [datasetInputs, setDatasetInputs] = useState<number | null>(1);
+    const [datasetParameters, setDatasetParameters] = useState<string[] | null>(['x']);
     const [datasetOutputs, setDatasetOutputs] = useState<number | null>(1);
 
     const [loadingCsv, setLoadingCsv] = useState<boolean | null>(false);
@@ -53,7 +53,7 @@ export function useLandscapeControls(props: UseLandscapeControlsProps){
             const dict = resp.data;
             if (!dict.inputs || !dict.outputs) { throw new Error("Invalid dataset shape response"); }
             setCsv(csvString);
-            setDatasetInputs(dict.inputs);
+            setDatasetParameters(dict.labels);
             setDatasetOutputs(dict.outputs);
             setLoadingCsv(false);
             setLoadedCsv(true);
@@ -72,8 +72,8 @@ export function useLandscapeControls(props: UseLandscapeControlsProps){
         loadingCsv,
         csvLoaded,
         csv,
-        datasetInputs,
-        setDatasetInputs,
+        datasetParameters,
+        setDatasetParameters,
         datasetOutputs,
         setDatasetOutputs
     }

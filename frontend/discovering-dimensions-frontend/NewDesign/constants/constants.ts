@@ -8,7 +8,8 @@ export const activations = [
 export const methods = [
   { id: 1, label: 'Random Directions', value: 'RANDOMDIRS' },
   { id: 2, label: 'Filter-wise Normalised Directions', value: 'FILTERNORM' },
-  { id: 3, label: 'PCA Directions', value: 'PCAMINIMISER' },
+  { id: 3, label: 'Two Parameters', value: 'TWOPARAMETERS'},
+  { id: 4, label: 'PCA Directions', value: 'PCAMINIMISER' },
 ];
 
 export const dataSets = [
@@ -53,6 +54,13 @@ export const lrs = [
   { id: 1, label: '0.01', value: 0.01 },
   { id: 2, label: '0.02', value: 0.02 },
   { id: 3, label: '0.05', value: 0.05 },
+];
+
+export const gradientPresets = [
+  { id: 'rainbow', colors: ['#9333ea', '#3b82f6', '#22d3ee', '#4ade80', '#eab308', '#ef4444'] },
+  { id: 'brand',   colors: ['#4F57A9', '#7FA1C3', '#A1B5D8', '#C3E0C8', '#D4F0A6', '#C6F382'] },
+  { id: 'heat',    colors: ['#ffffff', '#facc15', '#f97316', '#dc2626', '#450a0a', '#000000' ] },
+  { id: 'plasma',  colors: ['#0d0887', '#6a00a8', '#b12a90', '#e16462', '#fca636', '#f0f921'] },
 ];
 
 export const PATH_COLORS = [
