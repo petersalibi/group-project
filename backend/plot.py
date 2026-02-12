@@ -110,7 +110,7 @@ print(f"pca_direction_x: {pca_directions[0]}")
 print(f"pca_direction_y: {pca_directions[1]}")
 
 
-truepath = pca_landscape["pca_trajectories"]
+truepath = pca_landscape["proj_trajectories"]
 
 animate_landscape([pca_landscape["surface"], 
                 pca_landscape["surface_log"]], 

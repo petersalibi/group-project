@@ -15,6 +15,7 @@ class VisualisationMethod(Enum):
     RANDOMDIRS      = 1
     FILTERNORM      = 2
     PCAMINIMISER    = 3
+    AUTOENCODER     = 4
 
 def get_directions(model, method: VisualisationMethod, args=None):
     # set seeds for reproducibility

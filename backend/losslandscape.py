@@ -27,6 +27,10 @@ class LandscapeParams:
         self.rawdata = rawdata
 
 def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
+    # Run the autoencoder method if specified.
+    if landscape_params.method == VisualisationMethod.AUTOENCODER:
+        return generate_loss_manifold(landscape_params, verbose=verbose)
+
     data = TrainingData(landscape_params.data, landscape_params.surface_samples, landscape_params.rawdata)
 
     model = Model(landscape_params.network, data.inputs, data.outputs)
@@ -61,7 +65,7 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist(),
-            "pca_trajectories": pca_trajectories,
+            "proj_trajectories": pca_trajectories,
             "pca_mean" : pca_mean,
             "column_labels": data.column_labels}
 
@@ -81,13 +85,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
 
     # backup original state
     saved = {k: v.clone() for k,v in model.state_dict().items()}
-
-    # # set all parameters to zero
-    # for p in model.parameters():
-    #     p.data.zero_()
-
-
-
+    
     alphas = torch.linspace(alpha_min, alpha_max, samples)
     betas  = torch.linspace(beta_min, beta_max, samples)
     loss_surface = torch.zeros(samples, samples)
@@ -132,3 +130,87 @@ def prepare_param_structure(model):
         start += sz
 
     return params, shapes, slices
+
+
+def compute_loss_surface_from_autoencoder(model, X, y, decoder, samples=50, latent_limits=None, loss=nn.MSELoss(), verbose=False):
+
+    # Latent limits is the same as our scale here
+    if latent_limits is None:
+        latent_limits = [-1.0, 1.0, -1.0, 1.0]
+
+    alpha_min, alpha_max, beta_min, beta_max = latent_limits
+
+    if verbose:
+        start = time.time()
+
+    # backup original state
+    saved = {k: v.clone() for k,v in model.state_dict().items()}
+
+    alphas = torch.linspace(alpha_min, alpha_max, samples)
+    betas  = torch.linspace(beta_min, beta_max, samples)
+    loss_surface = torch.zeros(samples, samples)
+
+    if y.ndim==1 and isinstance(loss, (torch.nn.BCELoss, torch.nn.BCEWithLogitsLoss)):
+        y = y.view(-1,1).float()
+
+    # iterate grid
+    for i, a in enumerate(alphas):
+        if verbose:
+            print_progress_bar(i, samples, prefix='Progress:', suffix='Complete', length=50)
+
+        for j, b in enumerate(betas):
+            # build latent point and get decoded parameter vector
+            latent = torch.tensor([a.item(), b.item()], dtype=torch.float32)
+
+            decoded = decoder(latent)
+            if not isinstance(decoded, torch.Tensor):
+                decoded = torch.tensor(decoded, dtype=torch.float32)
+
+            # If decoder returned batch, take first
+            if decoded.ndim > 1 and decoded.shape[0] > 1:
+                decoded = decoded[0]
+
+            # set parameters from flattened decoded vector
+            set_params_from_vector(model, decoded)
+
+            # compute loss
+            with torch.no_grad():
+                loss_surface[i,j] = loss(model(X), y).item()
+
+    if verbose:
+        print_progress_bar(samples, samples, prefix='Progress:', suffix='Complete', length=50)
+        print(f"\nLoss landscape computed in {time.time()-start:.2f} s.")
+
+    loss_surface_log = torch.log1p(loss_surface - loss_surface.min() + 1e-8)
+    model.load_state_dict(saved)
+
+    return alphas, betas, loss_surface, loss_surface_log
+
+
+def generate_loss_manifold(landscape_params: LandscapeParams, verbose=False):
+    data = TrainingData(landscape_params.data, landscape_params.surface_samples, landscape_params.rawdata)
+
+    model = Model(landscape_params.network, data.inputs, data.outputs)
+
+    decoder, projected_trajectories = find_optimal_ae_manifold(model, landscape_params.args)
+
+    # Compute surface over the provided decoder-manifold
+    with torch.inference_mode():
+        xAxis, yAxis, loss_surface, loss_surface_log = compute_loss_surface_from_autoencoder(
+            model,
+            data.X,
+            data.y,
+            decoder,
+            samples=landscape_params.surface_samples,
+            latent_limits=landscape_params.scale,
+            loss=landscape_params.loss,
+            verbose=verbose
+        )
+
+    return {"surface": loss_surface.tolist(),
+            "surface_log": loss_surface_log.tolist(),
+            "x_axis": xAxis.tolist(),
+            "y_axis": yAxis.tolist(),
+            "theta_0": flatten_params(model.parameters()).tolist(),
+            "proj_trajectories": projected_trajectories,
+            "column_labels": data.column_labels}
