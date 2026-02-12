@@ -28,12 +28,11 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples)
     model = Model(landscape_params.network, data.inputs, data.outputs)
     
-    dir1, dir2 = get_directions(model, landscape_params.method, landscape_params.args)
+    dir1, dir2, pca_trajectories = get_directions(model, landscape_params.method, landscape_params.args)
     
     k=1
     pca_mean = None
     if landscape_params.method == VisualisationMethod.PCAMINIMISER :
-        pca_trajectories = get_pca_directions(None, landscape_params.args, transformed_points=True)
 
         landscape_params.scale = [k*pca_trajectories[:, 0].min(), k*pca_trajectories[:, 0].max(),
                                   k*pca_trajectories[: , 1].min(), k*pca_trajectories[:, 1].max()]
@@ -59,6 +58,7 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist(),
+            "pca_trajectories": pca_trajectories,
             "pca_mean" : pca_mean}
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False, pca_mean = None):
