@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { ExternalLink } from '@/components/external-link';
+import { Link } from 'expo-router';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -22,28 +22,27 @@ export default function About() {
         <View style={styles.titleContainer}>
           <ThemedText type='title'>About Us</ThemedText>
         </View>
-        <ThemedText style={styles.paragraph}>
+        <ThemedText type='text'>
           Discovering Dimensions is an open-source project aimed at providing
           users with an intuitive way to explore loss landscapes of neural
           networks through interactive visualizations. Our mission is to make
           complex concepts in machine learning more accessible and
           understandable for everyone.
-        </ThemedText>
-        <ThemedText style={styles.paragraph}>
+          {'\n'}
+          {'\n'}
           The app is built using React Native and Expo, ensuring a seamless
           experience across both iOS and Android platforms. We leverage modern
           design principles to create a user-friendly interface that is both
           functional and visually appealing.
-        </ThemedText>
-        <ThemedText style={styles.paragraph}>
+          {'\n'}
+          {'\n'}
           We welcome contributions from the community! If you&apos;re interested
-          in contributing to the project, please visit our
-          <ExternalLink
-            href='https://github.com/petersalibi/group-project'
-            style={{ marginLeft: 4, textDecorationLine: 'underline' }}
-          >
-            GitHub repository
-          </ExternalLink>
+          in contributing to the project, please visit our{' '}
+          <ThemedText type='link'>
+            <Link href='https://github.com/petersalibi/group-project'>
+              GitHub repository
+            </Link>
+          </ThemedText>
           .
         </ThemedText>
       </ThemedView>
@@ -67,10 +66,5 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
-  },
-  paragraph: {
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
   },
 });

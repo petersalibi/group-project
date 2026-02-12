@@ -1,20 +1,23 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from parse import * 
 from enum import Enum
 
 class TrainingDataType(Enum):
     SINREGRESSION = 0
     PENGUINS      = 1
     PURPLECOLOURS = 2
+    CUSTOM        = 3
 
 class TrainingData:
 
-    def __init__(self, X, y):
+    def __init__(self, X, y, column_labels):
         self.X = X
         self.y = y
+        self.column_labels = column_labels
     
-    def __init__(self, type: TrainingDataType, n_samples=128):
+    def __init__(self, type: TrainingDataType, n_samples=128, rawdata=None):
         # set seeds for reproducibility
         torch.manual_seed(1066)
 
@@ -22,6 +25,8 @@ class TrainingData:
             case TrainingDataType.SINREGRESSION:
                 self.X = torch.unsqueeze(torch.linspace(-2, 2, n_samples), 1)
                 self.y = torch.sin(3*self.X) + 0.3*torch.randn_like(self.X)
+
+                self.column_labels = ['x', 'y']
 
                 self.inputs = 1
                 self.outputs = 1
@@ -31,8 +36,10 @@ class TrainingData:
                 from pathlib import Path
                 url = str(Path(__file__).resolve().parent.joinpath("data", "training", "penguins.csv"))
                 df = pd.read_csv(url).dropna()
-            
-                X = df[['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']].values
+
+                x_labels = ['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']
+                self.column_labels = x_labels + ['species']
+                X = df[x_labels].values
                 # Convert species to categorical codes, then to one-hot vectors
                 species_cat = df['species'].astype('category')
                 codes = species_cat.cat.codes.values
@@ -44,6 +51,8 @@ class TrainingData:
                 # set input/output dimensions for this dataset
                 self.inputs = self.X.shape[1]
                 self.outputs = num_classes
+
+                
             
             case TrainingDataType.PURPLECOLOURS:
 
@@ -52,7 +61,9 @@ class TrainingData:
                 url = str(Path(__file__).resolve().parent.joinpath("data", "training", "purple_colours.csv"))
                 df = pd.read_csv(url).dropna()
 
-                X = df[['R', 'G', 'B']].values
+                x_labels = ['R', 'G', 'B']
+                self.column_labels = x_labels + ['is_purple']
+                X = df[x_labels].values
                 y = df['is_purple'].values
 
                 self.X = torch.tensor(X, dtype=torch.float32)
@@ -60,6 +71,9 @@ class TrainingData:
 
                 self.inputs = self.X.shape[1]
                 self.outputs = 1
+            
+            case TrainingDataType.CUSTOM:
+                self.X, self.y, self.inputs, self.outputs, self.column_labels = rawdata_to_training_data(rawdata)
 
             case _:
                 raise ValueError("Training Data Type Not Found!")

@@ -13,7 +13,8 @@ class LandscapeParams:
                  loss=nn.MSELoss(),
                  scale=1, 
                  training_samples=128,
-                 surface_samples=50):
+                 surface_samples=50,
+                 rawdata=None):
         
         self.network = network
         self.method = method
@@ -23,9 +24,11 @@ class LandscapeParams:
         self.scale = scale
         self.training_samples = training_samples
         self.surface_samples = surface_samples
+        self.rawdata = rawdata
 
 def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
-    data = TrainingData(landscape_params.data, landscape_params.surface_samples)
+    data = TrainingData(landscape_params.data, landscape_params.surface_samples, landscape_params.rawdata)
+
     model = Model(landscape_params.network, data.inputs, data.outputs)
     
     dir1, dir2, pca_trajectories = get_directions(model, landscape_params.method, landscape_params.args)
@@ -60,6 +63,7 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "theta_0": flatten_params(model.parameters()).tolist(),
             "pca_trajectories": pca_trajectories,
             "pca_mean" : pca_mean}
+            "column_labels": data.column_labels}
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False, pca_mean = None):
 
