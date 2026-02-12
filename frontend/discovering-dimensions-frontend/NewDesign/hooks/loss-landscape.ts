@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { View } from 'react-native';
 import { useVisualisation } from './visualisation';
 import { useLandscapeControls } from './landscape-controls';
+import { PathConfigInterface } from '../components/path-config';
 
 export interface UseLossLandscapeProps {
   activation: string;
@@ -12,6 +13,8 @@ export interface UseLossLandscapeProps {
   dir2: number;
   data: string;
   loss: string;
+  pathConfigs: PathConfigInterface[];
+  onPathConfigChange;
 }
 
 export function useLossLandscape(props: UseLossLandscapeProps) {
@@ -24,6 +27,8 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         dir2,
         data,
         loss,
+        pathConfigs,
+        onPathConfigChange
     } = props;
 
     const {
@@ -55,6 +60,18 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         handleZChange,
         handleRefresh,
         handleColorSelect,
+        isPathLoading,
+        isPathLoaded,
+        isPlaying,
+        isPlacingMode,
+        placingPathId,
+        currentParams,
+        networkViewId,
+        handleLoadAllPathsButtonClick,
+        handleClearPaths,
+        togglePlayPause,
+        togglePlacingMode,
+        onViewNetwork,
     } = useVisualisation({
         activation,
         depth,
@@ -65,6 +82,8 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         data,
         csv,
         loss,
+        pathConfigs,
+        onPathConfigChange,
     });
 
     return {
@@ -85,5 +104,17 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         datasetOutputs,
         setDatasetOutputs,
         containerRef,
+        isPathLoading,
+        isPathLoaded,
+        isPlaying,
+        isPlacingMode,
+        placingPathId,
+        currentParams,
+        networkViewId,
+        handleLoadAllPathsButtonClick,
+        handleClearPaths,
+        togglePlayPause,
+        togglePlacingMode,
+        onViewNetwork,
     }
 }

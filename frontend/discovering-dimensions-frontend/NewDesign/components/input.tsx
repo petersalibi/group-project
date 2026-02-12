@@ -4,9 +4,10 @@ import { useTheme } from "./theme-provider"; // Adjust path if needed
  
 export interface InputProps extends React.ComponentProps<typeof TextInput> {
   isInvalid?: boolean;
+  disabled?: boolean;
 }
 
-export function Input({ style, isInvalid, ...props }: InputProps) {
+export function Input({ style, isInvalid, disabled, ...props }: InputProps) {
   //  1. Call the hook inside the component
   const { theme } = useTheme();
   const [isFocused, setIsFocused] = React.useState(false);
@@ -48,6 +49,7 @@ export function Input({ style, isInvalid, ...props }: InputProps) {
         setIsFocused(false);
         props.onBlur?.(e);
       }}
+      editable={!disabled}
       {...props}
     />
   );

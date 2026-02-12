@@ -10,6 +10,7 @@ interface NumberInputProps {
   min?: number;
   max?: number;
   step?: number;
+  disabled?: boolean;
   onChange?: (value: number) => void;
 }
 
@@ -19,6 +20,7 @@ export function NumberInput({
   min = -Infinity, 
   max = Infinity, 
   step = 1,
+  disabled = false,
   onChange 
 }: NumberInputProps) {
   const [internalValue, setInternalValue] = React.useState(defaultValue);
@@ -37,6 +39,7 @@ export function NumberInput({
       <Input
         keyboardType="numeric"
         value={String(value)}
+        disabled={disabled}
         onChangeText={(text) => {
           const parsed = parseFloat(text);
           if (!isNaN(parsed)) updateValue(parsed);
@@ -48,7 +51,7 @@ export function NumberInput({
       <View style={[styles.buttonStack, { borderLeftColor: theme.colors.border }]}>
         <Pressable
           onPress={() => updateValue(value + step)}
-          disabled={value >= max}
+          disabled={disabled || value >= max}
           style={({ pressed }) => [
             styles.stepperBtn,
             { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
@@ -60,7 +63,7 @@ export function NumberInput({
         
         <Pressable
           onPress={() => updateValue(value - step)}
-          disabled={value <= min}
+          disabled={disabled || value <= min}
           style={({ pressed }) => [
             styles.stepperBtn,
             pressed && { backgroundColor: theme.colors.muted }

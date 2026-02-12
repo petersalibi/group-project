@@ -15,7 +15,9 @@ import {
   handleResize,
   cleanupScene,
 } from '../utils/threejs-utils';
+import { usePathVisualisations } from './path-visualisations';
 import { gradientPresets } from '../constants/constants';
+import { PathConfigInterface } from '../components/path-config';
 
 // --- Constants ---
 const animationSpeed = 0.2;
@@ -39,6 +41,8 @@ export interface UseVisualisationProps {
   data: string;
   csv: string;
   loss: string;
+  pathConfigs: PathConfigInterface[];
+  onPathConfigChange;
 }
 
 export function useVisualisation(props: UseVisualisationProps) {
@@ -52,6 +56,8 @@ export function useVisualisation(props: UseVisualisationProps) {
         data,
         csv,
         loss,
+        pathConfigs,
+        onPathConfigChange
     } = props;
 
     // --- UI State ---
@@ -61,13 +67,6 @@ export function useVisualisation(props: UseVisualisationProps) {
     const [datasetOutputs, setDatasetOutputs] = useState<number | null>(null);
     const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
     const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
-    const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
-    const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
-    const [isPlaying, setIsPlaying] = useState<boolean>(true);
-    const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
-    const [placingPathId, setPlacingPathId] = useState<number | null>(null);
-    const [currentParams, setCurrentParams] = useState<number[] | null>(null);
-    const [networkViewId, setNetworkViewId] = useState<number | null>(null);
 
     // --- Internal state refs ---
     const dataRef = useRef<string>(data);
@@ -89,29 +88,9 @@ export function useVisualisation(props: UseVisualisationProps) {
     const meshRef = useRef<THREE.Mesh | null>(null);
     const raycasterRef = useRef<THREE.Raycaster | null>(null);
     const clockRef = useRef<THREE.Clock | null>(null);
-    const markersRef = useRef<{
-        [id: number]: { ball: THREE.Mesh; line: THREE.Line };
-    }>({});
-
-    // --- Refs for Animation Loop ---
-    // These refs will mirror the state, so the animate loop can read them
-    const isPlayingRef = useRef(isPlaying);
-    const isPathLoadedRef = useRef(isPathLoaded);
-    const animationTimeRef = useRef(0);
-    const networkViewIdRef = useRef<number | null>(null);
-
-    // --- Array refs for multiple paths ---
-    const pathLinesRef = useRef<Line2[]>([]);
-    const ballsRef = useRef<THREE.Mesh[]>([]);
-    const pathPointsArrayRef = useRef<THREE.Vector3[][]>([]);
-    const pathNormalsArrayRef = useRef<THREE.Vector3[][]>([]);
-    const totalPathPointsArrayRef = useRef<number[]>([]);
-    const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
-    const animationDurationsRef = useRef<number[]>([]);
-    const parametersArrayRef = useRef<number[][][]>([]);
+    const rafRef = useRef<number>(0);
 
     // --- Scene Setup ---
-    const rafRef = useRef<number>(0);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     /**
@@ -131,6 +110,42 @@ export function useVisualisation(props: UseVisualisationProps) {
         }
         }
     };
+
+    const {
+        isPathLoading,
+        isPathLoaded,
+        isPlaying,
+        isPlacingMode,
+        placingPathId,
+        currentParams,
+        networkViewId,
+        handleLoadAllPathsButtonClick,
+        handleClearPaths,
+        togglePlayPause,
+        togglePlacingMode,
+        onViewNetwork,
+    } = usePathVisualisations({
+        activation,
+        depth,
+        width,
+        data,
+        csv,
+        loss,
+        pathConfigs,
+        onPathConfigChange,
+        disposeObject,
+        sceneRef,
+        cameraRef,
+        rendererRef,
+        controlsRef,
+        meshRef,
+        raycasterRef,
+        clockRef,
+        rafRef,
+        originRef,
+        xDirRef,
+        yDirRef,
+    })
 
     const setCameraControls = () => {
         if (cameraRef.current && controlsRef.current && meshRef.current) {
@@ -157,6 +172,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     };
 
     const setContainerRef = useCallback((node: View | null) => {
+
         if (!node) {
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
             if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
@@ -183,99 +199,27 @@ export function useVisualisation(props: UseVisualisationProps) {
         clockRef.current = new THREE.Clock();
         raycasterRef.current = new THREE.Raycaster();
 
-        // Resize Logic
-        const onResize = () => {
-        if (!container || !camera || !renderer) return;
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-        };
-
         // Animation Loop
         const animate = () => {
-        rafRef.current = requestAnimationFrame(animate);
+            rafRef.current = requestAnimationFrame(animate);
 
-        const clock = clockRef.current;
-        if (!clock || !scene || !camera || !renderer) return;
+            if (!scene || !camera || !renderer) return;
 
-        controls.update();
-        renderer.render(scene, camera);
-
-        if (isPlayingRef.current && isPathLoadedRef.current) {
-            const delta = clock.getDelta();
-            animationTimeRef.current += delta;
-            const elapsedTime = animationTimeRef.current;
-
-            for (let i = 0; i < pathLinesRef.current.length; i++) {
-            const pathLine = pathLinesRef.current[i];
-            const ball = ballsRef.current[i];
-            const animationDuration = animationDurationsRef.current[i];
-            const pts = pathPointsArrayRef.current[i];
-            const norms = pathNormalsArrayRef.current[i];
-
-            if (!pathLine || !ball || !animationDuration || !pts || !norms)
-                continue;
-
-            const pathProgress = elapsedTime / animationDuration;
-
-            // Stop if finished
-            if (pathProgress > 1.0) {
-                // Check if this was the longest path to stop global playing
-                if (
-                animationDuration >= Math.max(...animationDurationsRef.current)
-                ) {
-                setIsPlaying(false);
-                animationTimeRef.current = 0;
-                }
-                continue;
-            }
-
-            // Animate Line
-            const lineGeom = pathLine.geometry as LineGeometry;
-            const totalLineSegments = lineGeom.attributes.instanceStart.count;
-            const drawCount = Math.floor(pathProgress * totalLineSegments);
-            lineGeom.instanceCount = drawCount;
-
-            // Animate Ball
-            const totalBallSegments = pts.length - 1;
-            const currentSegmentFloat = pathProgress * totalBallSegments;
-            const segmentIndex = Math.floor(currentSegmentFloat);
-            const segmentProgress = currentSegmentFloat - segmentIndex;
-            const i1 = Math.min(segmentIndex, totalBallSegments);
-            const i2 = Math.min(i1 + 1, totalBallSegments);
-
-            if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-                TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-                TEMP_BALL_NORM.copy(norms[i1])
-                .lerp(norms[i2], segmentProgress)
-                .normalize();
-                const radius = (ball.geometry as any).parameters?.radius ?? 0;
-                TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-                ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
-            }
-
-            // Update Network Params
-            if (
-                networkViewIdRef.current !== null &&
-                networkViewIdRef.current === i
-            ) {
-                const timeStep = Math.floor(
-                pathProgress * (parametersArrayRef.current[i].length - 1),
-                );
-                if (timeStep < parametersArrayRef.current[i].length) {
-                setCurrentParams(
-                    parametersArrayRef.current[networkViewIdRef.current][timeStep],
-                );
-                }
-            }
-            }
-        }
+            controls.update();
+            renderer.render(scene, camera);
         };
 
-        // Start everything
         animate();
+
+        // Resize Logic
+        const onResize = () => {
+            if (!container || !camera || !renderer) return;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        };
 
         const resizeObserver = new ResizeObserver(onResize);
         resizeObserver.observe(container);
@@ -326,9 +270,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         }
 
         dictRef.current = dict;
-        originRef.current = dict.theta_0 || null;
-        xDirRef.current = dict.x_direction || null;
-        yDirRef.current = dict.y_direction || null;
+        originRef.current = dict.theta_0;
+        xDirRef.current = dict.x_direction;
+        yDirRef.current = dict.y_direction;
 
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
             logPlot,
@@ -357,6 +301,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         logPlot,
         zValue,
         sceneRef,
+        originRef,
+        xDirRef,
+        yDirRef
         // handleRemoveAllPaths,
     ]);
 
@@ -432,5 +379,17 @@ export function useVisualisation(props: UseVisualisationProps) {
         handleRefresh,
         handleColorSelect,
         containerRef: setContainerRef,
+        isPathLoading,
+        isPathLoaded,
+        isPlaying,
+        isPlacingMode,
+        placingPathId,
+        currentParams,
+        networkViewId,
+        handleLoadAllPathsButtonClick,
+        handleClearPaths,
+        togglePlayPause,
+        togglePlacingMode,
+        onViewNetwork,
     }
 };

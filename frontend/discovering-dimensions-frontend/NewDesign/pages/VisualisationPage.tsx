@@ -27,9 +27,28 @@ import {
   DropdownMenuItem 
 } from "../components/dropdown-menu";
 
-import { dataSets, activations, methods, regLosses, ceLoss, bceLoss, gradientPresets, datasetFeatures } from '../constants/constants';
+import {
+  PathConfigInterface,
+  PathConfig,
+} from '../components/path-config';
+
+import { dataSets, activations, methods, regLosses, ceLoss, bceLoss, gradientPresets, PATH_COLORS } from '../constants/constants';
 
 import { useLossLandscape } from "../hooks/loss-landscape";
+
+// Helper to create a default config for a new path
+const createDefaultPathConfig = (id: number): PathConfigInterface => {
+  const color = PATH_COLORS[id % PATH_COLORS.length];
+  return {
+    id: id,
+    colorName: color.name,
+    colorValue: color.value,
+    optim: 'Adam',
+    lr: 0.01,
+    locked: true,
+    startPoint: [0, 0],
+  };
+};
 
 export function VisualisationPage() {
   const { theme, isDark } = useTheme();
@@ -46,7 +65,11 @@ export function VisualisationPage() {
   const [outputs, setOutputs] = useState(1);
   const [loss, setLoss] = useState<string>('MSELoss');
   const [losses, setLosses] = useState(regLosses);
-  const [optimizer, setOptimizer] = useState("SGD");
+  const [pathControlsVisible, setPathControlsVisible] = useState(false);
+  const [numPaths, setNumPaths] = useState<number>(1);
+  const [pathConfigs, setPathConfigs] = useState<PathConfigInterface[]>([
+    createDefaultPathConfig(0),
+  ]);
   const [showPalette, setShowPalette] = useState(false);
 
   const { 
@@ -67,6 +90,18 @@ export function VisualisationPage() {
     datasetOutputs,
     setDatasetOutputs,
     containerRef,
+    isPathLoading,
+    isPathLoaded,
+    isPlaying,
+    isPlacingMode,
+    placingPathId,
+    currentParams,
+    networkViewId,
+    handleLoadAllPathsButtonClick,
+    handleClearPaths,
+    togglePlayPause,
+    togglePlacingMode,
+    onViewNetwork,
   } = useLossLandscape({
     activation,
     depth,
@@ -76,7 +111,42 @@ export function VisualisationPage() {
     dir2,
     data,
     loss,
+    pathConfigs,
+    onPathConfigChange: (id, field, value) => {
+      // Callback for the hook to update the state
+      setPathConfigs((currentConfigs) =>
+        currentConfigs.map((config) =>
+          config.id === id ? { ...config, [field]: value } : config,
+        ),
+      );
+    },
   });
+
+  // Update path config array when user changes number of paths
+  const handleNumPathsChange = (num: number) => {
+    setNumPaths(num);
+    setPathConfigs((currentConfigs) => {
+      const newConfigs: PathConfigInterface[] = [];
+      for (let i = 0; i < num; i++) {
+        // Keep existing config if available, otherwise create new
+        newConfigs.push(currentConfigs[i] || createDefaultPathConfig(i));
+      }
+      return newConfigs;
+    });
+  };
+
+  // Update a specific path's config
+  const handleConfigChange = (
+    id: number,
+    field: keyof PathConfigInterface,
+    value: any,
+  ) => {
+    setPathConfigs((currentConfigs) =>
+      currentConfigs.map((config) =>
+        config.id === id ? { ...config, [field]: value } : config,
+      ),
+    );
+  };
 
   const hiddenFileInput = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<String | null>(null)
@@ -124,7 +194,7 @@ export function VisualisationPage() {
     if (inputs && inputs.length < 2) {
       setMethod(methods[0].value);
     }
-  }, [data, datasetParameters, datasetOutputs, inputs])
+  }, [data, datasetParameters, datasetOutputs])
 
   // Adjust losses when dataset changes
   useEffect(() => {
@@ -181,7 +251,7 @@ export function VisualisationPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {dataSets.map((item) => (
-                    <DropdownMenuItem key={item.id} onSelect={() => {setData(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => {setData(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -189,7 +259,7 @@ export function VisualisationPage() {
             {data === 'CUSTOM' && (
               <View style={styles.controlGroup}>
                 <Button 
-                  disabled={loadingCsv}
+                  disabled={loadingCsv || isLandscapeLoading || isPathLoading || isPathLoaded }
                   onPress={handleUploadPress}
                 >
                   {loadingCsv 
@@ -214,7 +284,7 @@ export function VisualisationPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {activations.map((item) => (
-                    <DropdownMenuItem key={item.id} onSelect={() => {setActivation(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => {setActivation(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -227,7 +297,7 @@ export function VisualisationPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {losses.map((item) => (
-                    <DropdownMenuItem key={item.id} onSelect={() => {setLoss(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => {setLoss(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -244,6 +314,7 @@ export function VisualisationPage() {
                   .map((item) => (
                     <DropdownMenuItem 
                       key={item.id} 
+                      disabled={isLandscapeLoading || isPathLoading || isPathLoaded }
                       onSelect={() => {
                         setMethod(item.value);
                         if (item.value === 'TWOPARAMETERS' && inputs && inputs.length > 1) {
@@ -268,7 +339,7 @@ export function VisualisationPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {inputs.map((item, index) => (
-                    <DropdownMenuItem key={index} onSelect={() => setDir1(index)}>
+                    <DropdownMenuItem key={index} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => setDir1(index)}>
                       <Text>{item}</Text>
                     </DropdownMenuItem>
                   ))}
@@ -283,7 +354,7 @@ export function VisualisationPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {inputs.map((item, index) => (
-                    <DropdownMenuItem key={index} onSelect={() => setDir2(index)}>
+                    <DropdownMenuItem key={index} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => setDir2(index)}>
                       <Text>{item}</Text>
                     </DropdownMenuItem>
                   ))}
@@ -299,12 +370,12 @@ export function VisualisationPage() {
               <View style={styles.rowGap}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.subLabel}>Depth</Text>
-                  <NumberInput defaultValue={3} value={depth} step={1} min={1} max={100} onChange={setDepth} />
+                  <NumberInput defaultValue={3} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } value={depth} step={1} min={1} max={100} onChange={setDepth} />
                 </View>
                 {depth > 1 && (
                   <View style={{ flex: 1 }}>
                     <Text style={styles.subLabel}>Width</Text>
-                    <NumberInput defaultValue={10} value={width} min={1} max={100} onChange={setWidth} />
+                    <NumberInput defaultValue={10} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } value={width} min={1} max={100} onChange={setWidth} />
                   </View>
                 )}
               </View>
@@ -312,7 +383,7 @@ export function VisualisationPage() {
 
             <Button
               variant="secondary"
-              disabled={isLandscapeLoading}
+              disabled={isLandscapeLoading || isPathLoading || isPathLoaded}
               onPress={() => {onGenerateLandscape()}}
               style={styles.exportBtn}>
               Generate Landscape
@@ -321,41 +392,40 @@ export function VisualisationPage() {
             {/* PATH DETAILS CARD */}
             <View style={styles.controlGroup}>
               <Text style={styles.label}>PATH DETAILS</Text>
-              <View style={[styles.pathCard, { borderLeftColor: '#E15A5A' }]}>
-                <View style={styles.rowBetween}>
-                  <Text style={[styles.pathTitle, { color: '#E15A5A' }]}>PATH 1</Text>
-                  <Eye size={14} color={theme.colors.mutedForeground} />
-                </View>
-                
-                <View style={styles.rowGap}>
-                   <View style={{ flex: 1.5 }}>
-                     <Text style={styles.subLabel}>Optimiser</Text>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <View style={[styles.dropdownTrigger, { height: 32, borderColor: theme.colors.border }]}>
-                            <Text style={{ fontSize: 11 }}>{optimizer}</Text>
-                          </View>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onSelect={() => setOptimizer("SGD")}><Text>SGD</Text></DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setOptimizer("Adam")}><Text>Adam</Text></DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                   </View>
-                   <View style={{ flex: 1 }}>
-                     <Text style={styles.subLabel}>LR</Text>
-                     <NumberInput defaultValue={0.01} step={0.001} />
-                   </View>
-                </View>
-
-                <View style={styles.rowGap}>
-                  <Button variant="primary" size="sm" style={{ flex: 4 }}>Place Start</Button>
-                  <Button variant="outline" size="sm" style={{ flex: 1 }}><Network size={14} color={theme.colors.foreground} /></Button>
-                  <Button variant="outline" size="sm" style={{ flex: 1 }}><Palette size={14} color={theme.colors.foreground}/></Button>
-                </View>
-              </View>
+              {pathConfigs.map((config) => (
+                <PathConfig
+                  key={config.id}
+                  config={config}
+                  onConfigChange={handleConfigChange}
+                  onPlaceStartPoint={() => togglePlacingMode(config.id)}
+                  networkViewable={depth <= 10 && width <= 10}
+                  onViewNetwork={() => onViewNetwork(config.id)}
+                  isPlacing={isPlacingMode && placingPathId === config.id}
+                  isSceneLoading={isLandscapeLoading}
+                  isLandscapeLoaded={isLandscapeLoaded}
+                  isWatching={networkViewId === config.id}
+                />
+              ))}
             </View>
 
+            <Button 
+              variant="secondary"
+              disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded}
+              onPress={handleLoadAllPathsButtonClick}
+              style={styles.exportBtn}
+            >
+              {isPathLoading ? 'Loading...' : 'Generate Paths'}
+            </Button>
+
+            {isPathLoaded && (
+              <Button
+                onPress={handleClearPaths}
+                style={styles.exportBtn}
+              >
+                Clear Paths
+              </Button>
+            )}
+              
             <Button variant="secondary" style={styles.exportBtn}>Export Data</Button>
           </ScrollView>
         </DockPanel>
@@ -364,10 +434,10 @@ export function VisualisationPage() {
         <DockPanel id="ENGINE" title="LOSS LANDSCAPE VISUALISATION">
           <View style={styles.engineContainer}>
             <View style={styles.engineHeader}>
-              {isLandscapeLoaded && !isLandscapeLoading && (
+              {isLandscapeLoaded && !isLandscapeLoading && !isPathLoading && !isPathLoaded && (
                 <Text style={styles.label}>LOG PLOT</Text>
               )}
-              {isLandscapeLoaded && !isLandscapeLoading && (
+              {isLandscapeLoaded && !isLandscapeLoading && !isPathLoaded && !isPathLoading && (
                 <Switch checked={logPlot} onCheckedChange={handleLogPlotToggle}/>
               )}
               <Maximize2 size={18} color="white" />
@@ -377,7 +447,7 @@ export function VisualisationPage() {
               </TouchableOpacity>
             </View>
             
-            {isLandscapeLoaded && !isLandscapeLoading && (
+            {isLandscapeLoaded && !isLandscapeLoading && !isPathLoaded && !isPathLoading && (
               <View style={styles.rightSidebar}>
                 <Text style={styles.label}>Z SCALE</Text>
                 <View style={{ marginTop: 16, height: '25%' }}> 
