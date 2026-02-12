@@ -51,7 +51,19 @@ def params_to_pca(params: LandscapeParams, minimiser_trajectories):
         data=params.data,
         args=minimiser_trajectories,
         loss=params.loss,
-        scale=params.scale * 5,
+        scale=params.scale,
+        training_samples=params.training_samples,
+        surface_samples=params.surface_samples
+    )
+
+def params_to_ae(params: LandscapeParams, minimiser_trajectories):
+    return LandscapeParams(
+        network=params.network,
+        method=VisualisationMethod.AUTOENCODER,
+        data=params.data,
+        args=minimiser_trajectories,
+        loss=params.loss,
+        scale=params.scale,
         training_samples=params.training_samples,
         surface_samples=params.surface_samples
     )

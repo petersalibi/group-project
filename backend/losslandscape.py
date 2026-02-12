@@ -1,6 +1,7 @@
 from network import *
 from directions import *
 from utils import *
+from manifolds import *
 import numpy as np
 import time
 

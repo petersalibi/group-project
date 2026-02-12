@@ -96,47 +96,21 @@ loss_path = paths["loss_path"]
 print(f"Fidelity of optimiser path to plane: {fidelity:.4f}")
 
 
-################################################################
-
-# Re-generate landscape with pca on minimiser path
-pca_landscape = generate_loss_landscape(params_to_pca(params, paths["parameters_path"]), verbose=True)
-lst_directions = (pca_landscape["x_direction"], pca_landscape["y_direction"])
+# Re-generate landscape with ae on minimiser path
+ae_landscape = generate_loss_landscape(params_to_ae(params, paths["parameters_path"]), verbose=True)
+lst_directions = (ae_landscape["x_direction"], ae_landscape["y_direction"])
 pca_directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
-pca_theta_0 = torch.tensor(pca_landscape["theta_0"])
+pca_theta_0 = torch.tensor(ae_landscape["theta_0"])
 pca_init_xy = convert_plane_coordinates(theta_0, directions[0], directions[1],
                                       init_xy, pca_theta_0, pca_directions[0], pca_directions[1])
 print(f"pca_init_xy: {pca_init_xy}")
 print(f"pca_direction_x: {pca_directions[0]}")
 print(f"pca_direction_y: {pca_directions[1]}")
 
+truepath = ae_landscape["proj_trajectories"]
 
-truepath = pca_landscape["proj_trajectories"]
-
-animate_landscape([pca_landscape["surface"], 
-                pca_landscape["surface_log"]], 
-                pca_landscape["x_axis"], 
-                pca_landscape["y_axis"], 
+animate_landscape([ae_landscape["surface"], 
+                ae_landscape["surface_log"]], 
+                ae_landscape["x_axis"], 
+                ae_landscape["y_axis"], 
                 truepath, fidelity)
-
-# minimiser_params = MinimiserParams(
-#     network=params.network,
-#     data=params.data,
-#     x_direction=pca_directions[0],
-#     y_direction=pca_directions[1],
-#     theta_0=pca_theta_0,
-#     init_xy=pca_init_xy,
-#     loss=params.loss,
-#     lock_to_plane=False
-# )
-
-# paths = animate_optimiser(minimiser_params)
-# minimiser_path = paths["minimiser_path"]
-# print(minimiser_path)
-# fidelity = paths["fidelity"]
-# print(f"Fidelity of optimiser path to plane (after PCA): {fidelity:.4f}")
-
-# animate_landscape([pca_landscape["surface"], 
-#                 pca_landscape["surface_log"]], 
-#                 pca_landscape["x_axis"], 
-#                 pca_landscape["y_axis"], 
-#                 minimiser_path, fidelity)
