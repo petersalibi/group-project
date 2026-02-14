@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Platform, View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
-import Animated, { FadeInLeft, FadeOutLeft } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInLeft, FadeInUp, FadeOutDown, FadeOutLeft, FadeOutUp } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  Play, SkipBack, SkipForward, Maximize2, 
-  RotateCcw, RefreshCw, Eye, Network, Palette 
+  Pause, Play, SkipBack, SkipForward, Maximize2, 
+  RotateCcw, RefreshCw, Eye, Network, Palette, Plus 
 } from "lucide-react-native";
 
 import { useTheme } from "../components/theme-provider";
+import { useLoading } from "../components/loading-provider";
 import { LayoutManager } from "../components/docking-provider";
 import { DockPanel } from "../components/dock-panel";
 import { StatsGroupPanel } from "../components/stats-group-panel";
@@ -52,9 +53,10 @@ const createDefaultPathConfig = (id: number): PathConfigInterface => {
 
 export function VisualisationPage() {
   const { theme, isDark } = useTheme();
+  const { setIsLoading } = useLoading();
   const brandAccent = isDark ? '#C6F382' : '#353F91';
   
-  const [activation, setActivation] = useState<string>('ReLU');
+  const [activation, setActivation] = useState<string>('Tanh');
   const [depth, setDepth] = useState<number>(2);
   const [width, setWidth] = useState<number>(10);
   const [method, setMethod] = useState<string>('RANDOMDIRS');
@@ -93,13 +95,19 @@ export function VisualisationPage() {
     isPathLoading,
     isPathLoaded,
     isPlaying,
+    progress,
+    currentFrame,
+    totalFrames,
     isPlacingMode,
     placingPathId,
     currentParams,
     networkViewId,
     handleLoadAllPathsButtonClick,
+    handleRemovePath,
     handleClearPaths,
     togglePlayPause,
+    handleSkipBack,
+    handleSkipForward,
     togglePlacingMode,
     onViewNetwork,
   } = useLossLandscape({
@@ -122,18 +130,38 @@ export function VisualisationPage() {
     },
   });
 
-  // Update path config array when user changes number of paths
-  const handleNumPathsChange = (num: number) => {
-    setNumPaths(num);
-    setPathConfigs((currentConfigs) => {
-      const newConfigs: PathConfigInterface[] = [];
-      for (let i = 0; i < num; i++) {
-        // Keep existing config if available, otherwise create new
-        newConfigs.push(currentConfigs[i] || createDefaultPathConfig(i));
-      }
-      return newConfigs;
+  useEffect(() => {
+    setIsLoading(isLandscapeLoading || isPathLoading);
+    return () => setIsLoading(false);
+  }, [isLandscapeLoading, isPathLoading, setIsLoading]);
+
+  const handlePathAddition = () => {
+    if (numPaths > 4) return;
+    const currentConfigs = pathConfigs;
+    currentConfigs.push(createDefaultPathConfig(numPaths));
+    setPathConfigs(currentConfigs);
+    setNumPaths(numPaths + 1);
+  }
+
+  const handlePathRemoval = (id: number) => {
+    if (numPaths < 1) return;
+
+    // Remove path from visualisation
+    handleRemovePath(id);
+
+    const updatedConfigs = pathConfigs
+    .filter(config => config.id !== id)
+    .map((config, index) => {
+      return {
+        ...config,
+        id: index,
+        colorName: PATH_COLORS[index % PATH_COLORS.length].name,
+        colorValue: PATH_COLORS[index % PATH_COLORS.length].value,
+      };
     });
-  };
+    setPathConfigs(updatedConfigs);
+    setNumPaths(numPaths - 1);
+  }
 
   // Update a specific path's config
   const handleConfigChange = (
@@ -246,7 +274,7 @@ export function VisualisationPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{dataSets[0].label}</Text>
+                    <Text style={styles.dropdownValue}>{dataSets.find(item => item.value === data)?.label || data}</Text>
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -279,7 +307,7 @@ export function VisualisationPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{activations[0].label}</Text>
+                    <Text style={styles.dropdownValue}>{activations.find(item => item.value === activation)?.label || activation}</Text>
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -292,7 +320,7 @@ export function VisualisationPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{losses[0].label}</Text>
+                    <Text style={styles.dropdownValue}>{losses.find(item => item.value === loss)?.label || loss}</Text>
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -305,7 +333,7 @@ export function VisualisationPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{methods[0].label}</Text>
+                    <Text style={styles.dropdownValue}>{methods.find(item => item.value === method)?.label || method}</Text>
                   </View>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -397,6 +425,7 @@ export function VisualisationPage() {
                   key={config.id}
                   config={config}
                   onConfigChange={handleConfigChange}
+                  onPathRemoval={handlePathRemoval}
                   onPlaceStartPoint={() => togglePlacingMode(config.id)}
                   networkViewable={depth <= 10 && width <= 10}
                   onViewNetwork={() => onViewNetwork(config.id)}
@@ -407,15 +436,23 @@ export function VisualisationPage() {
                 />
               ))}
             </View>
+            
+            {numPaths <= 4 && (
+              <Button variant="outline" onPress={handlePathAddition} size="sm" style={{ flex: 1 }}>
+                <Plus size={18} color={theme.colors.foreground} />
+              </Button>
+            )}
 
-            <Button 
-              variant="secondary"
-              disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded}
-              onPress={handleLoadAllPathsButtonClick}
-              style={styles.exportBtn}
-            >
-              {isPathLoading ? 'Loading...' : 'Generate Paths'}
-            </Button>
+            {numPaths > 0 && (
+              <Button 
+                variant="secondary"
+                disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded}
+                onPress={handleLoadAllPathsButtonClick}
+                style={styles.exportBtn}
+              >
+                {isPathLoading ? 'Loading...' : 'Generate Paths'}
+              </Button>
+            )}
 
             {isPathLoaded && (
               <Button
@@ -467,14 +504,14 @@ export function VisualisationPage() {
               <View style={styles.bottomLeftPalette}>
                 <TouchableOpacity 
                   onPress={() => setShowPalette(!showPalette)}
-                  style={[{ zIndex: 20 }]} 
+                  style={{ zIndex: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }} 
                 >
                   <Palette size={18} color="white" />
                 </TouchableOpacity>
                 {showPalette && (
                   <Animated.View 
-                    entering={FadeInLeft.duration(300).springify()} 
-                    exiting={FadeOutLeft.duration(200)}
+                    entering={FadeInDown.duration(300).springify()} 
+                    exiting={FadeOutDown.duration(200)}
                     style={styles.paletteRow}
                   >
                     {gradientPresets.map((preset) => (
@@ -505,19 +542,29 @@ export function VisualisationPage() {
             {/* Canvas Container */}
             <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: 'transparent' }} />
             
-            {/*
-            <View style={styles.playbackBar}>
-              <View style={styles.playbackActions}>
-                <SkipBack size={20} color="white" />
-                <View style={styles.playBtn}><Play size={16} color="white" fill="white" /></View>
-                <SkipForward size={20} color="white" />
+            {isPathLoaded && (
+              <View style={styles.playbackBar}>
+                <View style={styles.playbackActions}>
+                  <TouchableOpacity onPress={handleSkipBack}>
+                    <SkipBack size={20} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.playBtn} onPress={togglePlayPause}>
+                    {isPlaying ? (
+                      <Pause size={16} color="white" fill="white" />
+                    ) : (
+                      <Play size={16} color="white" fill="white" />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleSkipForward}>
+                    <SkipForward size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Progress value={progress} color={brandAccent} />
+                </View>
+                <Text style={styles.frameCounter}>{currentFrame}/{totalFrames}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Progress value={42} color={brandAccent} />
-              </View>
-              <Text style={styles.frameCounter}>51/120</Text>
-            </View>
-            */}
+            )}
           </View>
         </DockPanel>
 
@@ -550,14 +597,14 @@ const styles = StyleSheet.create({
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
   rightSidebar: { position: 'absolute', right: 0, top: '20%', bottom: '20%', zIndex: 10, alignItems: 'center', paddingRight: 16, gap: 10 },
   verticalSliderWrapper: { transform: [{ rotate: '-90deg' }], width: 100, justifyContent: 'center', alignItems: 'center' },
-  bottomLeftPalette: { position: 'absolute', bottom: 8, left: 16, flexDirection: 'row', alignItems: 'center', minHeight: 42, gap: 12, zIndex: 10 },
-  paletteRow: { flexDirection: 'row', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', padding: 6, paddingLeft: 12, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  gradientSwatchContainer: { width: 28, height: 28, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  bottomLeftPalette: { position: 'absolute', bottom: 16, left: 16, flexDirection: 'column-reverse', alignItems: 'center', minHeight: 42, gap: 12, zIndex: 10 },
+  paletteRow: { flexDirection: 'column', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', padding: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  gradientSwatchContainer: { width: 20, height: 20, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   gradientSwatch: { flex: 1, width: '100%', height: '100%' },
   hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
   hudTitle: { color: 'white', fontSize: 18, fontWeight: '800' },
   hudSubtitle: { color: 'white', opacity: 0.7, fontSize: 12, marginTop: 4 },
-  playbackBar: { position: 'absolute', bottom: 20, left: 20, right: 20, height: 54, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 16 },
+  playbackBar: { position: 'absolute', bottom: 20, left: 75, right: 75, height: 54, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 16 },
   playbackActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   playBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: 'white', justifyContent: 'center', alignItems: 'center' },
   frameCounter: { color: 'white', fontSize: 10, fontWeight: 'bold', width: 45 }

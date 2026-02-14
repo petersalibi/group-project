@@ -40,7 +40,7 @@ export interface UsePathVisualisationsProps {
 }
 
 // --- Constants ---
-const animationSpeed = 0.2;
+const animationSpeed = 0.1;
 
 // --- Reusable Three.js Vectors/Matrices ---
 const TEMP_BALL_POS = new THREE.Vector3();
@@ -101,7 +101,10 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
 
     const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
     const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
-    const [isPlaying, setIsPlaying] = useState<boolean>(true);
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [progress, setProgress] = useState(0);
+    const [currentFrame, setCurrentFrame] = useState(0);
+    const [totalFrames, setTotalFrames] = useState(100);
     const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
     const [placingPathId, setPlacingPathId] = useState<number | null>(null);
     const [currentParams, setCurrentParams] = useState<number[] | null>(null);
@@ -115,6 +118,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     // These refs will mirror the state, so the animate loop can read them
     const isPlayingRef = useRef(isPlaying);
     const isPathLoadedRef = useRef(isPathLoaded);
+    const lastUiUpdateRef = useRef(0);
     const animationTimeRef = useRef(0);
     const networkViewIdRef = useRef<number | null>(null);
 
@@ -135,6 +139,56 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     useEffect(() => {
         isPathLoadedRef.current = isPathLoaded;
     }, [isPathLoaded]);
+
+    const handleRemovePath = useCallback((id: number) => {
+        if (pathLinesRef.current[id]) disposeObject(pathLinesRef.current[id]);
+        if (ballsRef.current[id]) disposeObject(ballsRef.current[id]);
+        
+        if (markersRef.current[id]) {
+            disposeObject(markersRef.current[id].ball);
+            disposeObject(markersRef.current[id].line);
+            delete markersRef.current[id];
+        }
+
+        pathLinesRef.current.splice(id, 1);
+        ballsRef.current.splice(id, 1);
+        pathPointsArrayRef.current.splice(id, 1);
+        pathNormalsArrayRef.current.splice(id, 1);
+        totalPathPointsArrayRef.current.splice(id, 1);
+        path2DArrayRef.current.splice(id, 1);
+        parametersArrayRef.current.splice(id, 1);
+        animationDurationsRef.current.splice(id, 1);
+
+        // Re-index markersRef
+        const newMarkers: { [id: number]: { ball: THREE.Mesh; line: THREE.Line } } = {};
+        Object.keys(markersRef.current).forEach((keyStr) => {
+            const keyId = parseInt(keyStr, 10);
+            if (keyId > id) {
+                newMarkers[keyId - 1] = markersRef.current[keyId]; // Shift down
+            } else if (keyId < id) {
+                newMarkers[keyId] = markersRef.current[keyId];     // Keep same
+            }
+        });
+        markersRef.current = newMarkers;
+
+        if (networkViewIdRef.current === id) {
+            // If the user was viewing the network of the deleted path, clear it
+            setNetworkViewId(null);
+            networkViewIdRef.current = null;
+            setCurrentParams(null);
+        } else if (networkViewIdRef.current !== null && networkViewIdRef.current > id) {
+            // If the user was viewing a path that comes AFTER the deleted one, decrement its ID
+            setNetworkViewId(networkViewIdRef.current - 1);
+            networkViewIdRef.current -= 1;
+        }
+
+        // If this was the last path, completely reset the playback state
+        if (pathLinesRef.current.length === 0) {
+            setIsPathLoaded(false);
+            animationTimeRef.current = 0;
+            clockRef.current = new THREE.Clock();
+        }
+    }, []);
 
     /**
     * Removes all paths from the scene.
@@ -241,7 +295,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
    * Fetches and renders all configured paths.
    */
   const loadAndAnimateAllPaths = useCallback(async () => {
-    console.log("Pressed")
     const mesh = meshRef.current;
     if (!mesh) return;
 
@@ -252,7 +305,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       line.visible = false;
     });
     handleRemoveAllPaths();
-    setIsPlaying(true);
 
     try {
         let csvData = data === 'CUSTOM' ? csv : null;
@@ -271,7 +323,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
             lock_to_plane: config.locked,
             rawdata: csvData,
         };
-        console.log(paramString);
         return api.post('/animateminimiser', paramString);
       });
 
@@ -284,8 +335,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
           pathData.minimiser_path?.data ?? pathData.minimiser_path;
         const parameters_arr =
           pathData.parameters_path?.data ?? pathData.parameters_path;
-        
-        console.log(path_arr);
 
         if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
@@ -314,6 +363,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       });
 
       setIsPathLoaded(true);
+      setIsPlaying(true);
       animationTimeRef.current = 0;
 
       if (clockRef.current && !clockRef.current.running) {
@@ -326,6 +376,17 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       setIsPathLoading(false);
     }
   }, [pathConfigs, handleRemoveAllPaths, updatePathGeometry]);
+
+  const getMaxSteps = useCallback(() => {
+    if (!parametersArrayRef.current || parametersArrayRef.current.length === 0) return 1;
+    // Use parametersArrayRef because it holds the raw, un-resampled backend data
+    return Math.max(...parametersArrayRef.current.map(arr => arr.length));
+  }, []);
+
+  const getMaxDuration = useCallback(() => {
+    if (!animationDurationsRef.current || animationDurationsRef.current.length === 0) return 1;
+    return Math.max(...animationDurationsRef.current);
+  }, []);
 
   const handleInputMove = useCallback(
     (event: any) => {
@@ -377,7 +438,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
 
         if (hitPlane) {
           ball.visible = true;
-          ball.position.copy(TEMP_HIT_VECTOR).add(LINE_TOP_OFFSET);
+          ball.position.copy(TEMP_HIT_VECTOR);
         } else {
           ball.visible = false;
         }
@@ -447,7 +508,11 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     if (isPlaying) {
       clockRef.current.stop();
     } else {
-      if (animationTimeRef.current > 0) {
+      const maxDuration = Math.max(...animationDurationsRef.current, 0)
+      if (animationTimeRef.current >= maxDuration) {
+        animationTimeRef.current = 0;
+        clockRef.current.start();
+      } else if (animationTimeRef.current > 0) {
         clockRef.current.oldTime = performance.now();
         clockRef.current.running = true;
       } else {
@@ -457,6 +522,40 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     }
     setIsPlaying((prev) => !prev);
   }, [isPlaying]);
+
+  const handleSkipBack = useCallback(() => {
+      const maxSteps = getMaxSteps();
+      const maxDuration = getMaxDuration();
+
+      // Time duration of exactly one original point
+      const stepTime = maxDuration / Math.max(1, maxSteps - 1);
+      
+      animationTimeRef.current = Math.max(0, animationTimeRef.current - (20 * stepTime)); 
+      
+      const currentProg = (animationTimeRef.current / maxDuration) * 100;
+      const currentF = Math.floor((animationTimeRef.current / maxDuration) * (maxSteps - 1)) + 1;
+      
+      setProgress(currentProg);
+      setCurrentFrame(currentF);
+      setTotalFrames(maxSteps);
+  }, [getMaxSteps, getMaxDuration]);
+
+  const handleSkipForward = useCallback(() => {
+      const maxSteps = getMaxSteps();
+      const maxDuration = getMaxDuration();
+
+      // Time duration of exactly one original point
+      const stepTime = maxDuration / Math.max(1, maxSteps - 1);
+      
+      animationTimeRef.current = Math.min(maxDuration, animationTimeRef.current + (20 * stepTime)); 
+           
+      const currentProg = (animationTimeRef.current / maxDuration) * 100;
+      const currentF = Math.floor((animationTimeRef.current / maxDuration) * (maxSteps - 1)) + 1;
+      
+      setProgress(currentProg);
+      setCurrentFrame(Math.min(currentF, maxSteps));
+      setTotalFrames(maxSteps);
+  }, [getMaxSteps, getMaxDuration]);
 
   const onViewNetwork = useCallback(
     (id: number) => {
@@ -547,12 +646,17 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         const clock = clockRef.current;
         if (!clock) return;
 
-        if (isPlayingRef.current && isPathLoadedRef.current) {
-            const delta = clock.getDelta();
-            animationTimeRef.current += delta;
-            const elapsedTime = animationTimeRef.current;
+        const delta = clock.getDelta();
 
-            for (let i = 0; i < pathLinesRef.current.length; i++) {
+        if (!isPathLoadedRef.current) return;
+
+        if (isPlayingRef.current) {
+            animationTimeRef.current += delta;
+        }
+
+        const elapsedTime = animationTimeRef.current;
+
+        for (let i = 0; i < pathLinesRef.current.length; i++) {
             const pathLine = pathLinesRef.current[i];
             const ball = ballsRef.current[i];
             const animationDuration = animationDurationsRef.current[i];
@@ -562,16 +666,16 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
             if (!pathLine || !ball || !animationDuration || !pts || !norms)
                 continue;
 
-            const pathProgress = elapsedTime / animationDuration;
+            const LAG_TIME_SECONDS = 0.1;
+
+            const ballProgress = Math.min(1.0, elapsedTime / animationDuration);
+            const lineProgress = Math.max(0, (elapsedTime - LAG_TIME_SECONDS) / animationDuration);
 
             // Stop if finished
-            if (pathProgress > 1.0) {
+            if (lineProgress > 1.0) {
                 // Check if this was the longest path to stop global playing
-                if (
-                animationDuration >= Math.max(...animationDurationsRef.current)
-                ) {
-                setIsPlaying(false);
-                animationTimeRef.current = 0;
+                if (animationDuration >= Math.max(...animationDurationsRef.current)) {
+                  setIsPlaying(false);
                 }
                 continue;
             }
@@ -579,25 +683,50 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
             // Animate Line
             const lineGeom = pathLine.geometry as LineGeometry;
             const totalLineSegments = lineGeom.attributes.instanceStart.count;
-            const drawCount = Math.floor(pathProgress * totalLineSegments);
+            const drawCount = Math.floor(lineProgress * totalLineSegments);
             lineGeom.instanceCount = drawCount;
 
             // Animate Ball
             const totalBallSegments = pts.length - 1;
-            const currentSegmentFloat = pathProgress * totalBallSegments;
+            const currentSegmentFloat = ballProgress * totalBallSegments;
             const segmentIndex = Math.floor(currentSegmentFloat);
             const segmentProgress = currentSegmentFloat - segmentIndex;
             const i1 = Math.min(segmentIndex, totalBallSegments);
             const i2 = Math.min(i1 + 1, totalBallSegments);
 
             if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-                TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-                TEMP_BALL_NORM.copy(norms[i1])
-                .lerp(norms[i2], segmentProgress)
-                .normalize();
-                const radius = (ball.geometry as any).parameters?.radius ?? 0;
-                TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-                ball.position.copy(TEMP_BALL_POS).add(TEMP_BALL_OFFSET);
+              const oldPos = ball.position.clone();
+
+              // Calculate new position and normal
+              TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
+              TEMP_BALL_NORM.copy(norms[i1])
+              .lerp(norms[i2], segmentProgress)
+              .normalize();
+                        
+              const radius = (ball.geometry as any).parameters?.radius ?? 0;
+              TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
+                    
+              const newPos = TEMP_BALL_POS.clone().add(TEMP_BALL_OFFSET);
+
+              // Only roll if the ball has actually moved and isn't at the origin (0,0,0)
+              if (radius > 0 && oldPos.lengthSq() > 0) { 
+                const deltaPos = newPos.clone().sub(oldPos);
+                const distance = deltaPos.length();
+
+                if (distance > 0.0001) { // Ignore tiny jitters
+                  const moveDir = deltaPos.normalize();
+                            
+                    // The axis of rotation is perpendicular to the normal and movement dir
+                    const rotationAxis = new THREE.Vector3().crossVectors(TEMP_BALL_NORM, moveDir).normalize();
+                            
+                    // Angle = distance / radius
+                    const angle = distance / radius;
+                            
+                    ball.rotateOnWorldAxis(rotationAxis, angle);
+                }
+              }
+
+              ball.position.copy(newPos);
             }
 
             // Update Network Params
@@ -606,7 +735,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
                 networkViewIdRef.current === i
             ) {
                 const timeStep = Math.floor(
-                pathProgress * (parametersArrayRef.current[i].length - 1),
+                ballProgress * (parametersArrayRef.current[i].length - 1),
                 );
                 if (timeStep < parametersArrayRef.current[i].length) {
                 setCurrentParams(
@@ -614,12 +743,50 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
                 );
                 }
             }
+        }
+
+        if (isPlayingRef.current && isPathLoadedRef.current) {
+            const delta = clock.getDelta();
+            animationTimeRef.current += delta;
+            const elapsedTime = animationTimeRef.current;
+
+            const maxDuration = Math.max(...animationDurationsRef.current, 1);
+        
+            const now = performance.now();
+            if (now - lastUiUpdateRef.current > 100) {
+              const maxDuration = getMaxDuration();
+              const maxSteps = getMaxSteps();
+
+              const currentProg = Math.min(100, (elapsedTime / maxDuration) * 100);
+              const currentF = Math.floor((elapsedTime / maxDuration) * (maxSteps - 1)) + 1;
+
+              setProgress(currentProg);
+              setCurrentFrame(Math.min(currentF, maxSteps));
+              setTotalFrames(maxSteps);
+            
+              lastUiUpdateRef.current = now;
             }
         }
-        };
+        if (isPlayingRef.current) {
+            const now = performance.now();
+            if (now - lastUiUpdateRef.current > 100) {
+                const maxDuration = getMaxDuration();
+                const maxSteps = getMaxSteps();
 
-        // Start everything
-        animate();
+                const currentProg = Math.min(100, (elapsedTime / maxDuration) * 100);
+                const currentF = Math.floor((elapsedTime / maxDuration) * (maxSteps - 1)) + 1;
+
+                setProgress(currentProg);
+                setCurrentFrame(Math.min(currentF, maxSteps));
+                setTotalFrames(maxSteps);
+                
+                lastUiUpdateRef.current = now;
+            }
+        }
+      };
+
+      // Start everything
+      animate();
   }, []);
 
   const handleLoadAllPathsButtonClick = useCallback(
@@ -631,13 +798,19 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     isPathLoading,
     isPathLoaded,
     isPlaying,
+    progress,
+    currentFrame,
+    totalFrames,
     isPlacingMode,
     placingPathId,
     currentParams,
     networkViewId,
     handleLoadAllPathsButtonClick,
+    handleRemovePath,
     handleClearPaths,
     togglePlayPause,
+    handleSkipBack,
+    handleSkipForward,
     togglePlacingMode,
     onViewNetwork,
   };

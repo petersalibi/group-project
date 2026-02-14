@@ -2,9 +2,11 @@ import React from "react";
 import { View } from "react-native";
 import { Text } from "../components/text";
 import { useTheme } from "../components/theme-provider";
+import { useLoading } from '../components/loading-provider';
 
 export function Footer() {
   const { theme } = useTheme();
+  const { isLoading } = useLoading();
 
   return (
     <View style={{
@@ -24,13 +26,13 @@ export function Footer() {
             width: 8, 
             height: 8, 
             borderRadius: 4, 
-            backgroundColor: "#22c55e",
-            shadowColor: "#22c55e",
+            backgroundColor: isLoading ? "#ff8800" : "#22c55e",
+            shadowColor: isLoading ? "#ff8800" : "#22c55e",
             shadowOpacity: 0.5,
             shadowRadius: 4
           }} />
           <Text style={{ fontSize: 10, fontWeight: '600', color: theme.colors.mutedForeground }}>
-            ENGINE READY
+            {isLoading ? 'ENGINE BUSY' : 'ENGINE READY'}
           </Text>
         </View>
         

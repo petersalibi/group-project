@@ -115,13 +115,19 @@ export function useVisualisation(props: UseVisualisationProps) {
         isPathLoading,
         isPathLoaded,
         isPlaying,
+        progress,
+        currentFrame,
+        totalFrames,
         isPlacingMode,
         placingPathId,
         currentParams,
         networkViewId,
         handleLoadAllPathsButtonClick,
+        handleRemovePath,
         handleClearPaths,
         togglePlayPause,
+        handleSkipBack,
+        handleSkipForward,
         togglePlacingMode,
         onViewNetwork,
     } = usePathVisualisations({
@@ -333,27 +339,9 @@ export function useVisualisation(props: UseVisualisationProps) {
     const handleRefresh = useCallback(() => {
         if (!sceneRef.current) return;
 
-        if (meshRef.current && dictRef.current) {
+        setCameraControls();
 
-            meshRef.current.scale.z = 1;
-
-            setIsLandscapeLoading(true);
-            disposeObject(meshRef.current);
-            
-            // Recreate mesh forcing Log=true and Z=1
-            const { mesh } = createLandscapeMesh(true, dictRef.current, 1);
-            
-            sceneRef.current.add(mesh);
-            meshRef.current = mesh;
-            setIsLandscapeLoading(false);
-
-            setCameraControls();
-        }
-
-        setZValue(1);
-        setLogPlot(true);
-
-    }, [zValue, logPlot]);
+    }, []);
 
     const handleColorSelect = useCallback((themeId: string) => {
         const mesh = meshRef.current;
@@ -382,13 +370,19 @@ export function useVisualisation(props: UseVisualisationProps) {
         isPathLoading,
         isPathLoaded,
         isPlaying,
+        progress,
+        currentFrame,
+        totalFrames,
         isPlacingMode,
         placingPathId,
         currentParams,
         networkViewId,
         handleLoadAllPathsButtonClick,
+        handleRemovePath,
         handleClearPaths,
         togglePlayPause,
+        handleSkipBack,
+        handleSkipForward,
         togglePlacingMode,
         onViewNetwork,
     }

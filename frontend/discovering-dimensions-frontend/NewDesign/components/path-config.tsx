@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Platform, View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { 
   Play, SkipBack, SkipForward, Maximize2, 
-  RotateCcw, RefreshCw, Eye, Network, Palette 
+  RotateCcw, RefreshCw, Eye, Network, Palette, Lock, Unlock, Trash2, 
+  UnlockIcon
 } from "lucide-react-native";
 import { useTheme } from "../components/theme-provider";
 import { Text } from "../components/text";
@@ -32,6 +34,7 @@ export interface PathConfigInterface {
 interface PathConfigProps {
     config: PathConfigInterface;
     onConfigChange: (id: number, field: keyof PathConfigInterface, value: any) => void;
+    onPathRemoval: (id: number) => void;
     onPlaceStartPoint: (id: number) => void;
     networkViewable: boolean;
     onViewNetwork: (id: number) => void;
@@ -46,6 +49,7 @@ export function PathConfig(props: PathConfigProps) {
         config,
         onConfigChange,
         onPlaceStartPoint,
+        onPathRemoval,
         networkViewable,
         onViewNetwork,
         isPlacing,
@@ -62,7 +66,18 @@ export function PathConfig(props: PathConfigProps) {
         <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
             <View style={styles.rowBetween}>
                 <Text style={[styles.pathTitle, { color: colorValue }]}>PATH {id + 1}</Text>
-                <Eye size={14} color={theme.colors.mutedForeground} />
+                <View style={styles.actionGroup}>
+                    <Button variant="link" onPress={() => onConfigChange(id, 'locked', !locked)} size="ssm">
+                        {locked ? (
+                            <Lock size={14} color={theme.colors.foreground} />
+                        ) : (
+                            <Unlock size={14} color={theme.colors.mutedForeground} />
+                        )}
+                    </Button>
+                    <Button variant="ghost" onPress={() => onPathRemoval(id)} size="ssm">
+                        <Trash2 size={14} color={theme.colors.foreground} />
+                    </Button>
+                </View>
             </View>
                 
             <View style={styles.rowGap}>
@@ -71,7 +86,7 @@ export function PathConfig(props: PathConfigProps) {
                     <DropdownMenu>
                         <DropdownMenuTrigger>
                             <View style={[styles.dropdownTrigger, { height: 32, borderColor: theme.colors.border }]}>
-                                <Text style={{ fontSize: 11 }}>{optimisers[0].label}</Text>
+                                <Text style={{ fontSize: 11 }}>{optimisers.find(item => item.value === config.optim)?.label || config.optim}</Text>
                             </View>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -86,7 +101,7 @@ export function PathConfig(props: PathConfigProps) {
                     <DropdownMenu>
                         <DropdownMenuTrigger>
                             <View style={[styles.dropdownTrigger, { height: 32, borderColor: theme.colors.border }]}>
-                                <Text style={{ fontSize: 11 }}>{lrs[0].label}</Text>
+                                <Text style={{ fontSize: 11 }}>{lrs.find(item => item.value === config.lr)?.label || config.lr}</Text>
                             </View>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -108,7 +123,6 @@ export function PathConfig(props: PathConfigProps) {
                 >
                     {isPlacing ? 'Cancel' : 'Place Start'}
                 </Button>
-                <Switch checked={locked} onCheckedChange={(val) => onConfigChange(id, 'locked', val)}/>
                 <Button variant="outline" size="sm" style={{ flex: 1 }}><Network size={14} color={theme.colors.foreground} /></Button>
                 <Button variant="outline" size="sm" style={{ flex: 1 }}><Palette size={14} color={theme.colors.foreground}/></Button>
             </View>
@@ -123,6 +137,7 @@ const styles = StyleSheet.create({
   subLabel: { fontSize: 9, fontWeight: '600', opacity: 0.5, marginBottom: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowGap: { flexDirection: 'row', gap: 10 },
+  actionGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dropdownTrigger: { 
     height: 36, 
     borderWidth: 1, 

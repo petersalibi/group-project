@@ -30,6 +30,7 @@ export interface ButtonProps {
 
 const sizeStyles = {
   default: { height: 40, px: 16, gap: 8 },
+  ssm: { height: 24, px: 8, gap: 4 },
   sm: { height: 32, px: 12, gap: 6 },
   lg: { height: 48, px: 24, gap: 8 },
   icon: { height: 40, width: 40, px: 0, gap: 0 },

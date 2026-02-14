@@ -237,7 +237,7 @@ export function project2DPathTo3D(
   path2D: THREE.Vector2[],
   raycaster: THREE.Raycaster,
 ) {
-  const lineLiftAmount = 0.002;
+  const lineLiftAmount = 0.001;
   const newPathPoints: THREE.Vector3[] = [];
   const newPathNormals: THREE.Vector3[] = [];
   let totalLength = 0;
@@ -310,10 +310,9 @@ export function createOrUpdatePathLine(
   lineGeometry.setPositions(positions);
   const lineMaterial = new LineMaterial({
     color: new THREE.Color(color).getHex(),
-    linewidth: 5,
+    linewidth: 3,
     transparent: true,
-    opacity: 0.6,
-    blending: THREE.AdditiveBlending,
+    opacity: 0.2,
     depthWrite: false, // Prevents z-fighting with the terrain
     toneMapped: false,
   }) as any;
@@ -359,7 +358,7 @@ export function createBall(
     reflectivity: 1.0,
   });
   const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-  ball.castShadow = true;
+  ball.castShadow = true; 
   ball.receiveShadow = true;
 
   if (pathPoints.length > 0 && pathNormals.length > 0) {
