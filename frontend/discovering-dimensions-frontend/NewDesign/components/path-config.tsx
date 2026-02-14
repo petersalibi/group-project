@@ -28,7 +28,7 @@ export interface PathConfigInterface {
     optim: string;
     lr: number;
     locked: boolean;
-    startPoint: [number, number];
+    startPoint: [number, number] | null;
 }
 
 interface PathConfigProps {
@@ -114,15 +114,22 @@ export function PathConfig(props: PathConfigProps) {
             </View>
 
             <View style={styles.rowGap}>
-                <Button 
-                    variant="primary" 
-                    size="sm"
-                    onPress={() => onPlaceStartPoint(id)}
-                    disabled={isSceneLoading || !isLandscapeLoaded}
-                    style={{ flex: 4 }}
-                >
-                    {isPlacing ? 'Cancel' : 'Place Start'}
-                </Button>
+                {startPoint != null && !isPlacing ? (
+                    <View style={{ flex: 4, flexDirection: 'column', justifyContent: 'center' }}>
+                        <Text style={styles.label}>Start Point</Text>
+                        <Text style={styles.label}>[{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]</Text>
+                    </View>
+                ) : (
+                    <Button 
+                        variant="primary" 
+                        size="sm"
+                        onPress={() => onPlaceStartPoint(id)}
+                        disabled={isSceneLoading || !isLandscapeLoaded}
+                        style={{ flex: 4 }}
+                    >
+                        {isPlacing ? 'Cancel' : 'Place Start'}
+                    </Button>
+                )}
                 <Button variant="outline" size="sm" style={{ flex: 1 }}><Network size={14} color={theme.colors.foreground} /></Button>
                 <Button variant="outline" size="sm" style={{ flex: 1 }}><Palette size={14} color={theme.colors.foreground}/></Button>
             </View>

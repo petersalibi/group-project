@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Platform, View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
-import Animated, { FadeInDown, FadeInLeft, FadeInUp, FadeOutDown, FadeOutLeft, FadeOutUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeInUp, FadeOutDown, FadeOut, FadeOutUp } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -19,7 +19,7 @@ import { Switch } from "../components/switch";
 import { NumberInput } from "../components/number-input";
 import { Button } from "../components/button";
 import { Progress } from "../components/progress";
-import { LandscapeLoadingIcon } from "../components/icons/icons";
+import { LandscapeLoadingIcon, PathLoadingIcon } from "../components/icons/icons";
 
 import { 
   DropdownMenu, 
@@ -47,7 +47,7 @@ const createDefaultPathConfig = (id: number): PathConfigInterface => {
     optim: 'Adam',
     lr: 0.01,
     locked: true,
-    startPoint: [0, 0],
+    startPoint: null,
   };
 };
 
@@ -175,6 +175,8 @@ export function VisualisationPage() {
       ),
     );
   };
+
+  const hasUnsetStartPoints = pathConfigs.some(config => !config.startPoint);
 
   const hiddenFileInput = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<String | null>(null)
@@ -443,10 +445,10 @@ export function VisualisationPage() {
               </Button>
             )}
 
-            {numPaths > 0 && (
+            {numPaths > 0  && (
               <Button 
                 variant="secondary"
-                disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded}
+                disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded || hasUnsetStartPoints}
                 onPress={handleLoadAllPathsButtonClick}
                 style={styles.exportBtn}
               >
@@ -535,12 +537,26 @@ export function VisualisationPage() {
             
             {isLandscapeLoading && (
               <View style={styles.hudOverlay}>
-                <LandscapeLoadingIcon isLoading={isLandscapeLoading} />
+                <LandscapeLoadingIcon isLandscapeLoading={isLandscapeLoading} />
+              </View>
+            )}
+
+            {isPathLoading && (
+              <View style={styles.hudOverlay}>
+                <PathLoadingIcon numPathsLoading={numPaths} />
               </View>
             )}
 
             {/* Canvas Container */}
             <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: 'transparent' }} />
+
+            {isPathLoading && (
+              <Animated.View 
+                entering={FadeIn.duration(400)} 
+                exiting={FadeOut.duration(400)}
+                style={[StyleSheet.absoluteFill, styles.darkOverlay]}
+              />
+            )}
             
             {isPathLoaded && (
               <View style={styles.playbackBar}>
@@ -594,6 +610,7 @@ const styles = StyleSheet.create({
   pathTitle: { fontSize: 10, fontWeight: '900' },
   exportBtn: { marginTop: 10 },
   engineContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.1)', overflow: 'hidden', position: 'relative' },
+  darkOverlay: { backgroundColor: 'rgba(0, 0, 0, 0.6)', zIndex: 5 },
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
   rightSidebar: { position: 'absolute', right: 0, top: '20%', bottom: '20%', zIndex: 10, alignItems: 'center', paddingRight: 16, gap: 10 },
   verticalSliderWrapper: { transform: [{ rotate: '-90deg' }], width: 100, justifyContent: 'center', alignItems: 'center' },
