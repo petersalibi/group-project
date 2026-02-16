@@ -5,14 +5,18 @@ import { useTheme } from "./theme-provider";
 interface StatsCardProps {
   value: string;
   label: string;
-  color?: string; // Optional color override
+  color?: string;
+  subText?: string;  // New: For the "↓ 12%" or status labels
+  subColor?: string; // New: To color the subtext (e.g., green for positive change)
 }
 
-export function StatsCard({ value, label, color }: StatsCardProps) {
+export function StatsCard({ value, label, color, subText, subColor }: StatsCardProps) {
   const { theme } = useTheme();
 
-  //  Set the default color inside the body where 'theme' exists
+  // Primary value color (defaults to theme French Blue)
   const statusColor = color || theme.colors.frenchBlue;
+  // Subtext color (defaults to muted foreground if not provided)
+  const secondaryColor = subColor || theme.colors.mutedForeground;
 
   return (
     <View style={{
@@ -21,29 +25,41 @@ export function StatsCard({ value, label, color }: StatsCardProps) {
       borderRadius: theme.radius.md,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: theme.spacing.md,
-      alignItems: "center",
-      justifyContent: "center",
-      // Add the soft shadow from your theme for depth
-      ...theme.shadows.soft,
+      padding: 12, // Fixed padding for consistency in small slots
+      justifyContent: "space-between", // Pushes label to top and subtext to bottom
+      minHeight: 80,
     }}>
+      {/* Top Label */}
       <Text style={{ 
-        fontSize: 24, 
+        fontSize: 9, 
         fontWeight: "700", 
-        color: statusColor //  Uses the resolved color
-      }}>
-        {value}
-      </Text>
-      <Text style={{ 
-        fontSize: 10, 
         color: theme.colors.mutedForeground, 
         textTransform: "uppercase",
-        letterSpacing: 1,
-        marginTop: 4,
-        textAlign: "center"
+        letterSpacing: 0.5,
       }}>
         {label}
       </Text>
+
+      {/* Main Metric Value */}
+      <Text style={{ 
+        fontSize: 28, 
+        fontWeight: "700", 
+        color: statusColor,
+        marginVertical: 2,
+      }}>
+        {value}
+      </Text>
+
+      {/* Bottom Subtext (Trend/Status) */}
+      {subText && (
+        <Text style={{ 
+          fontSize: 10, 
+          fontWeight: "600", 
+          color: secondaryColor,
+        }}>
+          {subText}
+        </Text>
+      )}
     </View>
   );
 }
