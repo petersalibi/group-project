@@ -122,7 +122,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         isPlacingMode,
         placingPathId,
         currentParams,
-        networkViewId,
+        viewId,
+        currentLoss,
+        lossChange,
         handleLoadAllPathsButtonClick,
         handleRemovePath,
         handleClearPaths,
@@ -130,7 +132,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         handleSkipBack,
         handleSkipForward,
         togglePlacingMode,
-        onViewNetwork,
+        onViewPath,
     } = usePathVisualisations({
         activation,
         depth,
@@ -378,7 +380,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         isPlacingMode,
         placingPathId,
         currentParams,
-        networkViewId,
+        viewId,
+        currentLoss,
+        lossChange,
         handleLoadAllPathsButtonClick,
         handleRemovePath,
         handleClearPaths,
@@ -386,6 +390,6 @@ export function useVisualisation(props: UseVisualisationProps) {
         handleSkipBack,
         handleSkipForward,
         togglePlacingMode,
-        onViewNetwork,
+        onViewPath,
     }
 };

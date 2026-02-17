@@ -5,30 +5,32 @@ import { Text } from './text';
 import { StatsCard } from './stats-card';
 import { Platform } from 'react-native';
 
-export function TrainingMetrics({ currentFrame, isPlaying }: any) {
+export function TrainingMetrics({ currentLoss, lossChange, convergence, isPlaying }: any) {
   const { theme } = useTheme();
-  
-  // Real-time simulated loss based on current path frame
-  const lossValue = (0.0241 + (1 / (currentFrame + 1)) * 0.1).toFixed(4);
-  const convergence = Math.min(89.4 + (currentFrame / 10), 99.9).toFixed(1);
 
   return (
     <View style={{ flex: 1, padding: 12 }}>
       {/* Top Metrics Row */}
-      <View style={styles.metricsRow}>
-        <StatsCard 
-           label="Current Loss" 
-           value={isPlaying ? lossValue : "0.0241"} 
-           subText="↓ 12%" 
-           subColor="#22c55e"
-        />
-        <StatsCard 
-           label="Convergence" 
-           value={isPlaying ? `${convergence}%` : "89.4%"} 
-           subText="High"
-           subColor="#64748b"
-        />
-      </View>
+      {(currentLoss || convergence) && (
+        <View style={styles.metricsRow}>
+          {currentLoss && (
+            <StatsCard 
+              label="Current Loss" 
+              value={currentLoss !== null ? currentLoss.toFixed(2) : "0.00"} 
+              subText={lossChange === 0 ? "" : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
+              subColor={lossChange > 0 ? "#e80c0c" : "#22c55e"}
+            />
+          )}
+          {convergence && (
+            <StatsCard 
+              label="Convergence" 
+              value={isPlaying ? `${convergence}%` : "89.4%"} 
+              subText="High"
+              subColor="#64748b"
+            />
+          )}
+        </View>
+      )}
       
       {/* Live Log Section */}
       <View style={styles.logContainer}>

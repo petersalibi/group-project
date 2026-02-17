@@ -37,7 +37,7 @@ interface PathConfigProps {
     onPathRemoval: (id: number) => void;
     onPlaceStartPoint: (id: number) => void;
     networkViewable: boolean;
-    onViewNetwork: (id: number) => void;
+    onViewPath: (id: number) => void;
     isPlacing: boolean;
     isSceneLoading: boolean;
     isLandscapeLoaded: boolean;
@@ -51,7 +51,7 @@ export function PathConfig(props: PathConfigProps) {
         onPlaceStartPoint,
         onPathRemoval,
         networkViewable,
-        onViewNetwork,
+        onViewPath,
         isPlacing,
         isSceneLoading,
         isLandscapeLoaded,
@@ -130,7 +130,7 @@ export function PathConfig(props: PathConfigProps) {
                         {isPlacing ? 'Cancel' : 'Place Start'}
                     </Button>
                 )}
-                <Button variant="outline" size="sm" style={{ flex: 1 }}><Network size={14} color={theme.colors.foreground} /></Button>
+                <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm" style={{ flex: 1 }}><Eye size={14} color={theme.colors.foreground} /></Button>
                 <Button variant="outline" size="sm" style={{ flex: 1 }}><Palette size={14} color={theme.colors.foreground}/></Button>
             </View>
         </View>

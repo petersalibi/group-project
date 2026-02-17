@@ -69,7 +69,9 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         isPlacingMode,
         placingPathId,
         currentParams,
-        networkViewId,
+        viewId,
+        currentLoss,
+        lossChange,
         handleLoadAllPathsButtonClick,
         handleRemovePath,
         handleClearPaths,
@@ -77,7 +79,7 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         handleSkipBack,
         handleSkipForward,
         togglePlacingMode,
-        onViewNetwork,
+        onViewPath,
     } = useVisualisation({
         activation,
         depth,
@@ -119,7 +121,9 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         isPlacingMode,
         placingPathId,
         currentParams,
-        networkViewId,
+        viewId,
+        currentLoss,
+        lossChange,
         handleLoadAllPathsButtonClick,
         handleRemovePath,
         handleClearPaths,
@@ -127,6 +131,6 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         handleSkipBack,
         handleSkipForward,
         togglePlacingMode,
-        onViewNetwork,
+        onViewPath,
     }
 }

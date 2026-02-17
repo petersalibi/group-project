@@ -103,7 +103,9 @@ export function VisualisationPage() {
     isPlacingMode,
     placingPathId,
     currentParams,
-    networkViewId,
+    viewId,
+    currentLoss,
+    lossChange,
     handleLoadAllPathsButtonClick,
     handleRemovePath,
     handleClearPaths,
@@ -111,7 +113,7 @@ export function VisualisationPage() {
     handleSkipBack,
     handleSkipForward,
     togglePlacingMode,
-    onViewNetwork,
+    onViewPath,
   } = useLossLandscape({
     activation,
     depth,
@@ -219,7 +221,7 @@ export function VisualisationPage() {
           setInputs(datasetParameters);
           setOutputs(datasetOutputs);
         } else {
-          setInputs(null);
+          setInputs([]);
           setOutputs(null);
         }
     }
@@ -437,11 +439,11 @@ useEffect(() => {
                   onPathRemoval={handlePathRemoval}
                   onPlaceStartPoint={() => togglePlacingMode(config.id)}
                   networkViewable={depth <= 10 && width <= 10}
-                  onViewNetwork={() => onViewNetwork(config.id)}
+                  onViewPath={() => onViewPath(config.id)}
                   isPlacing={isPlacingMode && placingPathId === config.id}
                   isSceneLoading={isLandscapeLoading}
                   isLandscapeLoaded={isLandscapeLoaded}
-                  isWatching={networkViewId === config.id}
+                  isWatching={viewId === config.id}
                 />
               ))}
             </View>
@@ -465,7 +467,11 @@ useEffect(() => {
 
             {isPathLoaded && (
               <Button
-                onPress={handleClearPaths}
+                onPress={() => {
+                  handleClearPaths();
+                  setPathConfigs([]);
+                  setNumPaths(0);
+                }}
                 style={styles.exportBtn}
               >
                 Clear Paths
@@ -594,14 +600,19 @@ useEffect(() => {
       <StatsGroupPanel 
         archContent={
           <NetworkArchitecture 
+            inputs={inputs.length || 0}
             depth={depth} 
             width={width} 
-            activation={activation} // <-- Add this line
+            activation={activation}
+            outputs={outputs}
+            weights={currentParams || []}
           />
         }
         metricsContent={
           <TrainingMetrics 
-            currentFrame={currentFrame}
+            currentLoss={currentLoss}
+            lossChange={lossChange}
+            convergence={null}
             isPlaying={isPlaying}
           />
         }

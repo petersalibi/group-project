@@ -15,6 +15,7 @@ import {
   cleanupScene,
 } from '../utils/threejs-utils';
 import { PathConfigInterface, PathConfig } from '../components/path-config';
+import { PATH_COLORS } from '../constants/constants';
 
 export interface UsePathVisualisationsProps {
     activation: string;
@@ -103,12 +104,14 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [progress, setProgress] = useState(0);
+    const [currentLoss, setCurrentLoss] = useState(null);
+    const [lossChange, setLossChange] = useState(0);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [totalFrames, setTotalFrames] = useState(100);
     const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
     const [placingPathId, setPlacingPathId] = useState<number | null>(null);
     const [currentParams, setCurrentParams] = useState<number[] | null>(null);
-    const [networkViewId, setNetworkViewId] = useState<number | null>(null);
+    const [viewId, setViewId] = useState<number | null>(null);
 
     const markersRef = useRef<{
         [id: number]: { ball: THREE.Mesh; line: THREE.Line };
@@ -120,7 +123,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     const isPathLoadedRef = useRef(isPathLoaded);
     const lastUiUpdateRef = useRef(0);
     const animationTimeRef = useRef(0);
-    const networkViewIdRef = useRef<number | null>(null);
+    const viewIdRef = useRef<number | null>(null);
 
     // --- Array refs for multiple paths ---
     const pathLinesRef = useRef<Line2[]>([]);
@@ -171,15 +174,44 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         });
         markersRef.current = newMarkers;
 
-        if (networkViewIdRef.current === id) {
-            // If the user was viewing the network of the deleted path, clear it
-            setNetworkViewId(null);
-            networkViewIdRef.current = null;
+        pathLinesRef.current.forEach((line, i) => {
+            const newColor = PATH_COLORS[i % PATH_COLORS.length].value; 
+            if (line && line.material) {
+                (line.material as THREE.LineBasicMaterial).color.set(newColor);
+            }
+        });
+
+        ballsRef.current.forEach((ball, i) => {
+            const newColor = PATH_COLORS[i % PATH_COLORS.length].value;
+            if (ball && ball.material) {
+                (ball.material as THREE.MeshBasicMaterial).color.set(newColor);
+            }
+        });
+
+        Object.keys(markersRef.current).forEach((keyStr) => {
+            const keyId = parseInt(keyStr, 10);
+            const newColor = PATH_COLORS[keyId % PATH_COLORS.length].value;
+            const marker = markersRef.current[keyId];
+            
+            if (marker.ball && marker.ball.material) {
+                (marker.ball.material as THREE.MeshBasicMaterial).color.set(newColor);
+            }
+            if (marker.line && marker.line.material) {
+                (marker.line.material as THREE.LineBasicMaterial).color.set(newColor);
+            }
+        });
+
+        if (viewIdRef.current === id) {
+            // If the user was viewing the deleted path, clear it
+            setViewId(null);
+            viewIdRef.current = null;
             setCurrentParams(null);
-        } else if (networkViewIdRef.current !== null && networkViewIdRef.current > id) {
+            setCurrentLoss(null);
+            setLossChange(0);
+        } else if (viewIdRef.current !== null && viewIdRef.current > id) {
             // If the user was viewing a path that comes AFTER the deleted one, decrement its ID
-            setNetworkViewId(networkViewIdRef.current - 1);
-            networkViewIdRef.current -= 1;
+            setViewId(viewIdRef.current - 1);
+            viewIdRef.current -= 1;
         }
 
         // If this was the last path, completely reset the playback state
@@ -216,9 +248,11 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
 
     const handleClearPaths = useCallback(() => {
         handleRemoveAllPaths();
-        setNetworkViewId(null);
-        networkViewIdRef.current = null;
+        setViewId(null);
+        viewIdRef.current = null;
         setCurrentParams(null);
+        setCurrentLoss(null);
+        setLossChange(0);
     }, []);
 
     /**
@@ -557,12 +591,12 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       setTotalFrames(maxSteps);
   }, [getMaxSteps, getMaxDuration]);
 
-  const onViewNetwork = useCallback(
+  const onViewPath = useCallback(
     (id: number) => {
-      setNetworkViewId(id);
-      networkViewIdRef.current = id;
+      setViewId(id);
+      viewIdRef.current = id;
     },
-    [networkViewId],
+    [viewId],
   );
 
   const togglePlacingMode = useCallback(
@@ -729,20 +763,33 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
               ball.position.copy(newPos);
             }
 
-            // Update Network Params
-            if (
-                networkViewIdRef.current !== null &&
-                networkViewIdRef.current === i
-            ) {
-                const timeStep = Math.floor(
-                ballProgress * (parametersArrayRef.current[i].length - 1),
-                );
+            // Update network weights and loss
+            if (viewIdRef.current !== null && viewIdRef.current === i) {
+                const timeStep = Math.floor(ballProgress * (parametersArrayRef.current[i].length - 1));
                 if (timeStep < parametersArrayRef.current[i].length) {
-                setCurrentParams(
-                    parametersArrayRef.current[networkViewIdRef.current][timeStep],
-                );
+                  setCurrentParams(parametersArrayRef.current[viewIdRef.current][timeStep]);
+                  // Extract and set the loss for the current step
+                  if (pathPointsArrayRef.current[i][timeStep]) {
+                    const currentY = pathPointsArrayRef.current[i][timeStep].y;
+                    setCurrentLoss(currentY);
+
+                    // Calculate percentage change over the last 10 steps
+                    const previousStep = Math.max(0, timeStep - 10);
+                    if (timeStep > previousStep) {
+                      const previousY = pathPointsArrayRef.current[i][previousStep].y;
+                      if (previousY !== 0) {
+                        const change = ((currentY - previousY) / Math.abs(previousY)) * 100;
+                        setLossChange(Math.round(change));
+                      } else {
+                        setLossChange(0);
+                      }
+                    } else {
+                      setLossChange(0); // If less than 10 steps have passed, default to 0
+                    }
+                  }
                 }
             }
+
         }
 
         if (isPlayingRef.current && isPathLoadedRef.current) {
@@ -804,7 +851,9 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     isPlacingMode,
     placingPathId,
     currentParams,
-    networkViewId,
+    viewId,
+    currentLoss,
+    lossChange,
     handleLoadAllPathsButtonClick,
     handleRemovePath,
     handleClearPaths,
@@ -812,6 +861,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     handleSkipBack,
     handleSkipForward,
     togglePlacingMode,
-    onViewNetwork,
+    onViewPath,
   };
 }
