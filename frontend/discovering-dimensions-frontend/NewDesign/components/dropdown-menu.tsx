@@ -4,78 +4,95 @@ import {
   Pressable, 
   Modal, 
   StyleSheet, 
-  Dimensions,
   TouchableOpacity,
-  ScrollView 
+  ScrollView,
+  ViewStyle,
+  Dimensions
 } from "react-native";
-import { Check, ChevronRight, Circle } from "lucide-react-native";
 import { useTheme } from "./theme-provider";
-import { Text } from "./text";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+type Layout = { x: number; y: number; w: number; h: number; px: number; py: number };
 
 const DropdownMenuContext = React.createContext<{
   visible: boolean;
   setVisible: (v: boolean) => void;
-  triggerLayout: { x: number; y: number; w: number; h: number } | null;
+  triggerRef: React.RefObject<View>;
+  layout: Layout | null;
+  setLayout: (l: Layout) => void;
 } | null>(null);
 
-function DropdownMenu({ children }: { children: React.ReactNode }) {
+export function DropdownMenu({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = React.useState(false);
-  const [triggerLayout, setTriggerLayout] = React.useState<any>(null);
+  const [layout, setLayout] = React.useState<Layout | null>(null);
+  const triggerRef = React.useRef<View>(null);
 
   return (
-    <DropdownMenuContext.Provider value={{ visible, setVisible, triggerLayout }}>
-      <View onLayout={(e) => {
-        // This helps position the dropdown near the trigger
-        const { x, y, width, height } = e.nativeEvent.layout;
-        setTriggerLayout({ x, y, w: width, h: height });
-      }}>
-        {children}
-      </View>
+    <DropdownMenuContext.Provider value={{ visible, setVisible, triggerRef, layout, setLayout }}>
+      <View style={{ alignSelf: 'flex-start' }}>{children}</View>
     </DropdownMenuContext.Provider>
   );
 }
 
-function DropdownMenuTrigger({ children, asChild }: { children: React.ReactNode, asChild?: boolean }) {
+export function DropdownMenuTrigger({ children }: { children: React.ReactNode }) {
   const context = React.useContext(DropdownMenuContext);
+  
+  const handleOpen = () => {
+    context?.triggerRef.current?.measure((x, y, width, height, px, py) => {
+      context.setLayout({ x, y, w: width, h: height, px, py });
+      context.setVisible(true);
+    });
+  };
+
   return (
-    <Pressable onPress={() => context?.setVisible(true)}>
-      {children}
-    </Pressable>
+    <View ref={context?.triggerRef} collapsable={false}>
+      <Pressable onPress={handleOpen}>{children}</Pressable>
+    </View>
   );
 }
 
-function DropdownMenuContent({ children }: { children: React.ReactNode }) {
+export function DropdownMenuContent({ children }: { children: React.ReactNode }) {
   const context = React.useContext(DropdownMenuContext);
   const { theme } = useTheme();
 
-  if (!context) return null;
+  if (!context || !context.layout) return null;
+
+  const { px, py, h } = context.layout;
+  const MENU_WIDTH = 200;
+  const ESTIMATED_HEIGHT = 150; // Safety buffer for edge detection
+
+  // Edge detection: If near the bottom, flip to show above the trigger
+  const showAbove = py + h + ESTIMATED_HEIGHT > SCREEN_HEIGHT;
+  
+  const dynamicStyles: ViewStyle = {
+    position: 'absolute',
+    left: px,
+    top: showAbove ? py - ESTIMATED_HEIGHT : py + h + 4,
+    width: MENU_WIDTH,
+    backgroundColor: theme.colors.popover, // Using your theme popover color
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md, // Using your theme radius
+    ...theme.shadows.medium, // Spreading your existing theme shadows
+  };
 
   return (
     <Modal visible={context.visible} transparent animationType="fade">
-      <Pressable 
-        style={styles.overlay} 
-        onPress={() => context.setVisible(false)}
-      >
-        <View style={[
-          styles.content, 
-          { 
-            backgroundColor: theme.colors.card, 
-            borderColor: theme.colors.border,
-            // Logic to position roughly below the trigger
-            marginTop: context.triggerLayout ? context.triggerLayout.y + 40 : 100 
-          }
-        ]}>
-          <ScrollView bounces={false}>{children}</ScrollView>
+      <Pressable style={styles.overlay} onPress={() => context.setVisible(false)}>
+        <View style={[styles.content, dynamicStyles]}>
+          <ScrollView bounces={false} style={{ maxHeight: 300 }}>
+            {children}
+          </ScrollView>
         </View>
       </Pressable>
     </Modal>
   );
 }
 
-function DropdownMenuItem({ 
+export function DropdownMenuItem({ 
   children, 
   onSelect,
-  disabled
+  disabled 
 }: { 
   children: React.ReactNode, 
   onSelect?: () => void,
@@ -91,14 +108,17 @@ function DropdownMenuItem({
         onSelect?.();
         context?.setVisible(false);
       }}
-      style={styles.item}
+      style={[
+        styles.item, 
+        { opacity: disabled ? 0.5 : 1 }
+      ]}
     >
       <View style={{ flex: 1 }}>{children}</View>
     </TouchableOpacity>
   );
 }
 
-function DropdownMenuSeparator() {
+export function DropdownMenuSeparator() {
   const { theme } = useTheme();
   return <View style={[styles.separator, { backgroundColor: theme.colors.border }]} />;
 }
@@ -106,38 +126,21 @@ function DropdownMenuSeparator() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    alignItems: "center",
+    backgroundColor: "transparent",
   },
   content: {
-    width: 200,
-    borderRadius: 8,
     borderWidth: 1,
     padding: 4,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    overflow: 'hidden',
   },
   item: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
   },
   separator: {
     height: 1,
     marginVertical: 4,
-    marginHorizontal: -4,
   }
 });
-
-export {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator
-};

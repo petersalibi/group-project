@@ -7,6 +7,8 @@ import {
   Pause, Play, SkipBack, SkipForward, Maximize2, 
   RotateCcw, RefreshCw, Eye, Network, Palette, Plus, Upload 
 } from "lucide-react-native";
+import { TrainingMetrics } from "../components/training_metrics";
+import { NetworkArchitecture } from "../components/network_architecture";
 
 import { useTheme } from "../components/theme-provider";
 import { useLoading } from "../components/loading-provider";
@@ -250,6 +252,15 @@ export function VisualisationPage() {
     setLoss(newLosses[0].value);
 
   }, [data, datasetOutputs]);
+
+  const [logs, setLogs] = useState<string[]>([]);
+
+useEffect(() => {
+  if (isPlaying && currentFrame % 5 === 0) {
+    const newLog = `[${new Date().toLocaleTimeString()}] Grad Norm: ${(Math.random() * 0.5 + 0.1).toFixed(2)}`;
+    setLogs(prev => [newLog, ...prev].slice(0, 5)); // Keep last 5 logs
+  }
+}, [currentFrame, isPlaying]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -580,7 +591,22 @@ export function VisualisationPage() {
           </View>
         </DockPanel>
 
-        <StatsGroupPanel />
+      <StatsGroupPanel 
+        archContent={
+          <NetworkArchitecture 
+            depth={depth} 
+            width={width} 
+            activation={activation} // <-- Add this line
+          />
+        }
+        metricsContent={
+          <TrainingMetrics 
+            currentFrame={currentFrame}
+            isPlaying={isPlaying}
+          />
+        }
+      />
+
 
       </LayoutManager>
     </GestureHandlerRootView>
@@ -600,6 +626,13 @@ const styles = StyleSheet.create({
     borderRadius: 8, 
     justifyContent: 'center', 
     paddingHorizontal: 12 
+  },
+  statsRow: {
+    flexDirection: 'row',
+    height: 180, // Matches the height of your DockPanel footer
+    padding: 12,
+    paddingTop: 6,
+    gap: 0, 
   },
   dropdownValue: { fontSize: 12 },
   pathCard: { padding: 12, backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 8, borderLeftWidth: 4, gap: 12 },
