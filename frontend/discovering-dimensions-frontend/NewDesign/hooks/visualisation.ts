@@ -89,6 +89,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     const raycasterRef = useRef<THREE.Raycaster | null>(null);
     const clockRef = useRef<THREE.Clock | null>(null);
     const rafRef = useRef<number>(0);
+    const landscapeColoursRef = useRef(gradientPresets[0].colors);
 
     // --- Scene Setup ---
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -322,7 +323,6 @@ export function useVisualisation(props: UseVisualisationProps) {
 
     const handleLogPlotToggle = useCallback(() => {
         if (!sceneRef.current) return;
-        console.log("Toggled")
         setIsLandscapeLoading(true);
         disposeObject(meshRef.current);
         meshRef.current = null;
@@ -330,6 +330,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(!logPlot, dictRef.current, zValue);
         sceneRef.current.add(mesh);
         meshRef.current = mesh;
+        updateMeshColors(mesh, landscapeColoursRef.current);
 
         setLogPlot((prev) => !prev);
         setIsLandscapeLoading(false);
@@ -349,6 +350,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         const colors = preset ? preset.colors : null;
         if (mesh && colors) {
             updateMeshColors(mesh, colors);
+            landscapeColoursRef.current = colors;
         }
     }, []);
 

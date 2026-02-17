@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Pause, Play, SkipBack, SkipForward, Maximize2, 
-  RotateCcw, RefreshCw, Eye, Network, Palette, Plus 
+  RotateCcw, RefreshCw, Eye, Network, Palette, Plus, Upload 
 } from "lucide-react-native";
 
 import { useTheme } from "../components/theme-provider";
@@ -233,6 +233,7 @@ export function VisualisationPage() {
     switch (data) {
       case 'SINREGRESSION':
         newLosses = regLosses;
+        setMethod('RANDOMDIRS');
         break;
       case 'PENGUINS':
         newLosses = ceLoss;
@@ -273,34 +274,29 @@ export function VisualisationPage() {
               {data === 'CUSTOM' && (
                 <Text style={styles.subLabel}>{csvLoaded && !loadingCsv ? fileName : ""}</Text>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{dataSets.find(item => item.value === data)?.label || data}</Text>
-                  </View>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {dataSets.map((item) => (
-                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => {setData(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </View>
-            {data === 'CUSTOM' && (
-              <View style={styles.controlGroup}>
-                <Button 
-                  disabled={loadingCsv || isLandscapeLoading || isPathLoading || isPathLoaded }
-                  onPress={handleUploadPress}
-                >
-                  {loadingCsv 
-                    ? "Uploading..." 
-                    : csvLoaded 
-                      ? "Change File" 
-                      : "Select File"
-                  }
-                </Button>
+              <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+                <View style={{ flex: 1 }}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
+                        <Text style={styles.dropdownValue}>{dataSets.find(item => item.value === data)?.label || data}</Text>
+                      </View>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {dataSets.map((item) => (
+                        <DropdownMenuItem key={item.id} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } onSelect={() => {setData(item.value)}}><Text>{item.label}</Text></DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </View>
+                {data === 'CUSTOM' && (
+                  <Button variant="outline" disabled={loadingCsv || isLandscapeLoading || isPathLoading || isPathLoaded }
+                      onPress={handleUploadPress} size="sm" >
+                      <Upload size={14} color={theme.colors.foreground} />
+                  </Button>
+                )}
               </View>
-            )}
+            </View>
 
             {/* ACTIVATION DROPDOWN */}
             <View style={styles.controlGroup}>
@@ -413,7 +409,7 @@ export function VisualisationPage() {
 
             <Button
               variant="secondary"
-              disabled={isLandscapeLoading || isPathLoading || isPathLoaded}
+              disabled={isLandscapeLoading || isPathLoading || isPathLoaded || (data === "CUSTOM" && !csvLoaded)}
               onPress={() => {onGenerateLandscape()}}
               style={styles.exportBtn}>
               Generate Landscape
