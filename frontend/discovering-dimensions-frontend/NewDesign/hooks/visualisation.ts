@@ -67,6 +67,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     const [datasetOutputs, setDatasetOutputs] = useState<number | null>(null);
     const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
     const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
+    const [minMaxLoss, setMinMaxLoss] = useState([0, 0]);
 
     // --- Internal state refs ---
     const dataRef = useRef<string>(data);
@@ -140,6 +141,8 @@ export function useVisualisation(props: UseVisualisationProps) {
         data,
         csv,
         loss,
+        minMaxLoss,
+        zScale: zValue,
         pathConfigs,
         onPathConfigChange,
         disposeObject,
@@ -290,6 +293,12 @@ export function useVisualisation(props: UseVisualisationProps) {
         );
         scene.add(mesh);
         meshRef.current = mesh;
+
+        const lossGrid: number[][] = logPlot ? dict.surface_log : dict.surface;
+        const minLoss = Math.min(...lossGrid.flat());
+        const maxLoss = Math.max(...lossGrid.flat());
+        console.log(minLoss, maxLoss);
+        setMinMaxLoss([minLoss, maxLoss]);
 
         setCameraControls();
         setIsLandscapeLoaded(true);

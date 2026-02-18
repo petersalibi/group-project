@@ -24,6 +24,8 @@ export interface UsePathVisualisationsProps {
     data: string;
     csv: string;
     loss: string;
+    minMaxLoss: number[];
+    zScale: number;
     pathConfigs: PathConfigInterface[];
     onPathConfigChange: (id: number, field: keyof PathConfigInterface, value: any) => void;
     disposeObject: (obj: THREE.Object3D | null) => void;
@@ -84,6 +86,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         data,
         csv,
         loss,
+        minMaxLoss,
+        zScale,
         pathConfigs,
         onPathConfigChange,
         disposeObject,
@@ -124,6 +128,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     const lastUiUpdateRef = useRef(0);
     const animationTimeRef = useRef(0);
     const viewIdRef = useRef<number | null>(null);
+    const minMaxLossRef = useRef(minMaxLoss);
+    const zScaleRef = useRef(zScale);
 
     // --- Array refs for multiple paths ---
     const pathLinesRef = useRef<Line2[]>([]);
@@ -142,6 +148,14 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     useEffect(() => {
         isPathLoadedRef.current = isPathLoaded;
     }, [isPathLoaded]);
+
+    useEffect(() => {
+        minMaxLossRef.current = minMaxLoss;
+    }, [minMaxLoss]);
+
+    useEffect(() => {
+        zScaleRef.current = zScale;
+    }, [zScale]);
 
     const handleRemovePath = useCallback((id: number) => {
         if (pathLinesRef.current[id]) disposeObject(pathLinesRef.current[id]);
@@ -771,14 +785,25 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
                   // Extract and set the loss for the current step
                   if (pathPointsArrayRef.current[i][timeStep]) {
                     const currentY = pathPointsArrayRef.current[i][timeStep].y;
-                    setCurrentLoss(currentY);
+                    const minL = minMaxLossRef.current[0];
+                    const maxL = minMaxLossRef.current[1];
+                    const currentScale = zScaleRef.current || 1;
+                    
+                    // Calculate actual current loss
+                    const rawNormalizedY = currentY / currentScale;
+                    const accLoss = (rawNormalizedY * (maxL - minL)) + minL;
+                    setCurrentLoss(accLoss);
 
                     // Calculate percentage change over the last 10 steps
                     const previousStep = Math.max(0, timeStep - 10);
                     if (timeStep > previousStep) {
-                      const previousY = pathPointsArrayRef.current[i][previousStep].y;
-                      if (previousY !== 0) {
-                        const change = ((currentY - previousY) / Math.abs(previousY)) * 100;
+                      const rawPrevY = pathPointsArrayRef.current[i][previousStep].y;
+                      const prevNormalizedY = rawPrevY / currentScale; 
+                      const prevAccLoss = (prevNormalizedY * (maxL - minL)) + minL;
+                      
+                      if (prevAccLoss !== 0) {
+                        // Use accLoss instead of currentY here so the units match
+                        const change = ((accLoss - prevAccLoss) / Math.abs(prevAccLoss)) * 100;
                         setLossChange(Math.round(change));
                       } else {
                         setLossChange(0);
