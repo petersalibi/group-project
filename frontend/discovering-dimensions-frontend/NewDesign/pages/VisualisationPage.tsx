@@ -4,7 +4,7 @@ import Animated, { FadeInDown, FadeIn, FadeInUp, FadeOutDown, FadeOut, FadeOutUp
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  Pause, Play, SkipBack, SkipForward, Maximize2, 
+  Pause, Play, SkipBack, SkipForward, Maximize2, Minimize2,
   RotateCcw, RefreshCw, Eye, Network, Palette, Plus, Upload 
 } from "lucide-react-native";
 import { TrainingMetrics } from "../components/training_metrics";
@@ -75,6 +75,7 @@ export function VisualisationPage() {
   ]);
   const [showPalette, setShowPalette] = useState(false);
   const [log, setLog] = useState([]);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const { 
     isLandscapeLoading,
@@ -269,7 +270,7 @@ useEffect(() => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <LayoutManager>
         
-        <DockPanel id="CONFIG" title="MODEL CONFIGURATION">
+        <DockPanel id="CONFIG" title="MODEL CONFIGURATION" isMaximized={false}>
           <ScrollView contentContainerStyle={styles.sidebarContent}>
 
             {Platform.OS === 'web' && (
@@ -489,7 +490,7 @@ useEffect(() => {
         </DockPanel>
 
         {/* ENGINE AREA */}
-        <DockPanel id="ENGINE" title="LOSS LANDSCAPE VISUALISATION">
+        <DockPanel id="ENGINE" title="LOSS LANDSCAPE VISUALISATION" isMaximized={isMaximized}>
           <View style={styles.engineContainer}>
             <View style={styles.engineHeader}>
               {isLandscapeLoaded && !isLandscapeLoading && !isPathLoading && !isPathLoaded && (
@@ -498,7 +499,13 @@ useEffect(() => {
               {isLandscapeLoaded && !isLandscapeLoading && !isPathLoaded && !isPathLoading && (
                 <Switch checked={logPlot} onCheckedChange={handleLogPlotToggle}/>
               )}
-              <Maximize2 size={18} color="white" />
+              <TouchableOpacity onPress={() => setIsMaximized(!isMaximized)} style={{ zIndex: 10 }}>
+                {isMaximized ? (
+                  <Minimize2 size={18} color="white" />
+                ) : (
+                  <Maximize2 size={18} color="white" />
+                )}
+              </TouchableOpacity>
               <RotateCcw size={18} color="white" />
               <TouchableOpacity onPress={handleRefresh}>
                 <RefreshCw size={18} color="white" />
@@ -660,14 +667,14 @@ const styles = StyleSheet.create({
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
   rightSidebar: { position: 'absolute', right: 0, top: '20%', bottom: '20%', zIndex: 10, alignItems: 'center', paddingRight: 16, gap: 10 },
   verticalSliderWrapper: { transform: [{ rotate: '-90deg' }], width: 100, justifyContent: 'center', alignItems: 'center' },
-  bottomLeftPalette: { position: 'absolute', bottom: 16, left: 16, flexDirection: 'column-reverse', alignItems: 'center', minHeight: 42, gap: 12, zIndex: 10 },
+  bottomLeftPalette: { position: 'absolute', bottom: 16, left: 16, zIndex: 10, flexDirection: 'column-reverse', alignItems: 'center', minHeight: 42, gap: 12 },
   paletteRow: { flexDirection: 'column', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', padding: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   gradientSwatchContainer: { width: 20, height: 20, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   gradientSwatch: { flex: 1, width: '100%', height: '100%' },
   hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
   hudTitle: { color: 'white', fontSize: 18, fontWeight: '800' },
   hudSubtitle: { color: 'white', opacity: 0.7, fontSize: 12, marginTop: 4 },
-  playbackBar: { position: 'absolute', bottom: 20, left: 75, right: 75, height: 54, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 16 },
+  playbackBar: { position: 'absolute', bottom: 20, left: 75, right: 75, height: 54, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 16 },
   playbackActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   playBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: 'white', justifyContent: 'center', alignItems: 'center' },
   frameCounter: { color: 'white', fontSize: 10, fontWeight: 'bold', width: 45 }

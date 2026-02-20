@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { View, Dimensions } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useLayout } from './docking-provider';
 import { Text } from '../components/text';
 
-export function DockPanel({ id, title, children }: { id: string, title: string, children: React.ReactNode }) {
+export function DockPanel({ id, title, isMaximized=false, children }: { id: string, title: string, isMaximized: boolean, children: React.ReactNode }) {
   const { theme, registry, requestSwap, updateGhost, getSlotDims } = useLayout();
   const isDragging = useSharedValue(false);
   
@@ -45,12 +45,26 @@ export function DockPanel({ id, title, children }: { id: string, title: string, 
       runOnJS(requestSwap)(id, e.absoluteX, e.absoluteY);
     });
 
-  const animStyle = useAnimatedStyle(() => ({
-    width: tw.value, height: th.value,
-    transform: [{ translateX: tx.value }, { translateY: ty.value }] as any,
-    zIndex: isDragging.value ? 1000 : 1,
-    position: 'absolute',
-  }));
+  const animStyle = useAnimatedStyle(() => {
+    if (isMaximized) {
+      return {
+        width: '100%', 
+        height: '100%',
+        top: 0,
+        left: 0,
+        transform: [{ translateX: 0 }, { translateY: 0 }],
+        zIndex: 9999,
+      };
+    }
+
+    // Otherwise, return normal docking styles
+    return {
+      width: tw.value, height: th.value,
+      transform: [{ translateX: tx.value }, { translateY: ty.value }] as any,
+      zIndex: isDragging.value ? 1000 : 1,
+      position: 'absolute',
+    };
+  });
 
   return (
     <Animated.View style={[{ backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, overflow: 'hidden' }, animStyle]}>
