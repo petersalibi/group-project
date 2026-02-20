@@ -71,7 +71,6 @@ const Tooltip = ({
       position: 'absolute',
       left: x - 40,
       top: y - 30,
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 4,

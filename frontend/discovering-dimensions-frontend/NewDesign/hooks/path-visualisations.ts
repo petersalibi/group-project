@@ -24,6 +24,7 @@ export interface UsePathVisualisationsProps {
     data: string;
     csv: string;
     loss: string;
+    setLog;
     minMaxLoss: number[];
     zScale: number;
     pathConfigs: PathConfigInterface[];
@@ -87,6 +88,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         csv,
         loss,
         minMaxLoss,
+        setLog,
         zScale,
         pathConfigs,
         onPathConfigChange,
@@ -412,11 +414,27 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
 
       setIsPathLoaded(true);
       setIsPlaying(true);
-      animationTimeRef.current = 0;
 
-      if (clockRef.current && !clockRef.current.running) {
-        clockRef.current.start();
-      }
+      pathConfigs.forEach((config) => {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+        var newLogEntry = `[${timeString}] ${config.optim} optimiser generated with lr=${config.lr.toFixed(2)} starting from [${config.startPoint[0].toFixed(2)}, ${config.startPoint[1].toFixed(2)}]`;
+        if (config.locked){
+          newLogEntry += ` (locked to the plane)`
+        } else {
+          newLogEntry += ` (not locked to the plane)`
+        }
+        setLog(prevLog => [...prevLog, newLogEntry]);
+      });
+
+      animationTimeRef.current = 0;
+      if (clockRef.current && !clockRef.current.running) clockRef.current.start();
+
     } catch (err) {
       console.error('Failed to load one or more paths:', err);
       setIsPathLoaded(false);

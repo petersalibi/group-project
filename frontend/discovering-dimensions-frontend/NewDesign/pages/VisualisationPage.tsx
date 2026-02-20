@@ -69,12 +69,12 @@ export function VisualisationPage() {
   const [outputs, setOutputs] = useState(1);
   const [loss, setLoss] = useState<string>('MSELoss');
   const [losses, setLosses] = useState(regLosses);
-  const [pathControlsVisible, setPathControlsVisible] = useState(false);
   const [numPaths, setNumPaths] = useState<number>(1);
   const [pathConfigs, setPathConfigs] = useState<PathConfigInterface[]>([
     createDefaultPathConfig(0),
   ]);
   const [showPalette, setShowPalette] = useState(false);
+  const [log, setLog] = useState([]);
 
   const { 
     isLandscapeLoading,
@@ -132,6 +132,7 @@ export function VisualisationPage() {
         ),
       );
     },
+    setLog,
   });
 
   useEffect(() => {
@@ -424,13 +425,13 @@ useEffect(() => {
               variant="secondary"
               disabled={isLandscapeLoading || isPathLoading || isPathLoaded || (data === "CUSTOM" && !csvLoaded)}
               onPress={() => {onGenerateLandscape()}}
-              style={styles.exportBtn}>
+            >
               Generate Landscape
             </Button>
 
             {/* PATH DETAILS CARD */}
             <View style={styles.controlGroup}>
-              <Text style={styles.label}>PATH DETAILS</Text>
+              <Text style={styles.label}>PATH CONFIGURATIONS</Text>
               {pathConfigs.map((config) => (
                 <PathConfig
                   key={config.id}
@@ -454,29 +455,32 @@ useEffect(() => {
               </Button>
             )}
 
-            {numPaths > 0  && (
-              <Button 
-                variant="secondary"
-                disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded || hasUnsetStartPoints}
-                onPress={handleLoadAllPathsButtonClick}
-                style={styles.exportBtn}
-              >
-                {isPathLoading ? 'Loading...' : 'Generate Paths'}
-              </Button>
-            )}
+            <View style={styles.rowGap}>
+              {numPaths > 0  && (
+                <Button 
+                  variant="secondary"
+                  disabled={isLandscapeLoading || isPathLoading || !isLandscapeLoaded || hasUnsetStartPoints}
+                  onPress={handleLoadAllPathsButtonClick}
+                  style={styles.exportBtn}
+                >
+                  {isPathLoading ? 'Loading...' : 'Generate Paths'}
+                </Button>
+              )}
 
-            {isPathLoaded && (
-              <Button
-                onPress={() => {
-                  handleClearPaths();
-                  setPathConfigs([]);
-                  setNumPaths(0);
-                }}
-                style={styles.exportBtn}
-              >
-                Clear Paths
-              </Button>
-            )}
+              {isPathLoaded && (
+                <Button
+                  onPress={() => {
+                    handleClearPaths();
+                    setPathConfigs([]);
+                    setNumPaths(0);
+                  }}
+                  variant="destructive"
+                  style={styles.exportBtn}
+                >
+                  Clear Paths
+                </Button>
+              )}
+            </View>
             
             {/*
             <Button variant="secondary" style={styles.exportBtn}>Export Data</Button>
@@ -615,7 +619,7 @@ useEffect(() => {
             currentLoss={currentLoss}
             lossChange={lossChange}
             convergence={null}
-            isPlaying={isPlaying}
+            log={log}
           />
         }
       />
@@ -650,7 +654,7 @@ const styles = StyleSheet.create({
   dropdownValue: { fontSize: 12 },
   pathCard: { padding: 12, backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 8, borderLeftWidth: 4, gap: 12 },
   pathTitle: { fontSize: 10, fontWeight: '900' },
-  exportBtn: { marginTop: 10 },
+  exportBtn: { marginTop: 10, padding: 5, flex: 1 },
   engineContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.1)', overflow: 'hidden', position: 'relative' },
   darkOverlay: { backgroundColor: 'rgba(0, 0, 0, 0.6)', zIndex: 5 },
   engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },

@@ -15,6 +15,7 @@ export interface UseLossLandscapeProps {
   loss: string;
   pathConfigs: PathConfigInterface[];
   onPathConfigChange;
+  setLog;
 }
 
 export function useLossLandscape(props: UseLossLandscapeProps) {
@@ -28,7 +29,8 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         data,
         loss,
         pathConfigs,
-        onPathConfigChange
+        onPathConfigChange,
+        setLog,
     } = props;
 
     const {
@@ -47,6 +49,7 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         method,
         data,
         loss,
+        setLog,
     });
 
     const {
@@ -92,6 +95,7 @@ export function useLossLandscape(props: UseLossLandscapeProps) {
         loss,
         pathConfigs,
         onPathConfigChange,
+        setLog,
     });
 
     return {

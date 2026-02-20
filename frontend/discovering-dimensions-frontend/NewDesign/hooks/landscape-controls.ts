@@ -8,6 +8,7 @@ export interface UseLandscapeControlsProps {
   method: string;
   data: string;
   loss: string;
+  setLog;
 }
 
 export function useLandscapeControls(props: UseLandscapeControlsProps){
@@ -18,6 +19,7 @@ export function useLandscapeControls(props: UseLandscapeControlsProps){
         method,
         data,
         loss,
+        setLog,
     } = props;
 
     const dataRef = useRef<string>(data);

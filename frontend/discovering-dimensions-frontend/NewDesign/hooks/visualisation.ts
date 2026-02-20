@@ -43,6 +43,7 @@ export interface UseVisualisationProps {
   loss: string;
   pathConfigs: PathConfigInterface[];
   onPathConfigChange;
+  setLog;
 }
 
 export function useVisualisation(props: UseVisualisationProps) {
@@ -57,7 +58,8 @@ export function useVisualisation(props: UseVisualisationProps) {
         csv,
         loss,
         pathConfigs,
-        onPathConfigChange
+        onPathConfigChange,
+        setLog
     } = props;
 
     // --- UI State ---
@@ -141,6 +143,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         data,
         csv,
         loss,
+        setLog,
         minMaxLoss,
         zScale: zValue,
         pathConfigs,
@@ -302,6 +305,16 @@ export function useVisualisation(props: UseVisualisationProps) {
 
         setCameraControls();
         setIsLandscapeLoaded(true);
+
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+        const newLogEntry = `[${timeString}] Landscape generated with parameters: activation=${activation}, loss=${loss}, method=${method}, depth=${depth}, width=${width}`;
+        setLog(prevLog => [...prevLog, newLogEntry]);
         
         } catch (err) {
             alert('Failed to load landscape:' + err);
@@ -321,8 +334,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         sceneRef,
         originRef,
         xDirRef,
-        yDirRef
-        // handleRemoveAllPaths,
+        yDirRef,
     ]);
 
     const handleZChange = useCallback((val: number) => {
