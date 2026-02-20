@@ -477,8 +477,10 @@ useEffect(() => {
                 Clear Paths
               </Button>
             )}
-              
+            
+            {/*
             <Button variant="secondary" style={styles.exportBtn}>Export Data</Button>
+            */}
           </ScrollView>
         </DockPanel>
 

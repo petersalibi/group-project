@@ -131,7 +131,9 @@ export function PathConfig(props: PathConfigProps) {
                     </Button>
                 )}
                 <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm" style={{ flex: 1 }}><Eye size={14} color={theme.colors.foreground} /></Button>
+                {/* 
                 <Button variant="outline" size="sm" style={{ flex: 1 }}><Palette size={14} color={theme.colors.foreground}/></Button>
+                */}
             </View>
         </View>
     );

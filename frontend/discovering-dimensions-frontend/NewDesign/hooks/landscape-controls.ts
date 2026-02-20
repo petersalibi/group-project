@@ -61,8 +61,8 @@ export function useLandscapeControls(props: UseLandscapeControlsProps){
         } catch (err) {
             setLoadingCsv(false);
             setLoadedCsv(false);
-            console.error('Failed to upload CSV:', err);
-            alert('Failed to upload file.');
+            console.error('Failed to upload CSV');
+            alert('Inavlid CSV file selected');
         }
     }, []);
 

@@ -3,6 +3,7 @@ import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, G, Text as SvgText, Path } from 'react-native-svg';
 import { useTheme } from './theme-provider';
 import { Text } from './text';
+import { Theme } from './theme';
 
 interface NodeData {
   id: string;
@@ -26,20 +27,20 @@ const lerp = (start: number, end: number, t: number) =>
 const getActivationPath = (type: string) => {
   switch (type) {
     case 'ReLU':
-      return 'M -5 1.5 L 0 1.5 L 5 -3.5';
+      return 'M -3.5 1.5 L 0 1.5 L 3.5 -3.5';    
     case 'LeakyReLU':
-      return 'M -5 3 L 0 0 L 5 -5';
+      return 'M -3.5 3 L 0 0 L 3.5 -4';
     case 'Sigmoid':
-      return 'M -5 3 C 0 3 0 -3 5 -3';
+      return 'M -3.5 3 C 0 3 0 -3 3.5 -3';
     case 'Tanh':
-      return 'M -5 4 C -1 4 1 -4 5 -4';
+      return 'M -3.5 4 C -0.7 4 0.7 -4 3.5 -4';
     default:
       return '';
   }
 };
 
-const getEdgeStyle = (weight: number | undefined) => {
-  if (weight === undefined) return { stroke: '#fff', width: 2, opacity: 0.8 };
+const getEdgeStyle = (weight: number | undefined, theme: Theme) => {
+  if (weight === undefined) return { stroke: theme.colors.foreground, width: 2, opacity: 0.8 };
 
   // Normalize weight (-1 to 1)
   const val = Math.tanh(weight / 2);
@@ -438,7 +439,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
       <Svg width='100%' height='100%'>
         <G>
           {edges.map((e, i) => {
-            const style = getEdgeStyle(e.w);
+            const style = getEdgeStyle(e.w, theme);
             const handleHover = (ev: any) => {
               const x = ev.nativeEvent.locationX ?? ev.nativeEvent.offsetX;
               const y = ev.nativeEvent.locationY ?? ev.nativeEvent.offsetY;
@@ -487,7 +488,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
                 <SvgText
                   x={isVertical ? n.x : n.x - xOffset}
                   y={isVertical ? n.y - yOffset : n.y - 3.5}
-                  fill="#ffffff"
+                  fill={theme.colors.foreground}
                   fontSize={ellipsisDotSize}
                   fontFamily="System"
                   fontWeight="bold"
@@ -502,7 +503,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
                   <SvgText
                     x={n.x}
                     y={n.y}
-                    fill="#fff"
+                    fill={theme.colors.foreground}
                     fontSize={ellipsisTextSize}
                     fontFamily="System"
                     fontWeight="bold"
@@ -521,7 +522,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
                 <SvgText
                   x={isVertical ? n.x : n.x + xOffset}
                   y={isVertical ? n.y + yOffset : n.y - 3.5}
-                  fill="#fff"
+                  fill={theme.colors.foreground}
                   fontSize={ellipsisDotSize}
                   fontFamily="System"
                   fontWeight="bold"
@@ -564,14 +565,14 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
                 cy={n.y}
                 r={showIcon ? 8 : 5}
                 fill={fill}
-                stroke='#fff'
+                stroke={theme.colors.foreground}
                 strokeWidth='1.5'
               />
               {showIcon && iconPath ? (
                 <G x={n.x} y={n.y}>
                   <Path
                     d={iconPath}
-                    stroke='#fff'
+                    stroke={theme.colors.foreground}
                     strokeWidth='1.5'
                     fill='none'
                     strokeLinecap='round'
@@ -583,7 +584,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
                 <SvgText
                   x={n.x}
                   y={n.y + (dimensions.h / 18)}
-                  fill='#fff'
+                  fill={theme.colors.foreground}
                   fontSize={nodeFontSize}
                   fontWeight='bold'
                   fontFamily='System'
