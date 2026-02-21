@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, Image } from "react-native";
 import { useNavigate, useLocation } from "react-router-native";
 import { Settings, Sun, Moon } from "lucide-react-native";
 import { useTheme } from "../components/theme-provider";
@@ -26,9 +26,16 @@ export function Header() {
       borderBottomWidth: 1,
       borderColor: theme.colors.border 
     }}>
-      <Text style={{ fontWeight: '900', color: theme.colors.foreground, letterSpacing: 1 }}>
-        LOSS LANDSCAPE
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Image 
+          source={require('../assets/images/logo.svg')} 
+          style={{ width: 28, height: 28 }}
+          resizeMode="contain"
+        />
+        <Text style={{ fontWeight: '900', color: theme.colors.foreground, letterSpacing: 1 }}>
+          DISCOVERING DIMENSIONS
+        </Text>
+      </View>
       
       {/* Navigation Tabs */}
       <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 30 }}>

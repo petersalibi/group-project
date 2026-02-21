@@ -31,7 +31,7 @@ export function Footer() {
             shadowOpacity: 0.5,
             shadowRadius: 4
           }} />
-          <Text style={{ fontSize: 10, fontWeight: '600', color: theme.colors.mutedForeground }}>
+          <Text style={{ fontSize: 10, fontWeight: '600', width: 70, color: theme.colors.mutedForeground }}>
             {isLoading ? 'ENGINE BUSY' : 'ENGINE READY'}
           </Text>
         </View>
