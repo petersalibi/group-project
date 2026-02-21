@@ -109,8 +109,8 @@ def animateminimisersample():
 @app.post("/getdatasetshape")
 def getdatasetshape(rawcsv: str = Body(..., embed=True)):
     try:
-        _, _, inputs, outputs = rawdata_to_training_data(rawcsv)
-        return {"inputs": inputs, "outputs": outputs}
+        _, _, inputs, outputs, column_labels = rawdata_to_training_data(rawcsv)
+        return {"inputs": inputs, "outputs": outputs, "labels": column_labels}
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to get dataset shape: {e} \n {traceback.format_exc()}")
