@@ -65,6 +65,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     // --- UI State ---
     const [zValue, setZValue] = useState(1);
     const [logPlot, setLogPlot] = useState(true);
+    const [isRotating, setIsRotating] = useState(false);
     const [datasetInputs, setDatasetInputs] = useState<number | null>(null);
     const [datasetOutputs, setDatasetOutputs] = useState<number | null>(null);
     const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
@@ -128,6 +129,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         viewId,
         currentLoss,
         lossChange,
+        fidelity,
         handleLoadAllPathsButtonClick,
         handleRemovePath,
         handleClearPaths,
@@ -300,7 +302,6 @@ export function useVisualisation(props: UseVisualisationProps) {
         const lossGrid: number[][] = logPlot ? dict.surface_log : dict.surface;
         const minLoss = Math.min(...lossGrid.flat());
         const maxLoss = Math.max(...lossGrid.flat());
-        console.log(minLoss, maxLoss);
         setMinMaxLoss([minLoss, maxLoss]);
 
         setCameraControls();
@@ -360,6 +361,15 @@ export function useVisualisation(props: UseVisualisationProps) {
 
     }, [zValue, logPlot]);
 
+    const handleRotate = useCallback(() => {
+        if (!controlsRef.current) return;
+
+        controlsRef.current.autoRotate = !controlsRef.current.autoRotate;
+        controlsRef.current.autoRotateSpeed = 3.0; 
+        setIsRotating(controlsRef.current.autoRotate);
+
+    }, []);
+
     const handleRefresh = useCallback(() => {
         if (!sceneRef.current) return;
 
@@ -389,6 +399,8 @@ export function useVisualisation(props: UseVisualisationProps) {
         handleLogPlotToggle,
         zValue,
         handleZChange,
+        isRotating,
+        handleRotate,
         handleRefresh,
         handleColorSelect,
         containerRef: setContainerRef,
@@ -404,6 +416,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         viewId,
         currentLoss,
         lossChange,
+        fidelity,
         handleLoadAllPathsButtonClick,
         handleRemovePath,
         handleClearPaths,

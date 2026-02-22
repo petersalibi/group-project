@@ -73,7 +73,7 @@ def animate_optimiser(params: MinimiserParams):
     print_progress_bar(0, params.epochs, prefix="Progress:", suffix="Complete", length=50)
 
     if params.lock_to_plane:
-        _train_locked_to_plane(
+        loss_path = _train_locked_to_plane(
             params, model, data, minimiser_path, parameters_path
         )
         fidelity = 1.0
@@ -93,7 +93,7 @@ def animate_optimiser(params: MinimiserParams):
     }
 
 def _prepare_data_and_model(params):
-    data = TrainingData(params.data)
+    data = TrainingData(params.data, rawdata=params.rawdata)
 
     if isinstance(params.loss, (nn.BCELoss, nn.BCEWithLogitsLoss)) and data.y.ndim == 1:
         data.y = data.y.view(-1, 1).float()
@@ -118,6 +118,8 @@ def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path)
     theta0 = params.theta_0.to(device)
     dir1, dir2 = (d.to(device) for d in params.directions)
 
+    loss_path = []
+
     for i in range(params.epochs):
         print_progress_bar(i, params.epochs, prefix="Progress:", suffix="Complete", length=50)
 
@@ -132,6 +134,9 @@ def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path)
 
         minimiser_path.append((_clamp(a.item()), _clamp(b.item())))
         parameters_path.append(flatten_params(model.parameters()).tolist())
+        loss_path.append(loss.item())
+    
+    return loss_path
 
 def _train_free(params, model, data, minimiser_path, parameters_path):
     x, y = params.init_xy

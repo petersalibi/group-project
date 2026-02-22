@@ -42,7 +42,7 @@ export function StatsCard({ value, label, color, subText, subColor }: StatsCardP
 
       {/* Main Metric Value */}
       <Text style={{ 
-        fontSize: 28, 
+        fontSize: 20, 
         fontWeight: "700", 
         color: statusColor,
         marginVertical: 2,

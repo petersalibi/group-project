@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Platform, View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
-import Animated, { FadeInDown, FadeIn, FadeInUp, FadeOutDown, FadeOut, FadeOutUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOutDown, FadeOut, useSharedValue, useAnimatedStyle, withTiming, withRepeat, Easing } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -85,6 +85,8 @@ export function VisualisationPage() {
     handleLogPlotToggle,
     zValue,
     handleZChange,
+    isRotating,
+    handleRotate,
     handleRefresh,
     handleColorSelect,
     onUploadCsv,
@@ -107,6 +109,7 @@ export function VisualisationPage() {
     viewId,
     currentLoss,
     lossChange,
+    fidelity,
     handleLoadAllPathsButtonClick,
     handleRemovePath,
     handleClearPaths,
@@ -257,14 +260,41 @@ export function VisualisationPage() {
 
   }, [data, datasetOutputs]);
 
-  const [logs, setLogs] = useState<string[]>([]);
+  // Animation Values for Icons
+  const rotateAnim = useSharedValue(0);
+  const refreshAnim = useSharedValue(0);
 
-useEffect(() => {
-  if (isPlaying && currentFrame % 5 === 0) {
-    const newLog = `[${new Date().toLocaleTimeString()}] Grad Norm: ${(Math.random() * 0.5 + 0.1).toFixed(2)}`;
-    setLogs(prev => [newLog, ...prev].slice(0, 5)); // Keep last 5 logs
-  }
-}, [currentFrame, isPlaying]);
+  // Continuous Spin for Rotate
+  useEffect(() => {
+    if (isRotating) {
+      rotateAnim.value = 0; 
+      rotateAnim.value = withRepeat(
+        withTiming(-360, { duration: 2000, easing: Easing.linear }),
+        -1, // -1 means infinite loop
+        false
+      );
+    } else {
+      rotateAnim.value = 0;
+    }
+  }, [isRotating, rotateAnim]);
+
+  const rotateStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotateAnim.value}deg` }],
+  }));
+
+  // Single Spin for Refresh
+  const onRefreshPress = () => {
+    if (!isLandscapeLoaded) return;
+    handleRefresh();
+    refreshAnim.value = withTiming(refreshAnim.value + 360, { 
+      duration: 600, 
+      easing: Easing.out(Easing.cubic) 
+    });
+  };
+
+  const refreshStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${refreshAnim.value}deg` }],
+  }));
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -499,16 +529,36 @@ useEffect(() => {
               {isLandscapeLoaded && !isLandscapeLoading && !isPathLoaded && !isPathLoading && (
                 <Switch checked={logPlot} onCheckedChange={handleLogPlotToggle}/>
               )}
-              <TouchableOpacity onPress={() => setIsMaximized(!isMaximized)} style={{ zIndex: 10 }}>
+              <TouchableOpacity 
+                disabled={!isLandscapeLoaded}
+                onPress={() => setIsMaximized(!isMaximized)} 
+                style={{ zIndex: 10, opacity: isLandscapeLoaded ? 1 : 0.4 }}
+              >
                 {isMaximized ? (
                   <Minimize2 size={18} color="white" />
                 ) : (
                   <Maximize2 size={18} color="white" />
                 )}
               </TouchableOpacity>
-              <RotateCcw size={18} color="white" />
-              <TouchableOpacity onPress={handleRefresh}>
-                <RefreshCw size={18} color="white" />
+
+              <TouchableOpacity 
+                disabled={!isLandscapeLoaded}
+                onPress={handleRotate}
+                style={{ opacity: isLandscapeLoaded ? 1 : 0.4 }}
+              >
+                <Animated.View style={rotateStyle}>
+                  <RotateCcw size={18} color={isRotating ? brandAccent : "white"} />
+                </Animated.View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                disabled={!isLandscapeLoaded}
+                onPress={onRefreshPress}
+                style={{ opacity: isLandscapeLoaded ? 1 : 0.4 }}
+              >
+                <Animated.View style={refreshStyle}>
+                  <RefreshCw size={18} color="white" />
+                </Animated.View>
               </TouchableOpacity>
             </View>
             
@@ -625,7 +675,7 @@ useEffect(() => {
           <TrainingMetrics 
             currentLoss={currentLoss}
             lossChange={lossChange}
-            convergence={null}
+            fidelity={fidelity}
             log={log}
           />
         }

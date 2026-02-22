@@ -112,6 +112,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     const [progress, setProgress] = useState(0);
     const [currentLoss, setCurrentLoss] = useState(null);
     const [lossChange, setLossChange] = useState(0);
+    const [fidelity, setFidelity] = useState(null);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [totalFrames, setTotalFrames] = useState(100);
     const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
@@ -142,6 +143,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
     const animationDurationsRef = useRef<number[]>([]);
     const parametersArrayRef = useRef<number[][][]>([]);
+    const fidelityArrayRef = useRef<number[]>([]);
 
     useEffect(() => {
         isPlayingRef.current = isPlaying;
@@ -177,6 +179,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         path2DArrayRef.current.splice(id, 1);
         parametersArrayRef.current.splice(id, 1);
         animationDurationsRef.current.splice(id, 1);
+        fidelityArrayRef.current.splice(id, 1);
 
         // Re-index markersRef
         const newMarkers: { [id: number]: { ball: THREE.Mesh; line: THREE.Line } } = {};
@@ -224,6 +227,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
             setCurrentParams(null);
             setCurrentLoss(null);
             setLossChange(0);
+            setFidelity(null);
         } else if (viewIdRef.current !== null && viewIdRef.current > id) {
             // If the user was viewing a path that comes AFTER the deleted one, decrement its ID
             setViewId(viewIdRef.current - 1);
@@ -251,6 +255,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         totalPathPointsArrayRef.current = [];
         path2DArrayRef.current = [];
         parametersArrayRef.current = [];
+        fidelityArrayRef.current = [];
         Object.values(markersRef.current).forEach(({ ball, line }) => {
         disposeObject(ball);
         disposeObject(line);
@@ -269,6 +274,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         setCurrentParams(null);
         setCurrentLoss(null);
         setLossChange(0);
+        setFidelity(null);
     }, []);
 
     /**
@@ -385,6 +391,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
           pathData.minimiser_path?.data ?? pathData.minimiser_path;
         const parameters_arr =
           pathData.parameters_path?.data ?? pathData.parameters_path;
+        fidelityArrayRef.current[index] = pathData.fidelity;
 
         if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
@@ -414,6 +421,10 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
 
       setIsPathLoaded(true);
       setIsPlaying(true);
+
+      if (viewIdRef.current !== null && fidelityArrayRef.current[viewIdRef.current] !== undefined) {
+          setFidelity(fidelityArrayRef.current[viewIdRef.current] * 100);
+      }
 
       pathConfigs.forEach((config) => {
         const now = new Date();
@@ -627,6 +638,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     (id: number) => {
       setViewId(id);
       viewIdRef.current = id;
+      setFidelity((fidelityArrayRef.current[id] * 100));
     },
     [viewId],
   );
@@ -897,6 +909,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     viewId,
     currentLoss,
     lossChange,
+    fidelity,
     handleLoadAllPathsButtonClick,
     handleRemovePath,
     handleClearPaths,
