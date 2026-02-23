@@ -32,7 +32,7 @@ def get_directions(model, method: VisualisationMethod, args=None):
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
-def get_two_parameter_directions(model, args):
+def get_two_parameter_directions(model, args, gamma=0.01):
     # pick the first linear layer
     first_linear = next(m for m in model.modules() if isinstance(m, nn.Linear))
     
@@ -40,13 +40,12 @@ def get_two_parameter_directions(model, args):
     for input_idx in [args[0], args[1]]:
         direction = []
         for p in model.parameters():
-            d = torch.zeros_like(p)
+            d = torch.ones_like(p) * gamma  # small constant direction
             if p is first_linear.weight:
                 d[:, input_idx] = 1
             direction.append(d)
         dirs.append(direction)
-    
-    print(dirs)
+
     return dirs[0], dirs[1], None
 
 def get_random_directions(model):

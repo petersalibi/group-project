@@ -130,6 +130,15 @@ def parse_minimiser_params(params: dict):
     except Exception as e:
         raise ValueError(f"Error parsing minimiser parameters: {e}")
 
+def csv_to_training_data(csv_path: str):
+    if not Path(csv_path).is_file():
+        raise ValueError(f"CSV file not found: {csv_path}")
+    
+    with open(csv_path, 'r') as f:
+        rawdata = f.read()
+    
+    return rawdata_to_training_data(rawdata)
+
 # Convert csv data to torch tensors and data parameters
 # Assume last column are the training labels
 # Numeric data is treated as float32, categorical data as long
@@ -139,6 +148,24 @@ def rawdata_to_training_data(rawdata: str):
     # convert raw CSV string to pandas DataFrame
     from io import StringIO
     df = pd.read_csv(StringIO(rawdata)).dropna()
+    
+    # Remove index columns (typically named Unnamed: 0, Unnamed: 1, etc.) if present
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    
+    # Separate numeric and categorical columns
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
+    
+    # If there are categorical columns, use the FIRST one as target (they're likely classification targets)
+    # and put numeric features first
+    if categorical_cols:
+        target_col = categorical_cols[0]
+        other_categorical = categorical_cols[1:]
+        # Reorganize: numeric features + other categorical features + target
+        df = df[numeric_cols + other_categorical + [target_col]]
+    else:
+        # No categorical columns, just put numeric first
+        df = df[numeric_cols]
     
     # Convert numeric string columns to float
     for col in df.columns[:-1]:
@@ -169,16 +196,34 @@ def rawdata_to_training_data(rawdata: str):
     # Now create the tensor (X is fully numeric)
     X_tensor = torch.tensor(X, dtype=torch.float32)
     
+    # Determine number of unique classes/outputs
+    n_unique = len(pd.unique(y))
+    
     # Handle y (labels)
+    # Classification: multiple unique values → use long type
+    # Regression: single or continuous output → use float32
     if y.dtype == 'object' or pd.api.types.is_categorical_dtype(y):
+        # String/categorical labels
         y_cat = y.astype('category')
         codes = y_cat.cat.codes.values
-        y_tensor = torch.tensor(codes, dtype=torch.float32)
+        y_tensor = torch.tensor(codes, dtype=torch.long)
+    elif n_unique > 1 and pd.api.types.is_integer_dtype(y):
+        # Check if these look like class labels (reasonable range for class indices)
+        # or if they're continuous values like years/IDs
+        y_min, y_max = y.min(), y.max()
+        # If max value is very large compared to number of classes, treat as continuous
+        if y_max > n_unique * 10 or y_min > n_unique:
+            # Likely continuous values (e.g., years, IDs)
+            y_tensor = torch.tensor(y.values, dtype=torch.float32)
+        else:
+            # Likely class labels (e.g., 0, 1, 2)
+            y_tensor = torch.tensor(y.values, dtype=torch.long)
     else:
+        # Continuous labels (regression)
         y_tensor = torch.tensor(y.values, dtype=torch.float32)
     
     inputs = X_tensor.shape[1]
-    outputs = len(pd.unique(y)) if y.dtype == 'object' or pd.api.types.is_categorical_dtype(y) else 1
+    outputs = n_unique
     
     # gets the original column labels, expanding for one-hot encoded columns
     # label column is included at the end
@@ -186,7 +231,7 @@ def rawdata_to_training_data(rawdata: str):
     for col in df.columns:
         if df[col].dtype == 'object':
             col_data = pd.Categorical(df[col])
-            for category in col_data.cat.categories:
+            for category in col_data.categories:
                 column_labels.append(f"{col}_{category}")
         else:
             column_labels.append(col)

@@ -32,28 +32,10 @@ class TrainingData:
                 self.outputs = 1
             case TrainingDataType.PENGUINS:
 
-                import pandas as pd
                 from pathlib import Path
                 url = str(Path(__file__).resolve().parent.joinpath("data", "training", "penguins.csv"))
-                df = pd.read_csv(url).dropna()
+                self.X, self.y, self.inputs, self.outputs, self.column_labels = csv_to_training_data(url)
 
-                x_labels = ['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']
-                self.column_labels = x_labels + ['species']
-                X = df[x_labels].values
-                # Convert species to categorical codes, then to one-hot vectors
-                species_cat = df['species'].astype('category')
-                codes = species_cat.cat.codes.values
-                num_classes = len(species_cat.cat.categories)
-
-                self.X = torch.tensor(X, dtype=torch.float32)
-                self.y = torch.tensor(codes, dtype=torch.long)
-
-                # set input/output dimensions for this dataset
-                self.inputs = self.X.shape[1]
-                self.outputs = num_classes
-
-                
-            
             case TrainingDataType.PURPLECOLOURS:
 
                 import pandas as pd

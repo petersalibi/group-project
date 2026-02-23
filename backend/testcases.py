@@ -44,6 +44,28 @@ purple_classification_params = LandscapeParams(
         loss=nn.BCEWithLogitsLoss(), scale=1
     )
 
+# Penguins Classification, 2 parameters, 1 Layer, Tanh Activation
+penguins_two_params_simple = LandscapeParams(
+        NetworkParams(depth=1, activation=nn.Tanh(), width=1),
+        VisualisationMethod.TWOPARAMETERS,
+        TrainingDataType.PENGUINS,
+        args=[0, 1], # Bill Length and Bill Depth
+        loss=nn.CrossEntropyLoss(), scale=1
+    )
+
+# Penguins Classification, 2 parameters, 4 Layers, 10 Width, ReLU Activation
+penguins_two_params_complex = LandscapeParams(
+        NetworkParams(depth=4, activation=nn.ReLU(), width=10),
+        VisualisationMethod.TWOPARAMETERS,
+        TrainingDataType.PENGUINS,
+        args=[0, 1], # Bill Length and Bill Depth
+        loss=nn.CrossEntropyLoss(), scale=1
+    )
+
+def pick_params(method, args):
+    method.args = args
+    return method
+
 def params_to_pca(params: LandscapeParams, minimiser_trajectories):
     return LandscapeParams(
         network=params.network,

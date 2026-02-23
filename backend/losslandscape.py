@@ -29,6 +29,9 @@ class LandscapeParams:
 def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples, landscape_params.rawdata)
 
+    if landscape_params.method == VisualisationMethod.TWOPARAMETERS and verbose:
+        print(f"Labels: {data.column_labels[landscape_params.args[0]]} and {data.column_labels[landscape_params.args[1]]}")
+
     model = Model(landscape_params.network, data.inputs, data.outputs)
     
     dir1, dir2, pca_trajectories = get_directions(model, landscape_params.method, landscape_params.args)
@@ -63,7 +66,10 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "theta_0": flatten_params(model.parameters()).tolist(),
             "pca_trajectories": pca_trajectories,
             "pca_mean" : pca_mean,
-            "column_labels": data.column_labels}
+            "column_labels": data.column_labels,
+            "x_label": data.column_labels[landscape_params.args[0]] if landscape_params.args else None,
+            "y_label": data.column_labels[landscape_params.args[1]] if landscape_params.args else None
+            }
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False, pca_mean = None):
 
