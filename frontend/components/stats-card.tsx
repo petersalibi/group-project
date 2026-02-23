@@ -6,8 +6,8 @@ interface StatsCardProps {
   value: string;
   label: string;
   color?: string;
-  subText?: string;  // New: For the "↓ 12%" or status labels
-  subColor?: string; // New: To color the subtext (e.g., green for positive change)
+  subText?: string;
+  subColor?: string;
 }
 
 export function StatsCard({ value, label, color, subText, subColor }: StatsCardProps) {
@@ -51,7 +51,7 @@ export function StatsCard({ value, label, color, subText, subColor }: StatsCardP
       </Text>
 
       {/* Bottom Subtext (Trend/Status) */}
-      {subText && (
+      {subText ? (
         <Text style={{ 
           fontSize: 10, 
           fontWeight: "600", 
@@ -59,7 +59,7 @@ export function StatsCard({ value, label, color, subText, subColor }: StatsCardP
         }}>
           {subText}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }

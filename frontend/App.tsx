@@ -4,6 +4,7 @@ import { RootLayout } from "./pages/RootLayout";
 import CurriculumPage from "./pages/CurriculumPage";
 import { VisualisationPage } from "./pages/VisualisationPage";
 import { ComponentsPage } from "./pages/ComponentsPage";
+import { InteractiveLessonPage } from "./pages/InteractiveLessonPage";
 import { ThemeProvider } from "./components/theme-provider";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
           <Route element={<RootLayout />}>
             <Route path="/" element={<VisualisationPage />} />
             <Route path="/curriculum" element={<CurriculumPage />} />
+            <Route path="/curriculum/lesson/:lessonId" element={<InteractiveLessonPage />} />
             <Route path="/components" element={<ComponentsPage />} />
           </Route>
         </Routes>
