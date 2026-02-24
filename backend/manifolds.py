@@ -22,15 +22,16 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     loss_function = nn.MSELoss()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    auto_encoder = UniformAutoencoder(X.shape[1], 5, 2).to(device)
+    auto_encoder = UniformAutoencoder(X.shape[1], 5, 2)
+    auto_encoder.to(device)
     optimizer = optim.Adam(auto_encoder.parameters(), lr=1e-3, weight_decay=1e-8)
     print(auto_encoder)
 
     auto_encoder.train()
-    for epoch in range(epochs):
+    for _ in range(epochs):
         # for point in trajectory_tensors:
-        reconstructed = auto_encoder(X)
-        print(type(reconstructed))
+        reconstructed, _ = auto_encoder(X)
+        print(type(reconstructed), reconstructed)
         loss = loss_function(reconstructed, X)
 
         optimizer.zero_grad()
@@ -39,8 +40,9 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
 
     auto_encoder.eval()
     # raise NotImplementedError("This function is a placeholder. You should implement it to find the optimal autoencoder manifold from the minimiser trajectories.")
-
-    return auto_encoder.decoder, auto_encoder.encoder(X)
+    projected_trajectories = auto_encoder.encoder(X).detach().cpu().numpy().tolist()
+    print(f"Projected trajectories in latent space: {projected_trajectories}")
+    return auto_encoder.decoder, projected_trajectories
 
     # TODO: Implement this function to find the optimal 2D autoencoder manifold that best captures the minimiser trajectories.
     # return the decoder of the trained autoencoder, and the projected trajectories in the latent space (for visualization).

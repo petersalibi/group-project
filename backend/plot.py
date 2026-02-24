@@ -99,13 +99,15 @@ print(f"Fidelity of optimiser path to plane: {fidelity:.4f}")
 # Re-generate landscape with ae on minimiser path
 ae_landscape = generate_loss_landscape(params_to_ae(params, paths["parameters_path"]), verbose=True)
 lst_directions = (ae_landscape["x_direction"], ae_landscape["y_direction"])
-pca_directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
-pca_theta_0 = torch.tensor(ae_landscape["theta_0"])
-pca_init_xy = convert_plane_coordinates(theta_0, directions[0], directions[1],
-                                      init_xy, pca_theta_0, pca_directions[0], pca_directions[1])
-print(f"pca_init_xy: {pca_init_xy}")
-print(f"pca_direction_x: {pca_directions[0]}")
-print(f"pca_direction_y: {pca_directions[1]}")
+
+if lst_directions[0] is not None and lst_directions[1] is not None:
+    pca_directions = (torch.tensor(lst_directions[0]), torch.tensor(lst_directions[1]))
+    pca_theta_0 = torch.tensor(ae_landscape["theta_0"])
+    pca_init_xy = convert_plane_coordinates(theta_0, directions[0], directions[1],
+                                        init_xy, pca_theta_0, pca_directions[0], pca_directions[1])
+    print(f"pca_init_xy: {pca_init_xy}")
+    print(f"pca_direction_x: {pca_directions[0]}")
+    print(f"pca_direction_y: {pca_directions[1]}")
 
 truepath = ae_landscape["proj_trajectories"]
 

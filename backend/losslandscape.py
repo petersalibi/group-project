@@ -139,7 +139,7 @@ def compute_loss_surface_from_autoencoder(model, X, y, decoder, samples=50, late
     if latent_limits is None:
         latent_limits = [-1.0, 1.0, -1.0, 1.0]
 
-    alpha_min, alpha_max, beta_min, beta_max = latent_limits
+    alpha_min, alpha_max, beta_min, beta_max = -latent_limits, latent_limits, -latent_limits, latent_limits
 
     if verbose:
         start = time.time()
@@ -212,6 +212,8 @@ def generate_loss_manifold(landscape_params: LandscapeParams, verbose=False):
             "surface_log": loss_surface_log.tolist(),
             "x_axis": xAxis.tolist(),
             "y_axis": yAxis.tolist(),
+            "x_direction": None,
+            "y_direction": None,
             "theta_0": flatten_params(model.parameters()).tolist(),
             "proj_trajectories": projected_trajectories,
             "column_labels": data.column_labels}
