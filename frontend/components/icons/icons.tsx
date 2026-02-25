@@ -256,8 +256,9 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
 
 const AnimatedPath = makeAnimated(Path);
 
-export function PathLoadingIcon({ numPathsLoading = 0, size = 100, }) {
+export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
   const progressAnim = React.useRef(new Animated.Value(0)).current;
+  const iconColor = useIconColor(); 
 
   const pathData = React.useMemo(() => {
     if (numPathsLoading === 0) return [];
@@ -265,95 +266,97 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 100, }) {
     const count = Math.min(numPathsLoading, 5);
     const data = [];
 
-    for (let i = 0; i < count; i++) {
-      let start, end;
-      
-      // Center of the viewBox
-      const centerX = 50;
-      const centerY = 70;
+    const centerX = 100;
+    const centerY = 150; 
 
-      const endRadius = count === 1 ? 0 : 6; // 0 offset for 1 path, 6px offset for multiples
-      const endAngle = (i * 2 * Math.PI) / count;
-      end = { 
-        x: centerX + endRadius * Math.cos(endAngle), 
-        y: centerY + endRadius * Math.sin(endAngle) 
+    for (let i = 0; i < count; i++) {
+      const rand1 = Math.random() * 2 - 1; 
+      const rand2 = Math.random() * 2 - 1;
+
+      // Perspective End Points
+      const endAngle = (i * 2 * Math.PI) / count + (Math.PI / 4) + (rand1 * 0.5); 
+      const endRadiusX = count === 1 ? 0 : 20 + (rand2 * 5); 
+      const endRadiusY = count === 1 ? 0 : 6 + (rand1 * 2);  
+      
+      const end = { 
+        x: centerX + endRadiusX * Math.cos(endAngle), 
+        y: centerY + endRadiusY * Math.sin(endAngle) 
       };
 
-      // Calculate Start Point based on count
-      if (count === 1) {
-        // 1 Path: Upper Right
-        start = { x: -10, y: -10 };
-      } else if (count === 2) {
-        // 2 Paths: Upper Left, Upper Right
-        const starts = [{ x: -10, y: -10 }, { x: 110, y: -10 }];
-        start = starts[i];
-      } else if (count === 3) {
-        // 3 Paths: Upper Right, Upper Left, Top Middle
-        const starts = [{ x: 110, y: -10 }, { x: -10, y: -10 }, { x: 50, y: -10 }];
-        start = starts[i];
-      } else if (count === 4) {
-        // 4 Paths: Four corners of a square
-        const starts = [
-          { x: -10, y: -10 }, // Upper Left
-          { x: 110, y: -10 }, // Upper Right
-          { x: 110, y: 110 }, // Lower Right
-          { x: -10, y: 110 }, // Lower Left
-        ];
-        start = starts[i];
-      } else {
-        // 5 Paths: Corners of a Pentagon
-        const startRadius = 50;
-        const startAngle = -Math.PI / 2 + (i * 2 * Math.PI) / count; 
-        start = {
-          x: centerX + startRadius * Math.cos(startAngle),
-          y: centerY + startRadius * Math.sin(startAngle),
-        };
-      }
+      // Horizon Start Points
+      const startAngle = count === 1 
+        ? 1.25 * Math.PI 
+        : Math.PI + (Math.PI / (count + 1)) * (i + 1);
+        
+      const startRadius = 90;
+      const start = {
+        x: centerX + startRadius * Math.cos(startAngle),
+        y: centerY - 40 + startRadius * Math.sin(startAngle), 
+      };
 
-      // Calculate direction and perpendicular vector for the wave
-      const dx = end.x - start.x;
-      const dy = end.y - start.y;
-      const length = Math.hypot(dx, dy);
-      const nx = -dy / length; 
-      const ny = dx / length;
+      // Control point for Quadratic Bezier
+      const cp = {
+        x: start.x * 0.4 + end.x * 0.6 + (rand1 * 30), 
+        y: centerY + 20 + (rand2 * 20), 
+      };
 
-      const numSteps = 40;
+      const numSteps = 50;
       const inputRange = [];
       const outputX = [];
       const outputY = [];
+      const accumulatedLengths = []; // Track exact length at each step
       let pathString = '';
       let pathLen = 0;
       let lastPt = start;
+
+      const waveFreq = 6 + (rand1 * 3);
+      const waveAmp = 8 + (rand2 * 3);
 
       for (let step = 0; step <= numSteps; step++) {
         const t = step / numSteps;
         inputRange.push(t);
 
-        // Squiggly Wave Math: Sine wave that tapers off at the start and end
-        const amplitude = 8 * Math.sin(t * Math.PI);
-        const wave = Math.sin(t * Math.PI * 6) * amplitude; 
+        const invT = 1 - t;
+        const baseX = invT * invT * start.x + 2 * invT * t * cp.x + t * t * end.x;
+        const baseY = invT * invT * start.y + 2 * invT * t * cp.y + t * t * end.y;
+
+        const dX = 2 * invT * (cp.x - start.x) + 2 * t * (end.x - cp.x);
+        const dY = 2 * invT * (cp.y - start.y) + 2 * t * (end.y - cp.y);
+        const length = Math.hypot(dX, dY);
         
-        const ptX = start.x + dx * t + nx * wave;
-        const ptY = start.y + dy * t + ny * wave;
+        const nx = -dY / length; 
+        const ny = dX / length;
+
+        const rawWave = Math.sin(t * Math.PI * waveFreq); 
+        const perspectiveScale = waveAmp * (1 - t * 0.8); 
+        const wave = rawWave * perspectiveScale; 
+        
+        const ptX = baseX + nx * wave;
+        const ptY = baseY + ny * wave;
 
         outputX.push(ptX);
         outputY.push(ptY);
 
         if (step === 0) {
           pathString += `M ${ptX} ${ptY} `;
+          accumulatedLengths.push(0);
         } else {
           pathString += `L ${ptX} ${ptY} `;
-          pathLen += Math.hypot(ptX - lastPt.x, ptY - lastPt.y);
+          const dist = Math.hypot(ptX - lastPt.x, ptY - lastPt.y);
+          pathLen += dist;
+          accumulatedLengths.push(pathLen);
         }
         lastPt = { x: ptX, y: ptY };
       }
 
-      data.push({ inputRange, outputX, outputY, pathString, pathLen });
+      // Convert accumulated lengths to exact dash offsets (Total Length - Distance Traveled)
+      const outputDash = accumulatedLengths.map(len => pathLen - len);
+
+      data.push({ inputRange, outputX, outputY, outputDash, pathString, pathLen });
     }
     return data;
   }, [numPathsLoading]);
 
-  // Start the animation loop
   React.useEffect(() => {
     if (numPathsLoading > 0) {
       progressAnim.setValue(0);
@@ -361,11 +364,11 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 100, }) {
         Animated.sequence([
           Animated.timing(progressAnim, {
             toValue: 1,
-            duration: 1500, // 1.5 seconds per draw
-            easing: Easing.inOut(Easing.quad),
+            duration: 1800, 
+            easing: Easing.inOut(Easing.ease), 
             useNativeDriver: true,
           }),
-          Animated.delay(300), // Pause slightly before restarting
+          Animated.delay(400),
         ])
       ).start();
     } else {
@@ -376,17 +379,15 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 100, }) {
   if (numPathsLoading === 0) return null;
 
   return (
-    <View style={[styles.loadingOverlay, { width: size, height: size }]}>
-      <Svg width="100%" height="100%" viewBox="0 0 120 120" fill="none">
+    <View style={[{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }]}>
+      <Svg width="100%" height="100%" viewBox="0 0 200 200" fill="none">
         {pathData.map((path, index) => {
           
-          // Animate the line drawing via dash offset
           const dashOffset = progressAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [path.pathLen, 0],
+            inputRange: path.inputRange,
+            outputRange: path.outputDash, 
           });
 
-          // Animate the dot's X and Y coordinates along the curve
           const dotX = progressAnim.interpolate({
             inputRange: path.inputRange,
             outputRange: path.outputX,
@@ -396,35 +397,29 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 100, }) {
             outputRange: path.outputY,
           });
 
-          // Fade out the trail slightly at the end
           const opacity = progressAnim.interpolate({
             inputRange: [0, 0.8, 1],
-            outputRange: [1, 1, 0.4],
+            outputRange: [1, 1, 0.2],
           });
 
           return (
             <React.Fragment key={`pathGroup-${index}`}>
               <AnimatedPath
                 d={path.pathString}
-                stroke={useIconColor()}
+                stroke={iconColor}
                 strokeWidth="2.5"
-                strokeDasharray={path.pathLen}
+                strokeDasharray={`${path.pathLen} ${path.pathLen}`}
                 strokeDashoffset={dashOffset}
                 strokeLinecap="round"
+                strokeLinejoin="round" 
                 opacity={opacity}
               />
               <AnimatedCircle 
                 cx={dotX} 
                 cy={dotY} 
-                r="3.5" 
-                fill="#ffffff" 
-              />
-              <AnimatedCircle 
-                cx={dotX} 
-                cy={dotY} 
-                r="6" 
-                fill={useIconColor()} 
-                opacity={0.4} 
+                r="5" 
+                fill={iconColor} 
+                opacity={opacity} 
               />
             </React.Fragment>
           );
