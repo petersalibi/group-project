@@ -33,7 +33,7 @@ neural networks through loss landscape exploration.
    1. Open a new terminal and install Expo React Native dependencies
 
       ```text
-      cd frontend
+      cd frontend`
       npx expo install
       ```
 

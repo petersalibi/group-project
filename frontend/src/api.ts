@@ -7,7 +7,8 @@ import { Platform } from 'react-native';
 // - Physical device -> http://<your-computer-LAN-IP>:8000
 
 // REPLACE this string with your actual computer IP.
-const MY_COMPUTER_IP = '10.150.74.136';
+//const MY_COMPUTER_IP = '10.150.74.136';
+const MY_COMPUTER_IP = '172.25.98.60';
 
 let BASE_URL = `http://${MY_COMPUTER_IP}:8000`;
 
