@@ -8,8 +8,8 @@ export const activations = [
 export const methods = [
   { id: 1, label: 'Random Directions', value: 'RANDOMDIRS' },
   { id: 2, label: 'Filter-wise Normalised Directions', value: 'FILTERNORM' },
-  // { id: 3, label: 'Two Parameters', value: 'TWOPARAMETERS'},
-  // { id: 4, label: 'PCA Directions', value: 'PCAMINIMISER' },
+  { id: 3, label: 'Two Parameters', value: 'TWOPARAMETERS'},
+  { id: 4, label: 'PCA Directions', value: 'PCAMINIMISER' },
 ];
 
 export const dataSets = [
