@@ -677,6 +677,7 @@ export function VisualisationPage() {
             lossChange={lossChange}
             fidelity={fidelity}
             log={log}
+            isPathLoaded={isPathLoaded}
           />
         }
       />

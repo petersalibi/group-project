@@ -1,6 +1,7 @@
 // ./screens/curriculum-page.tsx
 import React, { useState } from "react";
 import { View , Text} from "react-native";
+import { useNavigate } from "react-router-native";
 import { useTheme } from "../components/theme-provider";
 import { LessonCard } from "../components/lesson-card";
 import { PageContainer } from "./page-container";
@@ -9,6 +10,7 @@ import { Button } from "../components/button";
 
 
 export default function CurriculumPage() {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const [selectedLesson, setSelectedLesson] = useState<{
     id: string;
@@ -84,7 +86,7 @@ export default function CurriculumPage() {
           </View>
 
           <View style={{ flexDirection: "row", gap: 12 }}>
-            <Button style={{ flex: 1 }} onPress={() => console.log("Starting...")}>
+            <Button style={{ flex: 1 }} onPress={() => navigate('/curriculum/lesson/losslandscape')}>
               Enter Module
             </Button>
             <Button variant="outline" onPress={() => setSelectedLesson(null)}>

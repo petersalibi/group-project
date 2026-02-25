@@ -1,23 +1,6 @@
-import * as React from "react";
-from React import { useEffect, useRef } from "react";
-import {
-useEffect,
-  TextStyle,
-} from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { TextStyle } from "react-native";
 
-
-/**
- * LossLandscapePlayground (React version of your original HTML)
- * - Two canvases: loss landscape + curve
- * - Drag the dot / click-to-jump
- * - Step / Run / Reset
- * - Sliders: learning rate, gradient noise, roughness
- * - NEW: Heatmap colors (low loss = blue, high loss = red)
- *
- * Usage:
- *   - Put this in e.g. src/LossLandscapePlayground.jsx
- *   - Render <LossLandscapePlayground />
- */
 export default function LossLandscape2D() {
   const landRef = useRef(null);
   const curveRef = useRef(null);

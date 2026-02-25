@@ -5,7 +5,7 @@ import { Text } from './text';
 import { StatsCard } from './stats-card';
 import { Platform } from 'react-native';
 
-export function TrainingMetrics({ currentLoss, lossChange, fidelity, log }: any) {
+export function TrainingMetrics({ currentLoss, lossChange, fidelity, log, isPathLoaded }: any) {
   const { isDark, theme } = useTheme();
   const scrollViewRef = useRef(null);
 
@@ -17,7 +17,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, log }: any)
   return (
     <View style={{ flex: 1, padding: 12 }}>
       {/* Top Metrics Row */}
-      {(currentLoss || fidelity) && (
+      {isPathLoaded && (currentLoss || fidelity) && (
         <View style={styles.metricsRow}>
           {currentLoss && (
             <StatsCard 
@@ -39,7 +39,8 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, log }: any)
       )}
       
       {/* Live Log Section */}
-      <View style={[styles.logContainer, { backgroundColor: logBgColor, borderColor: logBorderColor }]}>        <Text style={styles.logLabel}>LIVE PARAMETER LOG</Text>
+      <View style={[styles.logContainer, { backgroundColor: logBgColor, borderColor: logBorderColor }]}>
+        <Text style={styles.logLabel}>LIVE PARAMETER LOG</Text>
         <ScrollView 
           ref={scrollViewRef}
           style={{ flex: 1 }} 

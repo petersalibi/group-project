@@ -49,7 +49,7 @@ export function Header() {
             VISUALISATION
           </Text>
         </Pressable>
-        
+        {/* 
         <Pressable onPress={() => navigate("/curriculum")}>
           <Text style={{ 
             fontSize: 11, 
@@ -60,6 +60,7 @@ export function Header() {
             CURRICULUM
           </Text>
         </Pressable>
+        */}
       </View>
 
       {/* Action Icons */}
@@ -71,6 +72,7 @@ export function Header() {
           }
         </Pressable>
         
+        {/*
         <Pressable onPress={() => navigate("/components")}>
           <Settings 
             size={18} 
@@ -78,6 +80,7 @@ export function Header() {
             color={isActive("/components") ? activeAccent : theme.colors.foreground} 
           />
         </Pressable>
+        */}
       </View>
     </View>
   );
