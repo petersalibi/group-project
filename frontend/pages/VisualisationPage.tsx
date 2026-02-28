@@ -21,6 +21,7 @@ import { Switch } from "../components/switch";
 import { NumberInput } from "../components/number-input";
 import { Button } from "../components/button";
 import { Progress } from "../components/progress";
+import { Tooltip } from '../components/tooltip';
 import { LandscapeLoadingIcon, PathLoadingIcon } from "../components/icons/icons";
 
 import { 
@@ -372,7 +373,10 @@ export function VisualisationPage() {
             {/* ACTIVATION DROPDOWN */}
             <View style={styles.controlGroup}>
               <Text style={styles.label}>NETWORK CONFIGURATION</Text>
-              <Text style={styles.subLabel}>Activation</Text>
+              <Tooltip tip="The non-linear function applied to each neuron.
+                            This heavily influences the overall geometry and smoothness of the landscape.">
+                <Text style={styles.subLabel}>Activation Function</Text>
+              </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
@@ -385,7 +389,10 @@ export function VisualisationPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Text style={styles.subLabel}>Loss</Text>
+              <Tooltip tip="The metric used to calculate the network's error.
+                            The landscape visualises how this error changes as the weights shift.">
+                <Text style={styles.subLabel}>Loss Function</Text>
+              </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
@@ -398,7 +405,9 @@ export function VisualisationPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Text style={styles.subLabel}>Method</Text>
+              <Tooltip tip = "How the high-dimensional network weights are projected down into a 2D surface.">
+                <Text style={styles.subLabel}>Visualisation Method</Text>
+              </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
@@ -466,12 +475,16 @@ export function VisualisationPage() {
               <Text style={styles.label}>ARCHITECTURE</Text>
               <View style={styles.rowGap}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.subLabel}>Depth</Text>
+                  <Tooltip tip="The number of hidden layers in the network.">
+                    <Text style={styles.subLabel}>Depth</Text>
+                  </Tooltip>
                   <NumberInput defaultValue={3} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } value={depth} step={1} min={1} max={100} onChange={setDepth} />
                 </View>
                 {depth > 1 && (
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.subLabel}>Width</Text>
+                    <Tooltip tip="The number of neurons in each hidden layer.">
+                      <Text style={styles.subLabel}>Width</Text>
+                    </Tooltip>
                     <NumberInput defaultValue={10} disabled={isLandscapeLoading || isPathLoading || isPathLoaded } value={width} min={1} max={100} onChange={setWidth} />
                   </View>
                 )}

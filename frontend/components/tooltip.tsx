@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTheme } from './theme-provider';
 import { Text } from './text';
@@ -11,29 +11,35 @@ export interface TooltipProps {
 
 export function Tooltip({ children, tip }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const brandAccent = isDark ? theme.colors.accent : theme.colors.secondary;
+  const brandForeground = isDark ? theme.colors.accentForeground : theme.colors.secondaryForeground;
 
   const showTooltip = () => setIsVisible(true);
   const hideTooltip = () => setIsVisible(false);
 
-  const tooltipBg = theme.colors.card;
-  const tooltipTextColor = theme.colors.primaryForeground;
+  const tooltipBg = brandAccent;
+  const tooltipTextColor = brandForeground;
   const borderColor = theme.colors.border;
 
+  const hoverProps = Platform.select({
+    web: {
+      onMouseEnter: showTooltip,
+      onMouseLeave: hideTooltip,
+    },
+    default: {
+      onTouchStart: showTooltip,
+      onTouchEnd: hideTooltip,
+    }
+  });
+    
   return (
-    <View style={styles.container}>
-      <Pressable
-        onHoverIn={showTooltip}
-        onHoverOut={hideTooltip}
-        onPressIn={showTooltip}
-        onPressOut={hideTooltip}
-        delayHoverIn={200}
-      >
-        {children}
-      </Pressable>
+    <View style={styles.container} {...hoverProps}>
+      {children}
 
       {isVisible && (
         <Animated.View
+          pointerEvents="none"
           entering={FadeIn.duration(150)}
           exiting={FadeOut.duration(150)}
           style={[
@@ -56,14 +62,13 @@ export function Tooltip({ children, tip }: TooltipProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'relative', 
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 99, 
   },
   tooltipBox: {
     position: 'absolute',
     bottom: '100%', 
-    marginBottom: 8,
+    alignSelf: 'center', 
+    marginBottom: 8, 
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -72,14 +77,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 5, 
     zIndex: 9999, 
     minWidth: 80, 
     alignItems: 'center',
   },
   tooltipText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
     textAlign: 'center',
     letterSpacing: 0.5,
   }

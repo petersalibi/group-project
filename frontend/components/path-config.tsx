@@ -10,6 +10,7 @@ import { useTheme } from "../components/theme-provider";
 import { Text } from "../components/text";
 import { Switch } from "../components/switch";
 import { Button } from "../components/button";
+import { Tooltip } from "./tooltip";
 
 import { 
     DropdownMenu, 
@@ -71,13 +72,20 @@ export function PathConfig(props: PathConfigProps) {
             <View style={styles.rowBetween}>
                 <Text style={[styles.pathTitle, { color: colorValue }]}>PATH {id + 1}</Text>
                 <View style={styles.actionGroup}>
-                    <Button variant="link" disabled={regen} onPress={() => onConfigChange(id, 'locked', !locked)} size="ssm">
-                        {locked ? (
-                            <Lock size={14} color={theme.colors.foreground} />
-                        ) : (
-                            <Unlock size={14} color={theme.colors.mutedForeground} />
-                        )}
-                    </Button>
+                    <Tooltip 
+                        tip={locked 
+                            ? "Locking forces the optimiser to only update weights within the visible 2D plane." 
+                            : "Unlocking allows the optimiser to move freely in the true high-dimensional space. WARNING: may lead to poor trajectories"
+                        }
+                    >
+                        <Button variant="link" disabled={regen} onPress={() => onConfigChange(id, 'locked', !locked)} size="ssm">
+                            {locked ? (
+                                <Lock size={14} color={theme.colors.foreground} />
+                            ) : (
+                                <Unlock size={14} color={theme.colors.mutedForeground} />
+                            )}
+                        </Button>
+                    </Tooltip>
                     <Button variant="ghost" onPress={() => onPathRemoval(id)} size="ssm">
                         <Trash2 size={14} color={theme.colors.foreground} />
                     </Button>
@@ -86,7 +94,10 @@ export function PathConfig(props: PathConfigProps) {
                 
             <View style={styles.rowGap}>
                 <View style={{ flex: 1.5 }}>
-                    <Text style={styles.subLabel}>Optimiser</Text>
+                    <Tooltip tip="The algorithm used to update the network's weights. 
+                                Different optimisers navigate the landscape in unique ways.">
+                        <Text style={styles.subLabel}>Optimiser</Text>
+                    </Tooltip>
                     <DropdownMenu>
                         <DropdownMenuTrigger>
                             <View style={[styles.dropdownTrigger, { height: 32, borderColor: theme.colors.border }]}>
@@ -101,7 +112,9 @@ export function PathConfig(props: PathConfigProps) {
                     </DropdownMenu>
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.subLabel}>LR</Text>
+                    <Tooltip tip="The step size the optimiser takes at each iteration.">
+                        <Text style={styles.subLabel}>Learning Rate</Text>
+                    </Tooltip>
                     <DropdownMenu>
                         <DropdownMenuTrigger>
                             <View style={[styles.dropdownTrigger, { height: 32, borderColor: theme.colors.border }]}>
@@ -124,19 +137,25 @@ export function PathConfig(props: PathConfigProps) {
                         <Text style={styles.label}>[{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]</Text>
                     </View>
                 ) : (
-                    <Button 
-                        variant="primary" 
-                        size="sm"
-                        onPress={() => onPlaceStartPoint(id)}
-                        disabled={isSceneLoading || !isLandscapeLoaded}
-                        style={{ flex: 4 }}
-                    >
-                        {isPlacing ? 'Cancel' : 'Place Start'}
-                    </Button>
+                    <Tooltip tip="Click anywhere on the loss landscape to manually set the starting position for this optimiser's journey.">
+                        <Button 
+                            variant="primary" 
+                            size="sm"
+                            onPress={() => onPlaceStartPoint(id)}
+                            disabled={isSceneLoading || !isLandscapeLoaded}
+                            style={{ flex: 4 }}
+                        >
+                            {isPlacing ? 'Cancel' : 'Place Start'}
+                        </Button>
+                    </Tooltip>
                 )}
-                <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm" style={{ flex: 1 }}><Eye size={14} color={theme.colors.foreground} /></Button>
+                <Tooltip tip="Watch the network weights, current loss, and fidelity metric evolve on this specific path as it animates.">
+                    <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm" style={{ flex: 1 }}><Eye size={14} color={theme.colors.foreground} /></Button>
+                </Tooltip>
                 {isPathLoaded && (
-                    <Button variant="outline" disabled={regen} onPress={() => onPCAButtonPress(id)} size="sm" style={{ flex: 1 }}><Text size={14} color={theme.colors.foreground}>PCA</Text></Button>
+                    <Tooltip tip="Regenerate the entire landscape using Principal Component Analysis on this path.">
+                        <Button variant="outline" disabled={regen} onPress={() => onPCAButtonPress(id)} size="sm" style={{ flex: 1 }}><Text size={14} color={theme.colors.foreground}>PCA</Text></Button>
+                    </Tooltip>
                 )}
             </View>
         </View>
