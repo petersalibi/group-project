@@ -94,8 +94,7 @@ export function PathConfig(props: PathConfigProps) {
                 
             <View style={styles.rowGap}>
                 <View style={{ flex: 1.5 }}>
-                    <Tooltip tip="The algorithm used to update the network's weights. 
-                                Different optimisers navigate the landscape in unique ways.">
+                    <Tooltip tip="The algorithm used to update the network's weights.">
                         <Text style={styles.subLabel}>Optimiser</Text>
                     </Tooltip>
                     <DropdownMenu>
@@ -132,30 +131,35 @@ export function PathConfig(props: PathConfigProps) {
 
             <View style={styles.rowGap}>
                 {startPoint != null && !isPlacing ? (
-                    <View style={{ flex: 4, flexDirection: 'column', justifyContent: 'center' }}>
+                    <View style={{ flex: 3, flexDirection: 'column', justifyContent: 'center' }}>
                         <Text style={styles.label}>Start Point</Text>
                         <Text style={styles.label}>[{startPoint[0].toFixed(2)}, {startPoint[1].toFixed(2)}]</Text>
                     </View>
                 ) : (
-                    <Tooltip tip="Click anywhere on the loss landscape to manually set the starting position for this optimiser's journey.">
-                        <Button 
-                            variant="primary" 
-                            size="sm"
-                            onPress={() => onPlaceStartPoint(id)}
-                            disabled={isSceneLoading || !isLandscapeLoaded}
-                            style={{ flex: 4 }}
-                        >
-                            {isPlacing ? 'Cancel' : 'Place Start'}
-                        </Button>
-                    </Tooltip>
+                    <View style={{ flex: 3 }}>
+                        <Tooltip tip="Click anywhere on the loss landscape to manually set the starting position for this optimiser's journey.">
+                            <Button 
+                                variant="primary" 
+                                size="sm"
+                                onPress={() => onPlaceStartPoint(id)}
+                                disabled={isSceneLoading || !isLandscapeLoaded}
+                            >
+                                {isPlacing ? 'Cancel' : 'Place Start'}
+                            </Button>
+                        </Tooltip>
+                    </View>
                 )}
-                <Tooltip tip="Watch the network weights, current loss, and fidelity metric evolve on this specific path as it animates.">
-                    <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm" style={{ flex: 1 }}><Eye size={14} color={theme.colors.foreground} /></Button>
-                </Tooltip>
-                {isPathLoaded && (
-                    <Tooltip tip="Regenerate the entire landscape using Principal Component Analysis on this path.">
-                        <Button variant="outline" disabled={regen} onPress={() => onPCAButtonPress(id)} size="sm" style={{ flex: 1 }}><Text size={14} color={theme.colors.foreground}>PCA</Text></Button>
+                <View style={{ flex: 1 }}>
+                    <Tooltip tip="See the network weights and loss evolve as this path animates.">
+                        <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm"><Eye size={14} color={theme.colors.foreground} /></Button>
                     </Tooltip>
+                </View>
+                {isPathLoaded && (
+                    <View style={{ flex: 1 }}>
+                        <Tooltip tip="Regenerate the entire landscape using Principal Component Analysis on this path.">
+                            <Button variant="outline" disabled={regen} onPress={() => onPCAButtonPress(id)} size="sm"><Text size={14} color={theme.colors.foreground}>PCA</Text></Button>
+                        </Tooltip>
+                    </View>
                 )}
             </View>
         </View>

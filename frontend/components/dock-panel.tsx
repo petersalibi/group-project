@@ -67,7 +67,7 @@ export function DockPanel({ id, title, isMaximized=false, children }: { id: stri
   });
 
   return (
-    <Animated.View style={[{ backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, overflow: 'hidden' }, animStyle]}>
+    <Animated.View style={[{ backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8 }, animStyle]}>
       <GestureDetector gesture={pan}>
         <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
           <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>

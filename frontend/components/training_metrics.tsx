@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useTheme } from './theme-provider';
 import { Text } from './text';
 import { StatsCard } from './stats-card';
-import { Platform } from 'react-native';
+import { Tooltip } from './tooltip';
 
 export function TrainingMetrics({ currentLoss, lossChange, fidelity, log, isPathLoaded }: any) {
   const { isDark, theme } = useTheme();
@@ -20,20 +20,28 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, log, isPath
       {isPathLoaded && (currentLoss || fidelity) && (
         <View style={styles.metricsRow}>
           {currentLoss && (
-            <StatsCard 
-              label="Current Loss" 
-              value={currentLoss !== null ? currentLoss.toFixed(2) : "0.00"} 
-              subText={lossChange === 0 ? "" : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
-              subColor={lossChange > 0 ? "#e80c0c" : "#22c55e"}
-            />
+            <View style={{ flex: 1 }}>
+                <StatsCard 
+                  label="Current Loss" 
+                  value={currentLoss !== null ? currentLoss.toFixed(2) : "0.00"} 
+                  subText={lossChange === 0 ? "" : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
+                  subColor={lossChange > 0 ? "#e80c0c" : "#22c55e"}
+                  valueTooltip='The loss of the neural network at the current position of the optimiser.'
+                  subTextTooltip='The change in loss over the last 10 epochs.'
+                />
+            </View>
           )}
           {fidelity && (
-            <StatsCard 
-              label="Fidelity" 
-              value={fidelity !== null ? `${fidelity.toFixed(1)}%` : "00.0%"} 
-              subText={fidelity > 60.0 ? "High" : fidelity > 40.0 ? "Medium" : "Low"}
-              subColor="#64748b"
-            />
+            <View style={{ flex: 1 }}>
+                <StatsCard 
+                  label="Fidelity" 
+                  value={fidelity !== null ? `${fidelity.toFixed(1)}%` : "00.0%"} 
+                  subText={fidelity > 60.0 ? "High" : fidelity > 40.0 ? "Medium" : "Low"}
+                  subColor="#64748b"
+                  valueTooltip='A measure of how accurately the visualisation of the optimiser path represents the true high-dimensional optimisation path.
+                            A low fidelity means the visible path is heavily distorted by the projection.'
+                />
+            </View>
           )}
         </View>
       )}

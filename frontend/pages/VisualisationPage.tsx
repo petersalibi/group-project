@@ -496,7 +496,7 @@ export function VisualisationPage() {
               disabled={isLandscapeLoading || isPathLoading || isPathLoaded || (data === "CUSTOM" && !csvLoaded) || (method === "PCA Directions")}
               onPress={() => {onGenerateLandscape()}}
             >
-              Generate Landscape
+              {isLandscapeLoading ? "Loading..." : "Generate Landscape"}
             </Button>
 
             {/* PATH DETAILS CARD */}
@@ -564,7 +564,9 @@ export function VisualisationPage() {
           <View style={styles.engineContainer}>
             <View style={styles.engineHeader}>
               {isLandscapeLoaded && !isLandscapeLoading && !isPathLoading && !isPathLoaded && (
-                <Text style={styles.label}>LOG PLOT</Text>
+                <Tooltip tip="Applies a logarithmic scale to the vertical loss values." position="bottom">
+                  <Text style={styles.label}>LOG PLOT</Text>
+                </Tooltip>
               )}
               {isLandscapeLoaded && !isLandscapeLoading && !isPathLoaded && !isPathLoading && (
                 <Switch checked={logPlot} onCheckedChange={handleLogPlotToggle}/>
@@ -604,7 +606,9 @@ export function VisualisationPage() {
             
             {isLandscapeLoaded && !isLandscapeLoading && !isPathLoaded && !isPathLoading && (
               <View style={styles.rightSidebar}>
-                <Text style={styles.label}>Z SCALE</Text>
+                <Tooltip tip="Adjusts the visual height of the 3D landscape.">
+                  <Text style={styles.label}>Z SCALE</Text>
+                </Tooltip>
                 <View style={{ marginTop: 16, height: '25%' }}> 
                   <VerticalSlider 
                     value={zValue} 

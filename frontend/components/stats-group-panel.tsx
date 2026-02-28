@@ -35,7 +35,7 @@ export function StatsGroupPanel({ archContent, metricsContent }: any) {
       }}>
         
         {/* Sub-Panel 1 */}
-        <View style={{ flex: 1, backgroundColor: theme.colors.background, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' }}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.background, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border }}>
           <GestureDetector gesture={internalSwap}>
             <View style={{ height: 28, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: theme.colors.muted, borderBottomWidth: 1, borderColor: theme.colors.border }}>
                <Text style={{ fontSize: 8, fontWeight: '800', color: theme.colors.mutedForeground }}>{leftTitle}</Text>
@@ -45,7 +45,7 @@ export function StatsGroupPanel({ archContent, metricsContent }: any) {
         </View>
 
         {/* Sub-Panel 2 */}
-        <View style={{ flex: 1, backgroundColor: theme.colors.background, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' }}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.background, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border }}>
           <GestureDetector gesture={internalSwap}>
             <View style={{ height: 28, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: theme.colors.muted, borderBottomWidth: 1, borderColor: theme.colors.border }}>
                <Text style={{ fontSize: 8, fontWeight: '800', color: theme.colors.mutedForeground }}>{rightTitle}</Text>

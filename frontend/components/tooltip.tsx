@@ -7,9 +7,10 @@ import { Text } from './text';
 export interface TooltipProps {
   children: React.ReactNode;
   tip: string;
+  position?: 'top' | 'bottom';
 }
 
-export function Tooltip({ children, tip }: TooltipProps) {
+export function Tooltip({ children, tip, position = 'top' }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const { theme, isDark } = useTheme();
   const brandAccent = isDark ? theme.colors.accent : theme.colors.secondary;
@@ -32,6 +33,10 @@ export function Tooltip({ children, tip }: TooltipProps) {
       onTouchEnd: hideTooltip,
     }
   });
+
+  const positionStyles = position === 'top' 
+    ? { bottom: '100%' as const, marginBottom: 8 } 
+    : { top: '100%' as const, marginTop: 16 };
     
   return (
     <View style={styles.container} {...hoverProps}>
@@ -44,6 +49,7 @@ export function Tooltip({ children, tip }: TooltipProps) {
           exiting={FadeOut.duration(150)}
           style={[
             styles.tooltipBox,
+            positionStyles,
             {
               backgroundColor: tooltipBg,
               borderColor: borderColor,

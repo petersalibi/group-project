@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { useTheme } from "./theme-provider";
+import { Tooltip } from "./tooltip";
  
 interface StatsCardProps {
   value: string;
@@ -8,15 +9,38 @@ interface StatsCardProps {
   color?: string;
   subText?: string;
   subColor?: string;
+  valueTooltip?: string;
+  subTextTooltip?: string;
 }
 
-export function StatsCard({ value, label, color, subText, subColor }: StatsCardProps) {
+export function StatsCard({ value, label, color, subText, subColor, valueTooltip, subTextTooltip }: StatsCardProps) {
   const { theme } = useTheme();
 
   // Primary value color (defaults to theme French Blue)
   const statusColor = color || theme.colors.frenchBlue;
   // Subtext color (defaults to muted foreground if not provided)
   const secondaryColor = subColor || theme.colors.mutedForeground;
+
+  const ValueNode = (
+    <Text style={{ 
+      fontSize: 20, 
+      fontWeight: "700", 
+      color: statusColor,
+      marginVertical: 2,
+    }}>
+      {value}
+    </Text>
+  );
+
+  const SubTextNode = subText ? (
+    <Text style={{ 
+      fontSize: 10, 
+      fontWeight: "600", 
+      color: secondaryColor,
+    }}>
+      {subText}
+    </Text>
+  ) : null;
 
   return (
     <View style={{
@@ -28,6 +52,8 @@ export function StatsCard({ value, label, color, subText, subColor }: StatsCardP
       padding: 12, // Fixed padding for consistency in small slots
       justifyContent: "space-between", // Pushes label to top and subtext to bottom
       minHeight: 80,
+      zIndex: 1,
+      overflow: 'visible',
     }}>
       {/* Top Label */}
       <Text style={{ 
@@ -41,25 +67,26 @@ export function StatsCard({ value, label, color, subText, subColor }: StatsCardP
       </Text>
 
       {/* Main Metric Value */}
-      <Text style={{ 
-        fontSize: 20, 
-        fontWeight: "700", 
-        color: statusColor,
-        marginVertical: 2,
-      }}>
-        {value}
-      </Text>
+      <View style={{ width: '100%' }}>
+        {valueTooltip ? (
+          <Tooltip tip={valueTooltip}>
+            {ValueNode}
+          </Tooltip>
+        ) : (
+          ValueNode
+        )}
+      </View>
 
       {/* Bottom Subtext (Trend/Status) */}
-      {subText ? (
-        <Text style={{ 
-          fontSize: 10, 
-          fontWeight: "600", 
-          color: secondaryColor,
-        }}>
-          {subText}
-        </Text>
-      ) : null}
+      <View style={{ width: '100%' }}>
+        {subTextTooltip && subText ? (
+          <Tooltip tip={subTextTooltip}>
+            {SubTextNode}
+          </Tooltip>
+        ) : (
+          SubTextNode
+        )}
+      </View>
     </View>
   );
 }
