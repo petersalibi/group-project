@@ -38,9 +38,7 @@ export interface UsePathVisualisationsProps {
     raycasterRef,
     clockRef,
     rafRef,
-    originRef,
-    xDirRef,
-    yDirRef
+    dictRef,
 }
 
 // --- Constants ---
@@ -101,9 +99,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         raycasterRef,
         clockRef,
         rafRef,
-        originRef,
-        xDirRef,
-        yDirRef
+        dictRef,
     } = props;
 
     const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
@@ -290,7 +286,12 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         if (!scene || !mesh || !raycaster || !smoothPoints || !config) return;
 
         const { newPathPoints, newPathNormals, positions, totalLength } =
-            project2DPathTo3D(mesh, smoothPoints, raycaster);
+            project2DPathTo3D(mesh, smoothPoints, raycaster, {
+              xMin: dictRef.current.x_axis[0],
+              xMax: dictRef.current.x_axis[dictRef.current.x_axis.length - 1],
+              yMin: dictRef.current.y_axis[0],
+              yMax: dictRef.current.y_axis[dictRef.current.y_axis.length - 1]
+            });
 
         if (newPathPoints.length < 2) return;
 
@@ -355,6 +356,18 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     if (!mesh) return;
 
     setIsPathLoading(true);
+
+    const cachedRegenData: any = {};
+    pathConfigs.forEach((config, index) => {
+      if (config.regen) {
+        cachedRegenData[index] = {
+          params: parametersArrayRef.current[index],
+          fidelity: fidelityArrayRef.current[index],
+          path2D: path2DArrayRef.current[index],
+        };
+      }
+    });
+
     // Clear all markers on generation
     Object.values(markersRef.current).forEach(({ ball, line }) => {
       ball.visible = false;
@@ -362,30 +375,51 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     });
     handleRemoveAllPaths();
 
+    Object.keys(cachedRegenData).forEach(key => {
+      const index = parseInt(key);
+      parametersArrayRef.current[index] = cachedRegenData[index].params;
+      fidelityArrayRef.current[index] = cachedRegenData[index].fidelity;
+      path2DArrayRef.current[index] = cachedRegenData[index].path2D;
+    });
+
     try {
-        let csvData = data === 'CUSTOM' ? csv : null;
+      let csvData = data === 'CUSTOM' ? csv : null;
       // Create a fetch promise for each config
-      const pathPromises = pathConfigs.map((config) => {
+      const pathPromises = pathConfigs.map((config, index) => {
+        if (config.regen) return Promise.resolve({ isRegen: true, index, data });
+        onPathConfigChange(config.id, 'isPathLoaded', false);
         const paramString = {
-            network: { activation, depth, width },
-            data: data,
-            x_direction: xDirRef.current,
-            y_direction: yDirRef.current,
-            theta_0: originRef.current,
-            init_xy: config.startPoint,
-            optimiser: config.optim,
-            learning_rate: config.lr,
-            loss: loss,
-            lock_to_plane: config.locked,
-            rawdata: csvData,
+          network: { activation, depth, width },
+          data: data,
+          x_direction: dictRef.current.x_direction,
+          y_direction: dictRef.current.y_direction,
+          theta_0: dictRef.current.theta_0,
+          init_xy: config.startPoint,
+          optimiser: config.optim,
+          learning_rate: config.lr,
+          loss: loss,
+          lock_to_plane: config.locked,
+          rawdata: csvData,
         };
-        return api.post('/animateminimiser', paramString);
+        return api.post('/animateminimiser', paramString).then(resp => ({
+            isRegen: false,
+            index,
+            data: resp.data
+        }));
       });
 
       const responses = await Promise.all(pathPromises);
 
       // Process all responses
-      responses.forEach((resp, index) => {
+      responses.forEach((resp) => {
+        const index = resp.index;
+
+        if (resp.isRegen) {
+          updatePathGeometry(mesh, index, true);
+          onPathConfigChange(pathConfigs[index].id, 'isPathLoaded', true);
+          return;
+        }
+
         const pathData = resp.data;
         const path_arr =
           pathData.minimiser_path?.data ?? pathData.minimiser_path;
@@ -417,6 +451,9 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
 
         // Create the geometry, line, and ball for this path
         updatePathGeometry(mesh, index, true);
+
+        onPathConfigChange(pathConfigs[index].id, 'isPathLoaded', true);
+
       });
 
       setIsPathLoaded(true);
@@ -452,7 +489,39 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     } finally {
       setIsPathLoading(false);
     }
-  }, [pathConfigs, handleRemoveAllPaths, updatePathGeometry]);
+  }, [pathConfigs, handleRemoveAllPaths, updatePathGeometry, onPathConfigChange]);
+
+  const loadRegenPath = useCallback((savedParams: number[][], newPath2D: number[][]) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+
+    console.log(savedParams);
+
+    handleRemoveAllPaths();
+
+    if (!savedParams) return;
+
+    // Inject the data into index 0
+    parametersArrayRef.current[0] = savedParams;
+
+    const twoDPoints = newPath2D.map((p) => new THREE.Vector2(p[0], p[1]));
+    const curve2D = new THREE.SplineCurve(twoDPoints);
+    
+    path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
+      p.x = Math.max(-1, Math.min(1, p.x));
+      p.y = Math.max(-1, Math.min(1, p.y));
+      return p;
+    });
+
+    // Update the geometry and restart the animation loop
+    updatePathGeometry(mesh, 0, true);
+
+    setIsPathLoaded(true);
+    setIsPlaying(true);
+    animationTimeRef.current = 0;
+    if (clockRef.current && !clockRef.current.running) clockRef.current.start();
+
+  }, [handleRemoveAllPaths, updatePathGeometry]);
 
   const getMaxSteps = useCallback(() => {
     if (!parametersArrayRef.current || parametersArrayRef.current.length === 0) return 1;
@@ -910,7 +979,9 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     currentLoss,
     lossChange,
     fidelity,
+    parametersArrayRef,
     handleLoadAllPathsButtonClick,
+    loadRegenPath,
     handleRemovePath,
     handleClearPaths,
     togglePlayPause,

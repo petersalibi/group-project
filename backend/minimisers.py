@@ -133,7 +133,8 @@ def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path)
         optimiser.step()
 
         minimiser_path.append((_clamp(a.item()), _clamp(b.item())))
-        parameters_path.append(flatten_params(model.parameters()).tolist())
+        #parameters_path.append(flatten_params(model.parameters()).tolist())
+        parameters_path.append((theta0 + a * dir1 + b * dir2).tolist())
         loss_path.append(loss.item())
     
     return loss_path

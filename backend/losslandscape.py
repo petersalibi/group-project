@@ -61,8 +61,8 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
             "theta_0": flatten_params(model.parameters()).tolist(),
-            "pca_trajectories": pca_trajectories,
-            "pca_mean" : pca_mean,
+            "pca_trajectories": pca_trajectories.tolist() if pca_trajectories is not None else None,
+            "pca_mean" : pca_mean.tolist() if pca_mean is not None else None,
             "column_labels": data.column_labels}
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False, pca_mean = None):

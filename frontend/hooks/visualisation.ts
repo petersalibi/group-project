@@ -83,6 +83,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     const originRef = useRef<number[] | null>(null);
     const xDirRef = useRef<number[] | null>(null);
     const yDirRef = useRef<number[] | null>(null);
+    const regenPathRef = useRef<number[][] | null>(null);
 
     // --- Three.js refs ---
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -130,7 +131,9 @@ export function useVisualisation(props: UseVisualisationProps) {
         currentLoss,
         lossChange,
         fidelity,
+        parametersArrayRef,
         handleLoadAllPathsButtonClick,
+        loadRegenPath,
         handleRemovePath,
         handleClearPaths,
         togglePlayPause,
@@ -159,9 +162,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         raycasterRef,
         clockRef,
         rafRef,
-        originRef,
-        xDirRef,
-        yDirRef,
+        dictRef,
     })
 
     const setCameraControls = () => {
@@ -249,29 +250,43 @@ export function useVisualisation(props: UseVisualisationProps) {
     /**
      * Fetches landscape data and builds the mesh.
      */
-    const loadAndBuildLandscape = useCallback(async () => {
+    const loadAndBuildLandscape = useCallback(async (
+        overrideMethod?: string,
+        overrideArgs?: any
+    ) => {
         const scene = sceneRef.current;
         if (!scene) {
-            console.error('Scene not initialised yet');
-            return;
+        console.error('Scene not initialised yet');
+        return;
         }
+        
         setIsLandscapeLoading(true);
-        // handleRemoveAllPaths();
         disposeObject(meshRef.current);
+        handleClearPaths();
         meshRef.current = null;
+        
         let raw_data = null;
         if (data === 'CUSTOM') raw_data = csv;
-        let dirs = null;
-        if (method === 'TWOPARAMETERS') dirs = [dir1, dir2];
+        
+        // Determine which method and args to use
+        const targetMethod = overrideMethod || method;
+        let targetArgs = overrideArgs;
+        
+        // If no override args were passed and it's TWOPARAMETERS, use dir1/dir2
+        if (!targetArgs && targetMethod === 'TWOPARAMETERS') {
+            targetArgs = [dir1, dir2];
+        }
+
         try {
         const paramString = {
             network: { activation, depth, width },
-            method: method,
+            method: targetMethod,
             data: data,
             loss: loss,
             rawdata: raw_data,
-            args: dirs,
+            args: targetArgs,
         };
+        
         const resp = await api.post('/generatelandscape', paramString);
         const dict = resp.data;
 
@@ -290,6 +305,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         originRef.current = dict.theta_0;
         xDirRef.current = dict.x_direction;
         yDirRef.current = dict.y_direction;
+        if (dict.pca_trajectories) regenPathRef.current = dict.pca_trajectories;
 
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
             logPlot,
@@ -308,34 +324,18 @@ export function useVisualisation(props: UseVisualisationProps) {
         setIsLandscapeLoaded(true);
 
         const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
-        });
-        const newLogEntry = `[${timeString}] Landscape generated with parameters: activation=${activation}, loss=${loss}, method=${method}, depth=${depth}, width=${width}`;
+        const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+        const newLogEntry = `[${timeString}] Landscape generated with parameters: activation=${activation}, loss=${loss}, method=${targetMethod}, depth=${depth}, width=${width}`;
         setLog(prevLog => [...prevLog, newLogEntry]);
-        
+
         } catch (err) {
-            alert('Failed to load landscape:' + err);
-            setIsLandscapeLoaded(false);
+        alert('Failed to load landscape: ' + err);
+        setIsLandscapeLoaded(false);
         } finally {
-            setIsLandscapeLoading(false);
+        setIsLandscapeLoading(false);
         }
     }, [
-        activation,
-        depth,
-        width,
-        method,
-        data,
-        loss,
-        logPlot,
-        zValue,
-        sceneRef,
-        originRef,
-        xDirRef,
-        yDirRef,
+        activation, depth, width, method, dir1, dir2, data, csv, loss, logPlot, zValue, setLog
     ]);
 
     const handleZChange = useCallback((val: number) => {
@@ -387,9 +387,29 @@ export function useVisualisation(props: UseVisualisationProps) {
         }
     }, []);
 
-    const handleGenerateLandscapeButtonClick = useCallback(() => loadAndBuildLandscape(),
-        [loadAndBuildLandscape],
-    );
+    const handleGenerateLandscapeButtonClick = useCallback(() => {
+        loadAndBuildLandscape(); 
+    }, [loadAndBuildLandscape]);
+
+    const handlePCAPress = useCallback(async (pathId: number) => {
+        if (!parametersArrayRef.current || !parametersArrayRef.current[pathId]) {
+            alert("No parameter data found for this path.");
+            return;
+        }
+
+        const pathParameters = parametersArrayRef.current[pathId];
+
+        // Save the original parameters before wiping the arrays
+        const savedParams = parametersArrayRef.current[pathId];
+
+        await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
+
+        if (regenPathRef.current) {
+            loadRegenPath(savedParams, regenPathRef.current);
+            return true;
+        }
+
+    }, [loadAndBuildLandscape, parametersArrayRef, loadRegenPath]);
 
     return {
         isLandscapeLoading,
@@ -418,6 +438,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         lossChange,
         fidelity,
         handleLoadAllPathsButtonClick,
+        handlePCAPress,
         handleRemovePath,
         handleClearPaths,
         togglePlayPause,

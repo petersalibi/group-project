@@ -50,6 +50,8 @@ const createDefaultPathConfig = (id: number): PathConfigInterface => {
     lr: 0.01,
     locked: true,
     startPoint: null,
+    isPathLoaded: false,
+    regen: false
   };
 };
 
@@ -81,6 +83,7 @@ export function VisualisationPage() {
     isLandscapeLoading,
     isLandscapeLoaded,
     onGenerateLandscape,
+    onGeneratePCA,
     logPlot,
     handleLogPlotToggle,
     zValue,
@@ -180,7 +183,7 @@ export function VisualisationPage() {
   ) => {
     setPathConfigs((currentConfigs) =>
       currentConfigs.map((config) =>
-        config.id === id ? { ...config, [field]: value } : config,
+        config.id === id ? { ...config, [field]: value, isPathLoaded: false } : config,
       ),
     );
   };
@@ -295,6 +298,29 @@ export function VisualisationPage() {
   const refreshStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${refreshAnim.value}deg` }],
   }));
+
+  const onPcaButtonPress = async (id: number) => {
+    setMethod("PCA Directions");
+    await onGeneratePCA(id);
+        
+    // Find the config of the path that was used for PCA
+    const keptConfig = pathConfigs.find(config => config.id === id);
+      
+    if (keptConfig) {
+      // Re-index to 0, and assign a flag so you can disable the PCA button
+      const updatedConfig = { 
+        ...keptConfig, 
+        id: 0,
+        colorName: PATH_COLORS[0].name,
+        colorValue: PATH_COLORS[0].value,
+        regen: true,
+      };
+        
+      // Remove all other paths from the UI
+      setPathConfigs([updatedConfig]);
+      setNumPaths(1);
+    }
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -454,7 +480,7 @@ export function VisualisationPage() {
 
             <Button
               variant="secondary"
-              disabled={isLandscapeLoading || isPathLoading || isPathLoaded || (data === "CUSTOM" && !csvLoaded)}
+              disabled={isLandscapeLoading || isPathLoading || isPathLoaded || (data === "CUSTOM" && !csvLoaded) || (method === "PCA Directions")}
               onPress={() => {onGenerateLandscape()}}
             >
               Generate Landscape
@@ -476,6 +502,7 @@ export function VisualisationPage() {
                   isSceneLoading={isLandscapeLoading}
                   isLandscapeLoaded={isLandscapeLoaded}
                   isWatching={viewId === config.id}
+                  onPCAButtonPress={onPcaButtonPress}
                 />
               ))}
             </View>

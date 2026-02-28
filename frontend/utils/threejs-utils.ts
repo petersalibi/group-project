@@ -82,8 +82,8 @@ export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: numbe
   const nx = xs.length;
   const ny = ys.length;
 
-  const geoWidth = xs[nx - 1] - xs[0];
-  const geoHeight = ys[ny - 1] - ys[0];
+  const geoWidth = 2;
+  const geoHeight = 2;
   const widthSegments = nx - 1;
   const heightSegments = ny - 1;
 
@@ -236,6 +236,7 @@ export function project2DPathTo3D(
   mesh: THREE.Mesh,
   path2D: THREE.Vector2[],
   raycaster: THREE.Raycaster,
+  bounds: { xMin: number; xMax: number; yMin: number; yMax: number }
 ) {
   const lineLiftAmount = 0.001;
   const newPathPoints: THREE.Vector3[] = [];
@@ -251,7 +252,19 @@ export function project2DPathTo3D(
   NORMAL_MATRIX.getNormalMatrix(mesh.matrixWorld);
 
   for (const p of path2D) {
-    RAY_ORIGIN.set(p.x, 100, -p.y); // Y-up in 3D, Z-down
+    // Find the percentage (0.0 to 1.0) of where the point sits on the original axes
+    const xPercent = (p.x - bounds.xMin) / (bounds.xMax - bounds.xMin);
+    const yPercent = (p.y - bounds.yMin) / (bounds.yMax - bounds.yMin);
+
+    // Map that percentage to our 3D mesh's [-1, 1] coordinate space
+    let targetX = (xPercent * 2) - 1;
+    let targetY = (yPercent * 2) - 1;
+
+    // Strict Clamp: Just in case the path temporarily overshoots the landscape bounds
+    targetX = Math.max(-1, Math.min(1, targetX));
+    targetY = Math.max(-1, Math.min(1, targetY));
+
+    RAY_ORIGIN.set(targetX, 100, -targetY); // Y-up in 3D, Z-down
     raycaster.set(RAY_ORIGIN, RAY_DIRECTION);
     const hit = raycaster.intersectObject(mesh)[0];
 

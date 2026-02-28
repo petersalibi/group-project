@@ -29,6 +29,8 @@ export interface PathConfigInterface {
     lr: number;
     locked: boolean;
     startPoint: [number, number] | null;
+    isPathLoaded: boolean;
+    regen: boolean;
 }
 
 interface PathConfigProps {
@@ -42,6 +44,7 @@ interface PathConfigProps {
     isSceneLoading: boolean;
     isLandscapeLoaded: boolean;
     isWatching: boolean;
+    onPCAButtonPress: (id: number) => void;
 }
 
 export function PathConfig(props: PathConfigProps) {
@@ -56,18 +59,19 @@ export function PathConfig(props: PathConfigProps) {
         isSceneLoading,
         isLandscapeLoaded,
         isWatching,
+        onPCAButtonPress,
     } = props;
 
     const { theme, isDark } = useTheme();
 
-    const { id, colorName, colorValue, optim, lr, locked, startPoint } = config;
+    const { id, colorName, colorValue, optim, lr, locked, startPoint, isPathLoaded, regen } = config;
 
     return (
         <View style={[styles.pathCard, { borderLeftColor: colorValue }]}>
             <View style={styles.rowBetween}>
                 <Text style={[styles.pathTitle, { color: colorValue }]}>PATH {id + 1}</Text>
                 <View style={styles.actionGroup}>
-                    <Button variant="link" onPress={() => onConfigChange(id, 'locked', !locked)} size="ssm">
+                    <Button variant="link" disabled={regen} onPress={() => onConfigChange(id, 'locked', !locked)} size="ssm">
                         {locked ? (
                             <Lock size={14} color={theme.colors.foreground} />
                         ) : (
@@ -91,7 +95,7 @@ export function PathConfig(props: PathConfigProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                             {optimisers.map((item) => (
-                                <DropdownMenuItem key={item.id} onSelect={() => {onConfigChange(id, 'optim', String(item.value))}}><Text>{item.label}</Text></DropdownMenuItem>
+                                <DropdownMenuItem key={item.id} disabled={regen} onSelect={() => {onConfigChange(id, 'optim', String(item.value))}}><Text>{item.label}</Text></DropdownMenuItem>
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -106,7 +110,7 @@ export function PathConfig(props: PathConfigProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                             {lrs.map((item) => (
-                                <DropdownMenuItem key={item.id} onSelect={() => {onConfigChange(id, 'lr', Number(item.value))}}><Text>{item.label}</Text></DropdownMenuItem>
+                                <DropdownMenuItem key={item.id} disabled={regen} onSelect={() => {onConfigChange(id, 'lr', Number(item.value))}}><Text>{item.label}</Text></DropdownMenuItem>
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -131,9 +135,9 @@ export function PathConfig(props: PathConfigProps) {
                     </Button>
                 )}
                 <Button variant="outline" onPress={() => onViewPath(id)} disabled={isSceneLoading || !isLandscapeLoaded || isWatching} size="sm" style={{ flex: 1 }}><Eye size={14} color={theme.colors.foreground} /></Button>
-                {/* 
-                <Button variant="outline" size="sm" style={{ flex: 1 }}><Palette size={14} color={theme.colors.foreground}/></Button>
-                */}
+                {isPathLoaded && (
+                    <Button variant="outline" disabled={regen} onPress={() => onPCAButtonPress(id)} size="sm" style={{ flex: 1 }}><Text size={14} color={theme.colors.foreground}>PCA</Text></Button>
+                )}
             </View>
         </View>
     );
