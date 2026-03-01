@@ -5,23 +5,20 @@ import { useTheme } from '../components/theme-provider';
 
 const LayoutContext = createContext<any>(null);
 
-// Fixed Constants
-const HEADER_H = 60;
-const FOOTER_H = 28;
-
-export function LayoutManager({ children }: { children: React.ReactNode }) {
+export function LayoutManager({ children, width, height }: { children: React.ReactNode, width: number, height: number }) {
   const { theme } = useTheme();
+
   // REACTIVE DIMENSIONS
-  const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
+  const SCREEN_W = width;
+  const SCREEN_H = height;
   
   const [registry, setRegistry] = useState<Record<string, string>>({
     'CONFIG': 'LEFT', 
     'ENGINE': 'TOP_MAIN', 
-    'STATS_GROUP': 'BOTTOM_MAIN'
+    'STATS_GROUP': 'RIGHT'
   });
 
-  // Calculate usable space reactively
-  const USABLE_H = useMemo(() => SCREEN_H - HEADER_H - FOOTER_H, [SCREEN_H]);
+  const USABLE_H = SCREEN_H;
 
   const ghostOpacity = useSharedValue(0);
   const ghostMode = useSharedValue<'swap' | 'stack'>('swap');
@@ -70,7 +67,7 @@ export function LayoutManager({ children }: { children: React.ReactNode }) {
     if (!isDragging) { ghostOpacity.value = withTiming(0); return; }
 
     const STACK_ZONE = 60; 
-    const relativeY = absY - HEADER_H;
+    const relativeY = absY;
 
     if (absX < STACK_ZONE || absX > SCREEN_W - STACK_ZONE) {
       ghostMode.value = 'stack';
@@ -93,7 +90,7 @@ export function LayoutManager({ children }: { children: React.ReactNode }) {
   }, [SCREEN_W, USABLE_H, registry, getSlotDims]);
 
   const requestSwap = useCallback((id: string, absX: number, absY: number) => {
-    const relativeY = absY - HEADER_H;
+    const relativeY = absY;
 
     if (absX < 60 || absX > SCREEN_W - 60) {
       setRegistry(prev => ({ ...prev, [id]: absX < 60 ? 'LEFT' : 'RIGHT' }));

@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   ViewStyle,
-  Dimensions
+  Dimensions,
+  Platform
 } from "react-native";
 import { useTheme } from "./theme-provider";
 
@@ -39,10 +40,27 @@ export function DropdownMenuTrigger({ children }: { children: React.ReactNode })
   const context = React.useContext(DropdownMenuContext);
   
   const handleOpen = () => {
-    context?.triggerRef.current?.measure((x, y, width, height, px, py) => {
-      context.setLayout({ x, y, w: width, h: height, px, py });
-      context.setVisible(true);
-    });
+    const viewRef = context?.triggerRef.current as any;
+    if (!viewRef) return;
+
+    if (Platform.OS === 'web') {
+      const rect = viewRef.getBoundingClientRect();
+      context?.setLayout({ 
+        x: 0, 
+        y: 0, 
+        w: rect.width, 
+        h: rect.height, 
+        px: rect.left, 
+        py: rect.top 
+      });
+      context?.setVisible(true);
+    } else {
+      // Fallback to standard measure for iOS/Android
+      viewRef.measure((x: number, y: number, width: number, height: number, px: number, py: number) => {
+        context?.setLayout({ x, y, w: width, h: height, px, py });
+        context?.setVisible(true);
+      });
+    }
   };
 
   return (
