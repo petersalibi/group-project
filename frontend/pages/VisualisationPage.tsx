@@ -4,7 +4,9 @@ import { useTheme } from '../components/theme-provider';
 import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
 import { Button } from '../components/button'; 
-import { Plus, X } from 'lucide-react-native'; 
+import { CurriculumMenu } from '../components/curriculum-menu';
+import { GDPage } from './GDPage';
+import { Plus, X, ChevronRight, ChevronDown } from 'lucide-react-native'; 
 
 // A distinct set of colors to map to the workspaces
 const WORKSPACE_COLORS = [
@@ -24,6 +26,8 @@ export function VisualisationPage() {
   const [viewColors, setViewColors] = useState<Record<string, string>>({
     'vis-1': WORKSPACE_COLORS[0]
   });
+  const [currentPage, setCurrentPage] = useState('visualisations');
+  const [isCurriculumOpen, setIsCurriculumOpen] = useState(false);
 
   // Helper to reliably get the same color for a specific workspace ID
   const getColorForId = (id: string) => {
@@ -116,65 +120,85 @@ export function VisualisationPage() {
       
       {/* --- GLOBAL BROWSER TAB BAR --- */}
       <View style={[styles.tabBar, { backgroundColor: theme.colors.muted, borderBottomColor: theme.colors.border }]}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={{ alignItems: 'flex-end', paddingLeft: 8 }}
+        <TouchableOpacity 
+          onPress={() => setIsCurriculumOpen(!isCurriculumOpen)}
+          style={[styles.globalCurriculumBtn, { borderRightColor: theme.colors.border }]}
         >
-          {views.map((id) => {
-            const color = getColorForId(id);
-            const isMinimized = minimizedIds.includes(id);
-            const isActive = !isMinimized && (maximizedId === null || maximizedId === id);
+          <ChevronDown size={18} color={theme.colors.foreground} />
+        </TouchableOpacity>
 
-            return (
-              <TouchableOpacity 
-                key={id}
-                activeOpacity={0.8}
-                onPress={() => isMinimized ? handleRestore(id) : toggleMaximize(id)}
-                style={[
-                  styles.tab, 
-                  { 
-                    backgroundColor: isActive ? theme.colors.background : 'transparent',
-                    borderTopColor: color,
-                    borderLeftColor: isActive ? theme.colors.border : 'transparent',
-                    borderRightColor: isActive ? theme.colors.border : 'transparent',
-                  }
-                ]}
-              >
-                <Text style={[styles.tabTitle, { opacity: isMinimized ? 0.4 : 1 }]}>
-                  WORKSPACE {id.split('-')[1]}
-                </Text>
-                
-                {/* Mac-style Buttons */}
-                <View style={[styles.windowControls, { opacity: isMinimized ? 0.6 : 1 }]}>
-                  {/* Green Dot (Maximize/Restore) */}
-                  <TouchableOpacity onPress={() => toggleMaximize(id)} style={[styles.macDot, { backgroundColor: '#22c55e' }]} />
-                  
-                  {/* Orange Dot (Minimize) */}
-                  <TouchableOpacity onPress={() => handleMinimize(id)} style={[styles.macDot, { backgroundColor: '#f59e0b' }]} />
-                  
-                  {/* Red Dot with Cross (Close) */}
-                  <TouchableOpacity onPress={() => handleRemoveView(id)} style={[styles.macDot, { backgroundColor: '#ef4444' }]}>
-                    <X size={8} color="white" strokeWidth={3} />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Plus Button next to the tabs */}
-          <TouchableOpacity 
-            onPress={handleAddView} 
-            disabled={views.length >= 4} 
-            style={styles.addTabBtn}
+        {currentPage === 'visualisations' && (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ alignItems: 'flex-end', paddingLeft: 8 }}
           >
-            <Plus size={18} color={views.length >= 4 ? theme.colors.mutedForeground : theme.colors.foreground} />
-          </TouchableOpacity>
-        </ScrollView>
+            {views.map((id) => {
+              const color = getColorForId(id);
+              const isMinimized = minimizedIds.includes(id);
+              const isActive = !isMinimized && (maximizedId === null || maximizedId === id);
+
+              return (
+                <TouchableOpacity 
+                  key={id}
+                  activeOpacity={0.8}
+                  onPress={() => isMinimized ? handleRestore(id) : toggleMaximize(id)}
+                  style={[
+                    styles.tab, 
+                    { 
+                      backgroundColor: isActive ? theme.colors.background : 'transparent',
+                      borderTopColor: color,
+                      borderLeftColor: isActive ? theme.colors.border : 'transparent',
+                      borderRightColor: isActive ? theme.colors.border : 'transparent',
+                    }
+                  ]}
+                >
+                  <Text style={[styles.tabTitle, { opacity: isMinimized ? 0.4 : 1 }]}>
+                    WORKSPACE {id.split('-')[1]}
+                  </Text>
+                  
+                  {/* Mac-style Buttons */}
+                  <View style={[styles.windowControls, { opacity: isMinimized ? 0.6 : 1 }]}>
+                    {/* Green Dot (Maximize/Restore) */}
+                    <TouchableOpacity onPress={() => toggleMaximize(id)} style={[styles.macDot, { backgroundColor: '#22c55e' }]} />
+                    
+                    {/* Orange Dot (Minimize) */}
+                    <TouchableOpacity onPress={() => handleMinimize(id)} style={[styles.macDot, { backgroundColor: '#f59e0b' }]} />
+                    
+                    {/* Red Dot with Cross (Close) */}
+                    <TouchableOpacity onPress={() => handleRemoveView(id)} style={[styles.macDot, { backgroundColor: '#ef4444' }]}>
+                      <X size={8} color="white" strokeWidth={3} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Plus Button next to the tabs */}
+            <TouchableOpacity 
+              onPress={handleAddView} 
+              disabled={views.length >= 4} 
+              style={styles.addTabBtn}
+            >
+              <Plus size={18} color={views.length >= 4 ? theme.colors.mutedForeground : theme.colors.foreground} />
+            </TouchableOpacity>
+          </ScrollView>
+        )}
       </View>
 
+      {isCurriculumOpen && (
+        <CurriculumMenu 
+          activePage={currentPage} 
+          onNavigate={(pageId) => {
+            setCurrentPage(pageId);
+            setIsCurriculumOpen(false); 
+          }}
+        />
+      )}
+
       {/* Fallback if user closes all tabs */}
-      {views.length === 0 && (
+      {currentPage === 'visualisations' && views.length === 0 && (
         <View style={styles.emptyState}>
           <Button onPress={handleAddView} variant="primary">
             <Plus size={16} color={theme.colors.background} style={{ marginRight: 8 }} />
@@ -183,28 +207,29 @@ export function VisualisationPage() {
         </View>
       )}
 
-      {/* The FLATTENED Grid Area */}
-      <View style={styles.gridContainer}>
-        {views.map((id) => {
-          const workspaceColor = getColorForId(id);
-
-          return (
-            <View 
-              key={id} 
-              style={[
-                styles.gridCell, 
-                getCellStyles(id),
-                // Applies the matching color to the outer border of the visualization
-                { borderTopColor: workspaceColor }
-              ]}
-            >
-              <View style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.colors.background }}>
-                <Visualisation id={id} />
+      {currentPage === 'gd' ? (
+        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+           <GDPage />
+        </View>
+      ) : currentPage === 'visualisations' ? (
+        <View style={styles.gridContainer}>
+          {views.map((id) => {
+            const workspaceColor = getColorForId(id);
+            return (
+              <View key={id} style={[styles.gridCell, getCellStyles(id), { borderTopColor: workspaceColor }]}>
+                <View style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.colors.background }}>
+                  <Visualisation id={id} />
+                </View>
               </View>
-            </View>
-          );
-        })}
-      </View>
+            );
+          })}
+        </View>
+      ) : (
+        // Fallback for Data, Geometry, Math, etc.
+        <View style={styles.emptyState}>
+           <Text style={{ color: theme.colors.mutedForeground }}>This module is currently locked or under construction.</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -224,6 +249,8 @@ const styles = StyleSheet.create({
   tabBar: {
     height: 42,
     borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end'
   },
   tab: {
     height: 34, 
@@ -273,5 +300,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     flexDirection: 'column',
-  }
+  },
+  globalCurriculumBtn: {
+    height: 34,
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
