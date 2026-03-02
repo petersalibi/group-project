@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../components/theme-provider'; 
 import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
@@ -27,7 +28,30 @@ export function VisualisationPage() {
     'vis-1': WORKSPACE_COLORS[0]
   });
   const [currentPage, setCurrentPage] = useState('visualisations');
+  const [isHoveringTop, setIsHoveringTop] = useState(false);
   const [isCurriculumOpen, setIsCurriculumOpen] = useState(false);
+
+  const isMaximized = maximizedId !== null;
+  const shouldHideTab = Platform.OS === 'web' && isMaximized && !isHoveringTop && !isCurriculumOpen;
+
+  const tabMarginTop = useSharedValue(0);
+
+  useEffect(() => {
+    tabMarginTop.value = withTiming(shouldHideTab ? -42 : 0, { duration: 300 });
+  }, [shouldHideTab]);
+
+  const animatedTabStyle = useAnimatedStyle(() => ({
+    marginTop: tabMarginTop.value,
+  }));
+
+  const handlePointerMove = (e: any) => {
+    if (Platform.OS !== 'web' || !isMaximized) return;
+    if (e.nativeEvent.y < 90) {
+      setIsHoveringTop(true);
+    } else {
+      setIsHoveringTop(false);
+    }
+  };
 
   // Helper to reliably get the same color for a specific workspace ID
   const getColorForId = (id: string) => {
@@ -116,10 +140,16 @@ export function VisualisationPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onPointerMove={handlePointerMove}>
       
       {/* --- GLOBAL BROWSER TAB BAR --- */}
-      <View style={[styles.tabBar, { backgroundColor: theme.colors.muted, borderBottomColor: theme.colors.border }]}>
+      <Animated.View 
+        style={[
+          styles.tabBar, 
+          { backgroundColor: theme.colors.muted, borderBottomColor: theme.colors.border },
+          animatedTabStyle,
+        ]}
+      >
         <TouchableOpacity 
           onPress={() => setIsCurriculumOpen(!isCurriculumOpen)}
           style={[styles.globalCurriculumBtn, { borderRightColor: theme.colors.border }]}
@@ -185,7 +215,7 @@ export function VisualisationPage() {
             </TouchableOpacity>
           </ScrollView>
         )}
-      </View>
+      </Animated.View>
 
       {isCurriculumOpen && (
         <CurriculumMenu 
@@ -239,6 +269,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    overflow: 'hidden',
   },
   emptyState: {
     ...StyleSheet.absoluteFillObject,

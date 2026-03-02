@@ -503,13 +503,25 @@ export function Visualisation({ id }: VisualisationProps) {
               </View>
             </View>
 
-            <Button
-              variant="secondary"
-              disabled={isLandscapeLoading || isPathLoading || isPathLoaded || (data === "CUSTOM" && !csvLoaded) || (method === "PCA Directions")}
-              onPress={() => {onGenerateLandscape()}}
-            >
-              {isLandscapeLoading ? "Loading..." : "Generate Landscape"}
-            </Button>
+            {isPathLoading || isPathLoaded ? (
+              <Tooltip tip="All paths must be cleared before generating a new landscape." position="bottom">
+                  <Button
+                    variant="secondary"
+                    disabled={true} // Always disabled if paths are active
+                    onPress={() => {onGenerateLandscape()}}
+                  >
+                    {isLandscapeLoading ? "Loading..." : "Generate Landscape"}
+                  </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="secondary"
+                disabled={isLandscapeLoading || (data === "CUSTOM" && !csvLoaded) || (method === "PCA Directions")}
+                onPress={() => {onGenerateLandscape()}}
+              >
+                {isLandscapeLoading ? "Loading..." : "Generate Landscape"}
+              </Button>
+            )}
 
             {/* PATH DETAILS CARD */}
             <View style={styles.controlGroup}>
