@@ -174,6 +174,8 @@ export function Button({
                     variant === 'link' && (hovered || focused)
                       ? 'underline'
                       : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
                 },
                 textStyle,
               ]}
