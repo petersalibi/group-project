@@ -5,18 +5,29 @@ import { useTheme } from '../components/theme-provider';
 
 const LayoutContext = createContext<any>(null);
 
-export function LayoutManager({ children, width, height }: { children: React.ReactNode, width: number, height: number }) {
+export function LayoutManager({ 
+  children, 
+  width, 
+  height,
+  initialRegistry = {
+    'CONFIG': 'LEFT', 
+    'ENGINE': 'TOP_MAIN', 
+    'STATS_GROUP': 'BOTTOM_MAIN'
+  }
+}: { 
+  children: React.ReactNode; 
+  width: number; 
+  height: number;
+  initialRegistry?: Record<string, string>;
+}) {
+
   const { theme } = useTheme();
 
   // REACTIVE DIMENSIONS
   const SCREEN_W = width;
   const SCREEN_H = height;
   
-  const [registry, setRegistry] = useState<Record<string, string>>({
-    'CONFIG': 'LEFT', 
-    'ENGINE': 'TOP_MAIN', 
-    'STATS_GROUP': 'BOTTOM_MAIN'
-  });
+  const [registry, setRegistry] = useState<Record<string, string>>(initialRegistry);
 
   const USABLE_H = SCREEN_H;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTheme } from '../components/theme-provider'; 
 import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
@@ -44,6 +44,17 @@ export function VisualisationPage() {
 
   const animatedTabStyle = useAnimatedStyle(() => ({
     marginTop: tabMarginTop.value,
+  }));
+
+  const visOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    visOpacity.value = withTiming(currentPage === 'visualisations' ? 1 : 0, { duration: 300 });
+  }, [currentPage]);
+
+  const visAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: visOpacity.value,
+    zIndex: currentPage === 'visualisations' ? 1 : -10,
   }));
 
   const handlePointerMove = (e: any) => {
@@ -246,47 +257,75 @@ export function VisualisationPage() {
         />
       )}
 
-      {/* Fallback if user closes all tabs */}
-      {currentPage === 'visualisations' && views.length === 0 && (
-        <View style={styles.emptyState}>
-          <Button onPress={handleAddView} variant="primary">
-            <Plus size={16} color={theme.colors.background} style={{ marginRight: 8 }} />
-            New Workspace
-          </Button>
-        </View>
-      )}
+      <View style={{ flex: 1, position: 'relative' }}>
 
-      {currentPage === 'learning' ? (
-        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-           <LearningPage />
-        </View>
-      ) : currentPage === 'gd' ? (
-        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-           <GDPage />
-        </View>
-      ) : currentPage === 'landscape' ? (
-        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-           <LandscapeGenerationPage />
-        </View>
-      ) : currentPage === 'visualisations' ? (
-        <View style={styles.gridContainer}>
-          {views.map((id) => {
-            const workspaceColor = getColorForId(id);
-            return (
-              <View key={id} style={[styles.gridCell, getCellStyles(id), { borderTopColor: workspaceColor }]}>
-                <View style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.colors.background }}>
-                  <Visualisation id={id} />
+        {/* 1. VISUALISATIONS */}
+        <Animated.View 
+          style={[
+            StyleSheet.absoluteFill, 
+            visAnimatedStyle
+          ]}
+          pointerEvents={currentPage === 'visualisations' ? 'auto' : 'none'}
+        >
+          <View style={styles.gridContainer}>
+            {views.map((id) => {
+              const workspaceColor = getColorForId(id);
+              return (
+                <View key={id} style={[styles.gridCell, getCellStyles(id), { borderTopColor: workspaceColor }]}>
+                  <View style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.colors.background }}>
+                    <Visualisation id={id} />
+                  </View>
                 </View>
-              </View>
-            );
-          })}
-        </View>
-      ) : (
-        // Fallback for Data, Geometry, Math, etc.
-        <View style={styles.emptyState}>
-           <Text style={{ color: theme.colors.mutedForeground }}>This module is currently locked or under construction.</Text>
-        </View>
-      )}
+              );
+            })}
+          </View>
+        </Animated.View>
+
+        {/* 2. LEARNING PAGE */}
+        {currentPage === 'learning' && (
+          <Animated.View 
+            entering={FadeIn.duration(300)} 
+            exiting={FadeOut.duration(300)}
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+          >
+             <LearningPage />
+          </Animated.View>
+        )}
+
+        {/* 3. GRADIENT DESCENT PAGE */}
+        {currentPage === 'gd' && (
+          <Animated.View 
+            entering={FadeIn.duration(300)} 
+            exiting={FadeOut.duration(300)}
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+          >
+             <GDPage />
+          </Animated.View>
+        )}
+
+        {/* 4. LANDSCAPE GENERATION PAGE */}
+        {currentPage === 'landscape' && (
+          <Animated.View 
+            entering={FadeIn.duration(300)} 
+            exiting={FadeOut.duration(300)}
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+          >
+             <LandscapeGenerationPage />
+          </Animated.View>
+        )}
+
+        {/* 5. LOCKED/FALLBACK PAGE */}
+        {currentPage !== 'visualisations' && currentPage !== 'learning' && currentPage !== 'gd' && currentPage !== 'landscape' && (
+          <Animated.View 
+            entering={FadeIn.duration(300)} 
+            exiting={FadeOut.duration(300)}
+            style={[StyleSheet.absoluteFill, styles.emptyState, { backgroundColor: theme.colors.background }]}
+          >
+             <Text style={{ color: theme.colors.mutedForeground }}>This module is currently locked or under construction.</Text>
+          </Animated.View>
+        )}
+        
+      </View>
     </View>
   );
 }
@@ -305,10 +344,11 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   tabBar: {
-    height: 42,
+    height: 38,
     borderBottomWidth: 1,
     flexDirection: 'row',
-    alignItems: 'flex-end'
+    alignItems: 'flex-end',
+    marginBottom: 5
   },
   tab: {
     height: 34, 
