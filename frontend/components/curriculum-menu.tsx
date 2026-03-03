@@ -10,7 +10,7 @@ export interface CurriculumMenuProps {
   onNavigate?: (pageId: string) => void; 
 }
 
-const COURSE_ORDER = ['data', 'geometry', 'math', 'landscapes', 'gd', 'visualisations'];
+const COURSE_ORDER = ['data', 'geometry', 'math', 'landscape', 'gd', 'visualisations'];
 
 export function CurriculumMenu({ activePage = 'visualisations', onNavigate }: CurriculumMenuProps) {
   const { theme } = useTheme();
@@ -66,8 +66,8 @@ export function CurriculumMenu({ activePage = 'visualisations', onNavigate }: Cu
 
           {/* Row 2: 2 Nodes */}
           <View style={styles.row}>
-            <TouchableOpacity style={styles.col2} onPress={() => onNavigate?.('landscapes')}>
-              <NeuralNode status={getStatus('landscapes')} label="Landscapes" />
+            <TouchableOpacity style={styles.col2} onPress={() => onNavigate?.('landscape')}>
+              <NeuralNode status={getStatus('landscape')} label="Landscapes" />
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.col2} onPress={() => onNavigate?.('gd')}>

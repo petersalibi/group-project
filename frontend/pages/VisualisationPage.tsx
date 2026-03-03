@@ -6,6 +6,7 @@ import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
 import { Button } from '../components/button'; 
 import { CurriculumMenu } from '../components/curriculum-menu';
+import { LandscapeGenerationPage } from './LandscapeGenerationPage';
 import { GDPage } from './GDPage';
 import { Plus, X, ChevronRight, ChevronDown } from 'lucide-react-native'; 
 
@@ -240,6 +241,10 @@ export function VisualisationPage() {
       {currentPage === 'gd' ? (
         <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
            <GDPage />
+        </View>
+      ) : currentPage === 'landscape' ? (
+        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+           <LandscapeGenerationPage />
         </View>
       ) : currentPage === 'visualisations' ? (
         <View style={styles.gridContainer}>

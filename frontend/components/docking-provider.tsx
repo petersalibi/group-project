@@ -15,7 +15,7 @@ export function LayoutManager({ children, width, height }: { children: React.Rea
   const [registry, setRegistry] = useState<Record<string, string>>({
     'CONFIG': 'LEFT', 
     'ENGINE': 'TOP_MAIN', 
-    'STATS_GROUP': 'RIGHT'
+    'STATS_GROUP': 'BOTTOM_MAIN'
   });
 
   const USABLE_H = SCREEN_H;
