@@ -56,11 +56,7 @@ const createDefaultPathConfig = (id: number): PathConfigInterface => {
   };
 };
 
-interface VisualisationProps {
-  id: string; // Used to isolate state
-}
-
-export function Visualisation({ id }: VisualisationProps) {
+export function LearningPage() {
   const { theme, isDark } = useTheme();
   const { setIsLoading } = useLoading();
   const brandAccent = isDark ? '#C6F382' : '#353F91';

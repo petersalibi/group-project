@@ -8,7 +8,8 @@ import { Button } from '../components/button';
 import { CurriculumMenu } from '../components/curriculum-menu';
 import { LandscapeGenerationPage } from './LandscapeGenerationPage';
 import { GDPage } from './GDPage';
-import { Plus, X, ChevronRight, ChevronDown } from 'lucide-react-native'; 
+import { LearningPage } from './LearningPage';
+import { Plus, X, ChevronRight, ChevronDown, GraduationCap } from 'lucide-react-native'; 
 
 // A distinct set of colors to map to the workspaces
 const WORKSPACE_COLORS = [
@@ -216,6 +217,23 @@ export function VisualisationPage() {
             </TouchableOpacity>
           </ScrollView>
         )}
+
+        <Button 
+          variant='ghost'
+          onPress={() => setCurrentPage(currentPage === 'learning' ? 'visualisations' : 'learning')}
+          style={[
+            styles.learningModeBtn, 
+            { 
+              marginLeft: currentPage !== 'visualisations' ? 'auto' : 0 
+            }
+          ]}
+        >
+          <GraduationCap 
+            size={18} 
+            color={currentPage === 'learning' ? theme.colors.primary : theme.colors.foreground} 
+          />
+        </Button>
+
       </Animated.View>
 
       {isCurriculumOpen && (
@@ -238,7 +256,11 @@ export function VisualisationPage() {
         </View>
       )}
 
-      {currentPage === 'gd' ? (
+      {currentPage === 'learning' ? (
+        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+           <LearningPage />
+        </View>
+      ) : currentPage === 'gd' ? (
         <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
            <GDPage />
         </View>
@@ -340,6 +362,12 @@ const styles = StyleSheet.create({
   globalCurriculumBtn: {
     height: 34,
     width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  learningModeBtn: {
+    height: 34,
+    width: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
