@@ -132,6 +132,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         lossChange,
         fidelity,
         parametersArrayRef,
+        fidelityArrayRef,
         handleLoadAllPathsButtonClick,
         loadRegenPath,
         handleRemovePath,
@@ -398,18 +399,20 @@ export function useVisualisation(props: UseVisualisationProps) {
         }
 
         const pathParameters = parametersArrayRef.current[pathId];
+        const pathFidelity = fidelityArrayRef.current[pathId];
 
         // Save the original parameters before wiping the arrays
         const savedParams = parametersArrayRef.current[pathId];
+        const savedFidelity = fidelityArrayRef.current[pathId];
 
         await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
 
         if (regenPathRef.current) {
-            loadRegenPath(savedParams, regenPathRef.current);
+            loadRegenPath(savedParams, savedFidelity, regenPathRef.current);
             return true;
         }
 
-    }, [loadAndBuildLandscape, parametersArrayRef, loadRegenPath]);
+    }, [loadAndBuildLandscape, parametersArrayRef, fidelityArrayRef, loadRegenPath]);
 
     return {
         isLandscapeLoading,
