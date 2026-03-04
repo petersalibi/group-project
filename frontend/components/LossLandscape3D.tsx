@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 /**
  * LossLandscape3D
@@ -93,6 +93,7 @@ export default function LossLandscape3D() {
   }
 
   // Map w1/w2 to grid indices and back
+  /*
   function wToGrid(w1v, w2v, nx, ny) {
     const tx = (w1v - W1.min) / (W1.max - W1.min);
     const ty = (w2v - W2.min) / (W2.max - W2.min);
@@ -100,16 +101,19 @@ export default function LossLandscape3D() {
     const j = clamp(Math.round(ty * (ny - 1)), 0, ny - 1);
     return { i, j };
   }
+  */
 
   // Simple 3D projection (rotate then perspective-ish scale)
   function project3D(x, y, z, cx, cy, scale, rotX, rotY) {
     // rotate around Y
-    const cosy = Math.cos(rotY), siny = Math.sin(rotY);
+    const cosy = Math.cos(rotY),
+      siny = Math.sin(rotY);
     let x1 = x * cosy + z * siny;
     let z1 = -x * siny + z * cosy;
 
     // rotate around X
-    const cosx = Math.cos(rotX), sinx = Math.sin(rotX);
+    const cosx = Math.cos(rotX),
+      sinx = Math.sin(rotX);
     let y2 = y * cosx - z1 * sinx;
     let z2 = y * sinx + z1 * cosx;
 
@@ -124,7 +128,7 @@ export default function LossLandscape3D() {
   function draw() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
     const cssW = canvas.clientWidth;
     const cssH = canvas.clientHeight;
@@ -134,11 +138,12 @@ export default function LossLandscape3D() {
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const W = cssW, H = cssH;
+    const W = cssW,
+      H = cssH;
     ctx.clearRect(0, 0, W, H);
 
     // background
-    ctx.fillStyle = "#06080b";
+    ctx.fillStyle = '#06080b';
     ctx.fillRect(0, 0, W, H);
 
     const { nx, ny, z, zMin, zMax } = gridRef.current;
@@ -146,9 +151,9 @@ export default function LossLandscape3D() {
 
     // World coordinates: x=w1, y=-w2 (so up is +w2), z = loss height
     // Normalize to a nice box
-    const worldXSize = (W1.max - W1.min);
-    const worldYSize = (W2.max - W2.min);
-    const worldZSize = (zMax - zMin) || 1;
+    const worldXSize = W1.max - W1.min;
+    const worldYSize = W2.max - W2.min;
+    const worldZSize = zMax - zMin || 1;
 
     const cx = W * 0.5;
     const cy = H * 0.52;
@@ -173,7 +178,8 @@ export default function LossLandscape3D() {
     cells.sort((a, b) => b.key - a.key);
 
     for (const c of cells) {
-      const i = c.i, j = c.j;
+      const i = c.i,
+        j = c.j;
 
       const idx00 = j * nx + i;
       const idx10 = j * nx + (i + 1);
@@ -185,7 +191,10 @@ export default function LossLandscape3D() {
       const w2a = lerp(W2.min, W2.max, j / (ny - 1));
       const w2b = lerp(W2.min, W2.max, (j + 1) / (ny - 1));
 
-      const z00 = z[idx00], z10 = z[idx10], z01 = z[idx01], z11 = z[idx11];
+      const z00 = z[idx00],
+        z10 = z[idx10],
+        z01 = z[idx01],
+        z11 = z[idx11];
 
       // normalize world coords to roughly -1..1
       function toWorld(w1v, w2v, zv) {
@@ -219,7 +228,7 @@ export default function LossLandscape3D() {
       ctx.fill();
 
       // faint grid lines
-      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -236,7 +245,7 @@ export default function LossLandscape3D() {
     const path = pathRef.current;
 
     // Path polyline
-    ctx.strokeStyle = "rgba(125,211,252,0.95)";
+    ctx.strokeStyle = 'rgba(125,211,252,0.95)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (let k = 0; k < path.length; k++) {
@@ -250,42 +259,49 @@ export default function LossLandscape3D() {
     // Current point
     const curW = worldFromParams(w1, w2);
     const curP = project3D(curW.x, curW.y, curW.z, cx, cy, scale, rotX, rotY);
-    ctx.fillStyle = "rgba(125,211,252,1)";
+    ctx.fillStyle = 'rgba(125,211,252,1)';
     ctx.beginPath();
     ctx.arc(curP.X, curP.Y, 6.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
     // Legend: low/high loss
-    const legendX = 14, legendY = 14, legendW = 140, legendH = 12;
+    const legendX = 14,
+      legendY = 14,
+      legendW = 140,
+      legendH = 12;
     const grad = ctx.createLinearGradient(legendX, 0, legendX + legendW, 0);
     // low loss = darker; high loss = brighter (matching shade())
-    grad.addColorStop(0, "rgb(130,165,240)");
-    grad.addColorStop(1, "rgb(20,26,38)");
+    grad.addColorStop(0, 'rgb(130,165,240)');
+    grad.addColorStop(1, 'rgb(20,26,38)');
     // The gradient above is just a hint; the actual surface uses shade(t).
     // Keep text explicit so it's unambiguous.
-    ctx.fillStyle = "rgba(18,22,28,0.7)";
+    ctx.fillStyle = 'rgba(18,22,28,0.7)';
     ctx.fillRect(10, 10, 240, 56);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.strokeRect(10, 10, 240, 56);
 
-    ctx.font = "12px system-ui";
-    ctx.fillStyle = "rgba(233,238,247,0.95)";
-    ctx.fillText("Loss height: low → high", 14, 28);
+    ctx.font = '12px system-ui';
+    ctx.fillStyle = 'rgba(233,238,247,0.95)';
+    ctx.fillText('Loss height: low → high', 14, 28);
 
     // Draw a simple bar using shade() endpoints for consistency
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
     ctx.fillRect(legendX, legendY + 26, legendW, legendH);
     for (let x = 0; x < legendW; x++) {
       const t = x / (legendW - 1);
       ctx.fillStyle = shade(t);
       ctx.fillRect(legendX + x, legendY + 26, 1, legendH);
     }
-    ctx.fillStyle = "rgba(168,179,199,0.95)";
+    ctx.fillStyle = 'rgba(168,179,199,0.95)';
     ctx.fillText(`min ${zMin.toFixed(3)}`, legendX, legendY + 52);
-    ctx.fillText(`max ${zMax.toFixed(3)}`, legendX + legendW - 62, legendY + 52);
+    ctx.fillText(
+      `max ${zMax.toFixed(3)}`,
+      legendX + legendW - 62,
+      legendY + 52,
+    );
   }
 
   // Build surface grid once (and when needed)
@@ -293,7 +309,8 @@ export default function LossLandscape3D() {
     const g = gridRef.current;
     const { nx, ny } = g;
     const z = new Float32Array(nx * ny);
-    let mn = Infinity, mx = -Infinity;
+    let mn = Infinity,
+      mx = -Infinity;
 
     for (let j = 0; j < ny; j++) {
       const ww2 = lerp(W2.min, W2.max, j / (ny - 1));
@@ -309,7 +326,13 @@ export default function LossLandscape3D() {
     g.zMin = mn;
     g.zMax = mx;
 
-    setStats((s) => ({ ...s, zMin: mn, zMax: mx, L: loss(w1, w2), steps: pathRef.current.length - 1 }));
+    setStats((s) => ({
+      ...s,
+      zMin: mn,
+      zMax: mx,
+      L: loss(w1, w2),
+      steps: pathRef.current.length - 1,
+    }));
   }
 
   // Step GD
@@ -322,11 +345,16 @@ export default function LossLandscape3D() {
     setW2(nw2);
     pathRef.current = [...pathRef.current, { w1: nw1, w2: nw2 }].slice(-500);
 
-    setStats((s) => ({ ...s, L: loss(nw1, nw2), steps: pathRef.current.length - 1 }));
+    setStats((s) => ({
+      ...s,
+      L: loss(nw1, nw2),
+      steps: pathRef.current.length - 1,
+    }));
   }
 
   function reset() {
-    const nw1 = -2.2, nw2 = 1.4;
+    const nw1 = -2.2,
+      nw2 = 1.4;
     setW1(nw1);
     setW2(nw2);
     pathRef.current = [{ w1: nw1, w2: nw2 }];
@@ -339,13 +367,14 @@ export default function LossLandscape3D() {
     if (!canvas) return;
 
     let dragging = false;
-    let mode = "rotate"; // rotate by default
-    let lastX = 0, lastY = 0;
+    let mode = 'rotate'; // rotate by default
+    let lastX = 0,
+      lastY = 0;
 
     function getXY(e) {
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left);
-      const y = (e.clientY - rect.top);
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
       return { x, y, rect };
     }
 
@@ -355,7 +384,7 @@ export default function LossLandscape3D() {
       dragging = true;
       lastX = x;
       lastY = y;
-      mode = e.shiftKey ? "rotate" : "maybeClick";
+      mode = e.shiftKey ? 'rotate' : 'maybeClick';
       canvas.setPointerCapture(e.pointerId);
     }
 
@@ -367,12 +396,12 @@ export default function LossLandscape3D() {
       lastX = x;
       lastY = y;
 
-      if (mode === "maybeClick") {
+      if (mode === 'maybeClick') {
         // if they move more than a tiny threshold, interpret as rotate
-        if (Math.abs(dx) + Math.abs(dy) > 6) mode = "rotate";
+        if (Math.abs(dx) + Math.abs(dy) > 6) mode = 'rotate';
       }
 
-      if (mode === "rotate") {
+      if (mode === 'rotate') {
         viewRef.current.rotY += dx * 0.01;
         viewRef.current.rotX += dy * 0.01;
         viewRef.current.rotX = clamp(viewRef.current.rotX, 0.15, 1.4);
@@ -386,7 +415,7 @@ export default function LossLandscape3D() {
 
       // If it was a click (not rotate), map click to w1/w2 (simple: choose nearest grid point by screen-space search)
       // This is intentionally simple but effective for learning: click a visible point on surface.
-      if (mode === "maybeClick") {
+      if (mode === 'maybeClick') {
         const { x, y, rect } = getXY(e);
         // Brute-force: find nearest projected grid vertex to click
         const ctxW = rect.width;
@@ -405,9 +434,9 @@ export default function LossLandscape3D() {
           for (let i = 0; i < nx; i++) {
             const ww1 = lerp(W1.min, W1.max, i / (nx - 1));
             const zv = z[j * nx + i];
-            const worldXSize = (W1.max - W1.min);
-            const worldYSize = (W2.max - W2.min);
-            const worldZSize = (zMax - zMin) || 1;
+            const worldXSize = W1.max - W1.min;
+            const worldYSize = W2.max - W2.min;
+            const worldZSize = zMax - zMin || 1;
 
             const Xw = ((ww1 - (W1.min + W1.max) / 2) / worldXSize) * 2;
             const Yw = -(((ww2 - (W2.min + W2.max) / 2) / worldYSize) * 2);
@@ -432,16 +461,16 @@ export default function LossLandscape3D() {
       draw();
     }
 
-    canvas.addEventListener("pointerdown", onDown);
-    canvas.addEventListener("pointermove", onMove);
-    canvas.addEventListener("pointerup", onUp);
-    canvas.addEventListener("pointercancel", onUp);
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
 
     return () => {
-      canvas.removeEventListener("pointerdown", onDown);
-      canvas.removeEventListener("pointermove", onMove);
-      canvas.removeEventListener("pointerup", onUp);
-      canvas.removeEventListener("pointercancel", onUp);
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w1, w2]);
@@ -454,28 +483,58 @@ export default function LossLandscape3D() {
 
   useEffect(() => {
     // Update stats and redraw when params change
-    setStats((s) => ({ ...s, L: loss(w1, w2), steps: pathRef.current.length - 1 }));
+    setStats((s) => ({
+      ...s,
+      L: loss(w1, w2),
+      steps: pathRef.current.length - 1,
+    }));
     draw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w1, w2]);
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16, color: "#e9eef7", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-        <div style={{
-          background: "#12161c",
-          border: "1px solid #1e2631",
-          borderRadius: 16,
-          padding: 14,
-          boxShadow: "0 10px 30px rgba(0,0,0,.35)"
-        }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: 18 }}>3D loss landscape (click to move, Shift+drag to rotate)</h2>
-            <div style={{ fontVariantNumeric: "tabular-nums", color: "#a8b3c7", fontSize: 13 }}>
-              w1 <b style={{ color: "#e9eef7" }}>{w1.toFixed(3)}</b> · w2{" "}
-              <b style={{ color: "#e9eef7" }}>{w2.toFixed(3)}</b> · loss{" "}
-              <b style={{ color: "#e9eef7" }}>{stats.L.toFixed(3)}</b> · steps{" "}
-              <b style={{ color: "#e9eef7" }}>{stats.steps}</b>
+    <div
+      style={{
+        maxWidth: 1100,
+        margin: '0 auto',
+        padding: 16,
+        color: '#e9eef7',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+        <div
+          style={{
+            background: '#12161c',
+            border: '1px solid #1e2631',
+            borderRadius: 16,
+            padding: 14,
+            boxShadow: '0 10px 30px rgba(0,0,0,.35)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: 18 }}>
+              3D loss landscape (click to move, Shift+drag to rotate)
+            </h2>
+            <div
+              style={{
+                fontVariantNumeric: 'tabular-nums',
+                color: '#a8b3c7',
+                fontSize: 13,
+              }}
+            >
+              w1 <b style={{ color: '#e9eef7' }}>{w1.toFixed(3)}</b> · w2{' '}
+              <b style={{ color: '#e9eef7' }}>{w2.toFixed(3)}</b> · loss{' '}
+              <b style={{ color: '#e9eef7' }}>{stats.L.toFixed(3)}</b> · steps{' '}
+              <b style={{ color: '#e9eef7' }}>{stats.steps}</b>
             </div>
           </div>
 
@@ -483,18 +542,27 @@ export default function LossLandscape3D() {
             <canvas
               ref={canvasRef}
               style={{
-                width: "100%",
+                width: '100%',
                 height: 520,
                 borderRadius: 12,
-                border: "1px solid #1e2631",
-                background: "#06080b",
-                touchAction: "none",
+                border: '1px solid #1e2631',
+                background: '#06080b',
+                touchAction: 'none',
               }}
             />
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-            <button onClick={stepGD} style={btnPrimary}>Step gradient descent</button>
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              flexWrap: 'wrap',
+              marginTop: 10,
+            }}
+          >
+            <button onClick={stepGD} style={btnPrimary}>
+              Step gradient descent
+            </button>
             <button
               onClick={() => {
                 // Run a short burst so it feels animated without needing a learning-rate UI
@@ -504,13 +572,24 @@ export default function LossLandscape3D() {
             >
               Run 15 steps
             </button>
-            <button onClick={reset} style={btn}>Reset</button>
+            <button onClick={reset} style={btn}>
+              Reset
+            </button>
           </div>
 
-          <div style={{ marginTop: 10, color: "#a8b3c7", fontSize: 13, lineHeight: 1.35 }}>
-            The “height” of the surface is the loss: valleys = lower loss, peaks = higher loss.
+          <div
+            style={{
+              marginTop: 10,
+              color: '#a8b3c7',
+              fontSize: 13,
+              lineHeight: 1.35,
+            }}
+          >
+            The “height” of the surface is the loss: valleys = lower loss, peaks
+            = higher loss.
             <br />
-            Model: <b>ŷ = tanh(w1·x) · w2</b> fitted to a target curve (hidden). Your dot is the current (w1, w2).
+            Model: <b>ŷ = tanh(w1·x) · w2</b> fitted to a target curve (hidden).
+            Your dot is the current (w1, w2).
           </div>
         </div>
       </div>
@@ -519,16 +598,16 @@ export default function LossLandscape3D() {
 }
 
 const btn = {
-  background: "#1a2432",
-  color: "#e9eef7",
-  border: "1px solid #2a3a52",
+  background: '#1a2432',
+  color: '#e9eef7',
+  border: '1px solid #2a3a52',
   borderRadius: 12,
-  padding: "10px 12px",
-  cursor: "pointer",
+  padding: '10px 12px',
+  cursor: 'pointer',
 };
 
 const btnPrimary = {
   ...btn,
-  background: "#153146",
-  border: "1px solid #2a587e",
+  background: '#153146',
+  border: '1px solid #2a587e',
 };

@@ -171,7 +171,11 @@ export function Visualisation({ id }: VisualisationProps) {
     data,
     loss,
     pathConfigs,
-    onPathConfigChange: (id, field, value) => {
+    onPathConfigChange: (
+      id: number,
+      field: keyof PathConfigInterface,
+      value: number | string | boolean | null,
+    ) => {
       // Callback for the hook to update the state
       setPathConfigs((currentConfigs) =>
         currentConfigs.map((config) =>
@@ -219,7 +223,7 @@ export function Visualisation({ id }: VisualisationProps) {
   const handleConfigChange = (
     id: number,
     field: keyof PathConfigInterface,
-    value: any,
+    value: number | [number, number] | string | boolean | null,
   ) => {
     setPathConfigs((currentConfigs) =>
       currentConfigs.map((config) =>
@@ -582,7 +586,7 @@ export function Visualisation({ id }: VisualisationProps) {
                       ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {method == 'TWOPARAMETERS' && inputs && inputs.length > 1 && (
+                {method === 'TWOPARAMETERS' && inputs && inputs.length > 1 && (
                   <View>
                     <Text style={styles.subLabel}>Direction 1</Text>
                     <DropdownMenu>
@@ -687,7 +691,7 @@ export function Visualisation({ id }: VisualisationProps) {
               {isPathLoading || isPathLoaded ? (
                 <Tooltip
                   tip='All paths must be cleared before generating a new landscape.'
-                  position='bottom'
+                  position='top'
                 >
                   <Button
                     variant='secondary'

@@ -18,7 +18,7 @@ export type ButtonVariant =
   | 'secondary'
   | 'ghost'
   | 'link';
-export type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
+export type ButtonSize = 'default' | 'sm' | 'ssm' | 'lg' | 'icon';
 
 export interface ButtonProps {
   variant?: ButtonVariant;

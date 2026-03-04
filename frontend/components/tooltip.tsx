@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTheme } from './theme-provider';
 import { Text } from './text';
@@ -14,7 +14,9 @@ export function Tooltip({ children, tip, position = 'top' }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const { theme, isDark } = useTheme();
   const brandAccent = isDark ? theme.colors.accent : theme.colors.secondary;
-  const brandForeground = isDark ? theme.colors.accentForeground : theme.colors.secondaryForeground;
+  const brandForeground = isDark
+    ? theme.colors.accentForeground
+    : theme.colors.secondaryForeground;
 
   const showTooltip = () => setIsVisible(true);
   const hideTooltip = () => setIsVisible(false);
@@ -31,20 +33,21 @@ export function Tooltip({ children, tip, position = 'top' }: TooltipProps) {
     default: {
       onTouchStart: showTooltip,
       onTouchEnd: hideTooltip,
-    }
+    },
   });
 
-  const positionStyles = position === 'top' 
-    ? { bottom: '100%' as const, marginBottom: 8 } 
-    : { top: '100%' as const, marginTop: 16 };
-    
+  const positionStyles =
+    position === 'top'
+      ? { bottom: '100%' as const, marginBottom: 8 }
+      : { top: '100%' as const, marginTop: 8 };
+
   return (
     <View style={styles.container} {...hoverProps}>
       {children}
 
       {isVisible && (
         <Animated.View
-          pointerEvents="none"
+          pointerEvents='none'
           entering={FadeIn.duration(150)}
           exiting={FadeOut.duration(150)}
           style={[
@@ -53,7 +56,7 @@ export function Tooltip({ children, tip, position = 'top' }: TooltipProps) {
             {
               backgroundColor: tooltipBg,
               borderColor: borderColor,
-            }
+            },
           ]}
         >
           <Text style={[styles.tooltipText, { color: tooltipTextColor }]}>
@@ -67,14 +70,12 @@ export function Tooltip({ children, tip, position = 'top' }: TooltipProps) {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative', 
-    zIndex: 99, 
+    position: 'relative',
+    zIndex: 99,
   },
   tooltipBox: {
     position: 'absolute',
-    bottom: '100%', 
-    alignSelf: 'center', 
-    marginBottom: 8, 
+    alignSelf: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -83,9 +84,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5, 
-    zIndex: 9999, 
-    minWidth: 80, 
+    elevation: 5,
+    zIndex: 9999,
+    minWidth: 80,
     alignItems: 'center',
   },
   tooltipText: {
@@ -93,5 +94,5 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: 'center',
     letterSpacing: 0.5,
-  }
+  },
 });

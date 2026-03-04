@@ -1,44 +1,43 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import api from '../src/api';
 import {
-  initScene,
-  createLandscapeMesh,
   project2DPathTo3D,
   createOrUpdatePathLine,
   createBall,
   createGhostObjects,
-  handleResize,
-  cleanupScene,
 } from '../utils/threejs-utils';
-import { PathConfigInterface, PathConfig } from '../components/path-config';
+import { PathConfigInterface } from '../components/path-config';
 import { PATH_COLORS } from '../constants/constants';
 
 export interface UsePathVisualisationsProps {
-    activation: string;
-    depth: number;
-    width: number;
-    data: string;
-    csv: string;
-    loss: string;
-    setLog;
-    minMaxLoss: number[];
-    zScale: number;
-    pathConfigs: PathConfigInterface[];
-    onPathConfigChange: (id: number, field: keyof PathConfigInterface, value: any) => void;
-    disposeObject: (obj: THREE.Object3D | null) => void;
-    sceneRef,
-    cameraRef,
-    rendererRef,
-    controlsRef,
-    meshRef,
-    raycasterRef,
-    clockRef,
-    rafRef,
-    dictRef,
+  activation: string;
+  depth: number;
+  width: number;
+  data: string;
+  csv: string;
+  loss: string;
+  setLog: (log: string[]) => void;
+  minMaxLoss: number[];
+  zScale: number;
+  pathConfigs: PathConfigInterface[];
+  onPathConfigChange: (
+    id: number,
+    field: keyof PathConfigInterface,
+    value: any,
+  ) => void;
+  disposeObject: (obj: THREE.Object3D | null) => void;
+  sceneRef: React.RefObject<THREE.Scene>;
+  cameraRef: React.RefObject<THREE.PerspectiveCamera>;
+  rendererRef: React.RefObject<THREE.WebGLRenderer>;
+  controlsRef: React.RefObject<any>;
+  meshRef: React.RefObject<THREE.Mesh>;
+  raycasterRef: React.RefObject<THREE.Raycaster>;
+  clockRef: React.RefObject<THREE.Clock>;
+  rafRef: React.RefObject<number>;
+  dictRef: React.RefObject<{ [id: number]: THREE.Object3D }>;
 }
 
 // --- Constants ---
@@ -55,273 +54,278 @@ const VIRTUAL_GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // Helper function to get normalised device coordinates from an event
 const getNormalisedCoordinates = (event: any, rect: DOMRect) => {
-    let clientX, clientY;
+  let clientX, clientY;
 
-    // Check for Touch Events
-    if (event.touches && event.touches.length > 0) {
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
-    } else if (event.changedTouches && event.changedTouches.length > 0) {
-        // For touchend events
-        clientX = event.changedTouches[0].clientX;
-        clientY = event.changedTouches[0].clientY;
-    } else {
-        // Mouse Events
-        clientX = event.clientX;
-        clientY = event.clientY;
-    }
+  // Check for Touch Events
+  if (event.touches && event.touches.length > 0) {
+    clientX = event.touches[0].clientX;
+    clientY = event.touches[0].clientY;
+  } else if (event.changedTouches && event.changedTouches.length > 0) {
+    // For touchend events
+    clientX = event.changedTouches[0].clientX;
+    clientY = event.changedTouches[0].clientY;
+  } else {
+    // Mouse Events
+    clientX = event.clientX;
+    clientY = event.clientY;
+  }
 
-    return {
-        x: ((clientX - rect.left) / rect.width) * 2 - 1,
-        y: -((clientY - rect.top) / rect.height) * 2 + 1,
-    };
+  return {
+    x: ((clientX - rect.left) / rect.width) * 2 - 1,
+    y: -((clientY - rect.top) / rect.height) * 2 + 1,
+  };
 };
 
-export function usePathVisualisations(props: UsePathVisualisationsProps){
-    const {
-        activation,
-        depth,
-        width,
-        data,
-        csv,
-        loss,
-        minMaxLoss,
-        setLog,
-        zScale,
-        pathConfigs,
-        onPathConfigChange,
-        disposeObject,
-        sceneRef,
-        cameraRef,
-        rendererRef,
-        controlsRef,
-        meshRef,
-        raycasterRef,
-        clockRef,
-        rafRef,
-        dictRef,
-    } = props;
+export function usePathVisualisations(props: UsePathVisualisationsProps) {
+  const {
+    activation,
+    depth,
+    width,
+    data,
+    csv,
+    loss,
+    minMaxLoss,
+    setLog,
+    zScale,
+    pathConfigs,
+    onPathConfigChange,
+    disposeObject,
+    sceneRef,
+    cameraRef,
+    rendererRef,
+    controlsRef,
+    meshRef,
+    raycasterRef,
+    clockRef,
+    rafRef,
+    dictRef,
+  } = props;
 
-    const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
-    const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
-    const [isPlaying, setIsPlaying] = useState<boolean>(false);
-    const [progress, setProgress] = useState(0);
-    const [currentLoss, setCurrentLoss] = useState(null);
-    const [lossChange, setLossChange] = useState(0);
-    const [fidelity, setFidelity] = useState(null);
-    const [currentFrame, setCurrentFrame] = useState(0);
-    const [totalFrames, setTotalFrames] = useState(100);
-    const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
-    const [placingPathId, setPlacingPathId] = useState<number | null>(null);
-    const [currentParams, setCurrentParams] = useState<number[] | null>(null);
-    const [viewId, setViewId] = useState<number | null>(null);
+  const [isPathLoading, setIsPathLoading] = useState<boolean>(false);
+  const [isPathLoaded, setIsPathLoaded] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [progress, setProgress] = useState(0);
+  const [currentLoss, setCurrentLoss] = useState<number | null>(null);
+  const [lossChange, setLossChange] = useState(0);
+  const [fidelity, setFidelity] = useState<number | null>(null);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const [totalFrames, setTotalFrames] = useState(100);
+  const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
+  const [placingPathId, setPlacingPathId] = useState<number | null>(null);
+  const [currentParams, setCurrentParams] = useState<number[] | null>(null);
+  const [viewId, setViewId] = useState<number | null>(null);
 
-    const markersRef = useRef<{
+  const markersRef = useRef<{
+    [id: number]: { ball: THREE.Mesh; line: THREE.Line };
+  }>({});
+
+  // --- Refs for Animation Loop ---
+  // These refs will mirror the state, so the animate loop can read them
+  const isPlayingRef = useRef(isPlaying);
+  const isPathLoadedRef = useRef(isPathLoaded);
+  const lastUiUpdateRef = useRef(0);
+  const animationTimeRef = useRef(0);
+  const viewIdRef = useRef<number | null>(null);
+  const minMaxLossRef = useRef(minMaxLoss);
+  const zScaleRef = useRef(zScale);
+
+  // --- Array refs for multiple paths ---
+  const pathLinesRef = useRef<Line2[]>([]);
+  const ballsRef = useRef<THREE.Mesh[]>([]);
+  const pathPointsArrayRef = useRef<THREE.Vector3[][]>([]);
+  const pathNormalsArrayRef = useRef<THREE.Vector3[][]>([]);
+  const totalPathPointsArrayRef = useRef<number[]>([]);
+  const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
+  const animationDurationsRef = useRef<number[]>([]);
+  const parametersArrayRef = useRef<number[][][]>([]);
+  const fidelityArrayRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    isPathLoadedRef.current = isPathLoaded;
+  }, [isPathLoaded]);
+
+  useEffect(() => {
+    minMaxLossRef.current = minMaxLoss;
+  }, [minMaxLoss]);
+
+  useEffect(() => {
+    zScaleRef.current = zScale;
+  }, [zScale]);
+
+  const handleRemovePath = useCallback(
+    (id: number) => {
+      if (pathLinesRef.current[id]) disposeObject(pathLinesRef.current[id]);
+      if (ballsRef.current[id]) disposeObject(ballsRef.current[id]);
+
+      if (markersRef.current[id]) {
+        disposeObject(markersRef.current[id].ball);
+        disposeObject(markersRef.current[id].line);
+        delete markersRef.current[id];
+      }
+
+      pathLinesRef.current.splice(id, 1);
+      ballsRef.current.splice(id, 1);
+      pathPointsArrayRef.current.splice(id, 1);
+      pathNormalsArrayRef.current.splice(id, 1);
+      totalPathPointsArrayRef.current.splice(id, 1);
+      path2DArrayRef.current.splice(id, 1);
+      parametersArrayRef.current.splice(id, 1);
+      animationDurationsRef.current.splice(id, 1);
+      fidelityArrayRef.current.splice(id, 1);
+
+      // Re-index markersRef
+      const newMarkers: {
         [id: number]: { ball: THREE.Mesh; line: THREE.Line };
-    }>({});
-
-    // --- Refs for Animation Loop ---
-    // These refs will mirror the state, so the animate loop can read them
-    const isPlayingRef = useRef(isPlaying);
-    const isPathLoadedRef = useRef(isPathLoaded);
-    const lastUiUpdateRef = useRef(0);
-    const animationTimeRef = useRef(0);
-    const viewIdRef = useRef<number | null>(null);
-    const minMaxLossRef = useRef(minMaxLoss);
-    const zScaleRef = useRef(zScale);
-
-    // --- Array refs for multiple paths ---
-    const pathLinesRef = useRef<Line2[]>([]);
-    const ballsRef = useRef<THREE.Mesh[]>([]);
-    const pathPointsArrayRef = useRef<THREE.Vector3[][]>([]);
-    const pathNormalsArrayRef = useRef<THREE.Vector3[][]>([]);
-    const totalPathPointsArrayRef = useRef<number[]>([]);
-    const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
-    const animationDurationsRef = useRef<number[]>([]);
-    const parametersArrayRef = useRef<number[][][]>([]);
-    const fidelityArrayRef = useRef<number[]>([]);
-
-    useEffect(() => {
-        isPlayingRef.current = isPlaying;
-    }, [isPlaying]);
-
-    useEffect(() => {
-        isPathLoadedRef.current = isPathLoaded;
-    }, [isPathLoaded]);
-
-    useEffect(() => {
-        minMaxLossRef.current = minMaxLoss;
-    }, [minMaxLoss]);
-
-    useEffect(() => {
-        zScaleRef.current = zScale;
-    }, [zScale]);
-
-    const handleRemovePath = useCallback((id: number) => {
-        if (pathLinesRef.current[id]) disposeObject(pathLinesRef.current[id]);
-        if (ballsRef.current[id]) disposeObject(ballsRef.current[id]);
-        
-        if (markersRef.current[id]) {
-            disposeObject(markersRef.current[id].ball);
-            disposeObject(markersRef.current[id].line);
-            delete markersRef.current[id];
+      } = {};
+      Object.keys(markersRef.current).forEach((keyStr) => {
+        const keyId = parseInt(keyStr, 10);
+        if (keyId > id) {
+          newMarkers[keyId - 1] = markersRef.current[keyId]; // Shift down
+        } else if (keyId < id) {
+          newMarkers[keyId] = markersRef.current[keyId]; // Keep same
         }
+      });
+      markersRef.current = newMarkers;
 
-        pathLinesRef.current.splice(id, 1);
-        ballsRef.current.splice(id, 1);
-        pathPointsArrayRef.current.splice(id, 1);
-        pathNormalsArrayRef.current.splice(id, 1);
-        totalPathPointsArrayRef.current.splice(id, 1);
-        path2DArrayRef.current.splice(id, 1);
-        parametersArrayRef.current.splice(id, 1);
-        animationDurationsRef.current.splice(id, 1);
-        fidelityArrayRef.current.splice(id, 1);
-
-        // Re-index markersRef
-        const newMarkers: { [id: number]: { ball: THREE.Mesh; line: THREE.Line } } = {};
-        Object.keys(markersRef.current).forEach((keyStr) => {
-            const keyId = parseInt(keyStr, 10);
-            if (keyId > id) {
-                newMarkers[keyId - 1] = markersRef.current[keyId]; // Shift down
-            } else if (keyId < id) {
-                newMarkers[keyId] = markersRef.current[keyId];     // Keep same
-            }
-        });
-        markersRef.current = newMarkers;
-
-        pathLinesRef.current.forEach((line, i) => {
-            const newColor = PATH_COLORS[i % PATH_COLORS.length].value; 
-            if (line && line.material) {
-                (line.material as THREE.LineBasicMaterial).color.set(newColor);
-            }
-        });
-
-        ballsRef.current.forEach((ball, i) => {
-            const newColor = PATH_COLORS[i % PATH_COLORS.length].value;
-            if (ball && ball.material) {
-                (ball.material as THREE.MeshBasicMaterial).color.set(newColor);
-            }
-        });
-
-        Object.keys(markersRef.current).forEach((keyStr) => {
-            const keyId = parseInt(keyStr, 10);
-            const newColor = PATH_COLORS[keyId % PATH_COLORS.length].value;
-            const marker = markersRef.current[keyId];
-            
-            if (marker.ball && marker.ball.material) {
-                (marker.ball.material as THREE.MeshBasicMaterial).color.set(newColor);
-            }
-            if (marker.line && marker.line.material) {
-                (marker.line.material as THREE.LineBasicMaterial).color.set(newColor);
-            }
-        });
-
-        if (viewIdRef.current === id) {
-            // If the user was viewing the deleted path, clear it
-            setViewId(null);
-            viewIdRef.current = null;
-            setCurrentParams(null);
-            setCurrentLoss(null);
-            setLossChange(0);
-            setFidelity(null);
-        } else if (viewIdRef.current !== null && viewIdRef.current > id) {
-            // If the user was viewing a path that comes AFTER the deleted one, decrement its ID
-            setViewId(viewIdRef.current - 1);
-            viewIdRef.current -= 1;
+      pathLinesRef.current.forEach((line, i) => {
+        const newColor = PATH_COLORS[i % PATH_COLORS.length].value;
+        if (line && line.material) {
+          (line.material as THREE.LineBasicMaterial).color.set(newColor);
         }
+      });
 
-        // If this was the last path, completely reset the playback state
-        if (pathLinesRef.current.length === 0) {
-            setIsPathLoaded(false);
-            animationTimeRef.current = 0;
-            clockRef.current = new THREE.Clock();
+      ballsRef.current.forEach((ball, i) => {
+        const newColor = PATH_COLORS[i % PATH_COLORS.length].value;
+        if (ball && ball.material) {
+          (ball.material as THREE.MeshBasicMaterial).color.set(newColor);
         }
-    }, []);
+      });
 
-    /**
-    * Removes all paths from the scene.
-    */
-    const handleRemoveAllPaths = useCallback(() => {
-        pathLinesRef.current.forEach(disposeObject);
-        ballsRef.current.forEach(disposeObject);
-        pathLinesRef.current = [];
-        ballsRef.current = [];
-        pathPointsArrayRef.current = [];
-        pathNormalsArrayRef.current = [];
-        totalPathPointsArrayRef.current = [];
-        path2DArrayRef.current = [];
-        parametersArrayRef.current = [];
-        fidelityArrayRef.current = [];
-        Object.values(markersRef.current).forEach(({ ball, line }) => {
-        disposeObject(ball);
-        disposeObject(line);
-        });
-        markersRef.current = {};
-        animationDurationsRef.current = [];
-        setIsPathLoaded(false);
-        animationTimeRef.current = 0;
-        clockRef.current = new THREE.Clock();
-    }, []);
+      Object.keys(markersRef.current).forEach((keyStr) => {
+        const keyId = parseInt(keyStr, 10);
+        const newColor = PATH_COLORS[keyId % PATH_COLORS.length].value;
+        const marker = markersRef.current[keyId];
 
-    const handleClearPaths = useCallback(() => {
-        handleRemoveAllPaths();
+        if (marker.ball && marker.ball.material) {
+          (marker.ball.material as THREE.MeshBasicMaterial).color.set(newColor);
+        }
+        if (marker.line && marker.line.material) {
+          (marker.line.material as THREE.LineBasicMaterial).color.set(newColor);
+        }
+      });
+
+      if (viewIdRef.current === id) {
+        // If the user was viewing the deleted path, clear it
         setViewId(null);
         viewIdRef.current = null;
         setCurrentParams(null);
         setCurrentLoss(null);
         setLossChange(0);
         setFidelity(null);
-    }, []);
+      } else if (viewIdRef.current !== null && viewIdRef.current > id) {
+        // If the user was viewing a path that comes AFTER the deleted one, decrement its ID
+        setViewId(viewIdRef.current - 1);
+        viewIdRef.current -= 1;
+      }
 
-    /**
-    * Updates 3D path geometry from a cached 2D path.
-    */
-    const updatePathGeometry = useCallback(
+      // If this was the last path, completely reset the playback state
+      if (pathLinesRef.current.length === 0) {
+        setIsPathLoaded(false);
+        animationTimeRef.current = 0;
+        clockRef.current = new THREE.Clock();
+      }
+    },
+    [clockRef, disposeObject],
+  );
+
+  /**
+   * Removes all paths from the scene.
+   */
+  const handleRemoveAllPaths = useCallback(() => {
+    pathLinesRef.current.forEach(disposeObject);
+    ballsRef.current.forEach(disposeObject);
+    pathLinesRef.current = [];
+    ballsRef.current = [];
+    pathPointsArrayRef.current = [];
+    pathNormalsArrayRef.current = [];
+    totalPathPointsArrayRef.current = [];
+    path2DArrayRef.current = [];
+    parametersArrayRef.current = [];
+    fidelityArrayRef.current = [];
+    Object.values(markersRef.current).forEach(({ ball, line }) => {
+      disposeObject(ball);
+      disposeObject(line);
+    });
+    markersRef.current = {};
+    animationDurationsRef.current = [];
+    setIsPathLoaded(false);
+    animationTimeRef.current = 0;
+    clockRef.current = new THREE.Clock();
+  }, [clockRef, disposeObject]);
+
+  const handleClearPaths = useCallback(() => {
+    handleRemoveAllPaths();
+    setViewId(null);
+    viewIdRef.current = null;
+    setCurrentParams(null);
+    setCurrentLoss(null);
+    setLossChange(0);
+    setFidelity(null);
+  }, [handleRemoveAllPaths]);
+
+  /**
+   * Updates 3D path geometry from a cached 2D path.
+   */
+  const updatePathGeometry = useCallback(
     (mesh: THREE.Mesh, pathId: number, createBallFlag: boolean = false) => {
-        const scene = sceneRef.current;
-        const raycaster = raycasterRef.current;
-        const smoothPoints = path2DArrayRef.current[pathId];
-        const config = pathConfigs[pathId];
+      const scene = sceneRef.current;
+      const raycaster = raycasterRef.current;
+      const smoothPoints = path2DArrayRef.current[pathId];
+      const config = pathConfigs[pathId];
 
-        if (!scene || !mesh || !raycaster || !smoothPoints || !config) return;
+      if (!scene || !mesh || !raycaster || !smoothPoints || !config) return;
 
-        const { newPathPoints, newPathNormals, positions, totalLength } =
-            project2DPathTo3D(mesh, smoothPoints, raycaster, {
-              xMin: dictRef.current.x_axis[0],
-              xMax: dictRef.current.x_axis[dictRef.current.x_axis.length - 1],
-              yMin: dictRef.current.y_axis[0],
-              yMax: dictRef.current.y_axis[dictRef.current.y_axis.length - 1]
-            });
+      const { newPathPoints, newPathNormals, positions, totalLength } =
+        project2DPathTo3D(mesh, smoothPoints, raycaster, {
+          xMin: dictRef.current.x_axis[0],
+          xMax: dictRef.current.x_axis[dictRef.current.x_axis.length - 1],
+          yMin: dictRef.current.y_axis[0],
+          yMax: dictRef.current.y_axis[dictRef.current.y_axis.length - 1],
+        });
 
-        if (newPathPoints.length < 2) return;
+      if (newPathPoints.length < 2) return;
 
-        // Store path data for animation
-        pathPointsArrayRef.current[pathId] = newPathPoints;
-        pathNormalsArrayRef.current[pathId] = newPathNormals;
-        totalPathPointsArrayRef.current[pathId] = newPathPoints.length - 1;
-        animationDurationsRef.current[pathId] = totalLength / animationSpeed;
+      // Store path data for animation
+      pathPointsArrayRef.current[pathId] = newPathPoints;
+      pathNormalsArrayRef.current[pathId] = newPathNormals;
+      totalPathPointsArrayRef.current[pathId] = newPathPoints.length - 1;
+      animationDurationsRef.current[pathId] = totalLength / animationSpeed;
 
-        // Create or update the visible line
-        pathLinesRef.current[pathId] = createOrUpdatePathLine(
-            scene,
-            positions,
-            pathLinesRef.current[pathId] || null,
-            config.colorValue,
+      // Create or update the visible line
+      pathLinesRef.current[pathId] = createOrUpdatePathLine(
+        scene,
+        positions,
+        pathLinesRef.current[pathId] || null,
+        config.colorValue,
+      );
+
+      if (createBallFlag) {
+        disposeObject(ballsRef.current[pathId]);
+        ballsRef.current[pathId] = createBall(
+          scene,
+          mesh,
+          newPathPoints,
+          newPathNormals,
+          config.colorValue,
         );
-
-        if (createBallFlag) {
-            disposeObject(ballsRef.current[pathId]);
-            ballsRef.current[pathId] = createBall(
-            scene,
-            mesh,
-            newPathPoints,
-            newPathNormals,
-            config.colorValue,
-            );
-        }
-        },
-        [pathConfigs], // Depends on pathConfigs for colors
-    );
+      }
+    },
+    [pathConfigs, dictRef, sceneRef, raycasterRef, disposeObject], // Depends on pathConfigs for colors and scene for object creation
+  );
 
   const getOrCreateMarker = useCallback(
     (id: number) => {
@@ -345,7 +349,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       markersRef.current[id] = { ball: ghostBall, line: ghostLine };
       return markersRef.current[id];
     },
-    [pathConfigs],
+    [pathConfigs, sceneRef],
   );
 
   /**
@@ -375,7 +379,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     });
     handleRemoveAllPaths();
 
-    Object.keys(cachedRegenData).forEach(key => {
+    Object.keys(cachedRegenData).forEach((key) => {
       const index = parseInt(key);
       parametersArrayRef.current[index] = cachedRegenData[index].params;
       fidelityArrayRef.current[index] = cachedRegenData[index].fidelity;
@@ -386,7 +390,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       let csvData = data === 'CUSTOM' ? csv : null;
       // Create a fetch promise for each config
       const pathPromises = pathConfigs.map((config, index) => {
-        if (config.regen) return Promise.resolve({ isRegen: true, index, data });
+        if (config.regen)
+          return Promise.resolve({ isRegen: true, index, data });
         onPathConfigChange(config.id, 'isPathLoaded', false);
         const paramString = {
           network: { activation, depth, width },
@@ -401,10 +406,10 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
           lock_to_plane: config.locked,
           rawdata: csvData,
         };
-        return api.post('/animateminimiser', paramString).then(resp => ({
-            isRegen: false,
-            index,
-            data: resp.data
+        return api.post('/animateminimiser', paramString).then((resp) => ({
+          isRegen: false,
+          index,
+          data: resp.data,
         }));
       });
 
@@ -453,84 +458,109 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         updatePathGeometry(mesh, index, true);
 
         onPathConfigChange(pathConfigs[index].id, 'isPathLoaded', true);
-
       });
 
       setIsPathLoaded(true);
       setIsPlaying(true);
 
-      if (viewIdRef.current !== null && fidelityArrayRef.current[viewIdRef.current] !== undefined) {
-          setFidelity(fidelityArrayRef.current[viewIdRef.current] * 100);
+      if (
+        viewIdRef.current !== null &&
+        fidelityArrayRef.current[viewIdRef.current] !== undefined
+      ) {
+        setFidelity(fidelityArrayRef.current[viewIdRef.current] * 100);
       }
 
       pathConfigs.forEach((config) => {
         const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
+        const timeString = now.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
         });
-        var newLogEntry = `[${timeString}] ${config.optim} optimiser generated with lr=${config.lr.toFixed(2)} starting from [${config.startPoint[0].toFixed(2)}, ${config.startPoint[1].toFixed(2)}]`;
-        if (config.locked){
-          newLogEntry += ` (locked to the plane)`
+        let newLogEntry = `[${timeString}] ${config.optim} optimiser generated with lr=${config.lr.toFixed(2)} starting from [${config.startPoint[0].toFixed(2)}, ${config.startPoint[1].toFixed(2)}]`;
+        if (config.locked) {
+          newLogEntry += ` (locked to the plane)`;
         } else {
-          newLogEntry += ` (not locked to the plane)`
+          newLogEntry += ` (not locked to the plane)`;
         }
-        setLog(prevLog => [...prevLog, newLogEntry]);
+        setLog((prevLog) => [...prevLog, newLogEntry]);
       });
 
       animationTimeRef.current = 0;
-      if (clockRef.current && !clockRef.current.running) clockRef.current.start();
-
+      if (clockRef.current && !clockRef.current.running)
+        clockRef.current.start();
     } catch (err) {
       console.error('Failed to load one or more paths:', err);
       setIsPathLoaded(false);
     } finally {
       setIsPathLoading(false);
     }
-  }, [pathConfigs, handleRemoveAllPaths, updatePathGeometry, onPathConfigChange]);
+  }, [
+    activation,
+    clockRef,
+    csv,
+    data,
+    depth,
+    dictRef,
+    loss,
+    meshRef,
+    setLog,
+    width,
+    pathConfigs,
+    handleRemoveAllPaths,
+    updatePathGeometry,
+    onPathConfigChange,
+  ]);
 
-  const loadRegenPath = useCallback((savedParams: number[][], newPath2D: number[][]) => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
+  const loadRegenPath = useCallback(
+    (savedParams: number[][], newPath2D: number[][]) => {
+      const mesh = meshRef.current;
+      if (!mesh) return;
 
-    console.log(savedParams);
+      console.log(savedParams);
 
-    handleRemoveAllPaths();
+      handleRemoveAllPaths();
 
-    if (!savedParams) return;
+      if (!savedParams) return;
 
-    // Inject the data into index 0
-    parametersArrayRef.current[0] = savedParams;
+      // Inject the data into index 0
+      parametersArrayRef.current[0] = savedParams;
 
-    const twoDPoints = newPath2D.map((p) => new THREE.Vector2(p[0], p[1]));
-    const curve2D = new THREE.SplineCurve(twoDPoints);
-    
-    path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
-      p.x = Math.max(-1, Math.min(1, p.x));
-      p.y = Math.max(-1, Math.min(1, p.y));
-      return p;
-    });
+      const twoDPoints = newPath2D.map((p) => new THREE.Vector2(p[0], p[1]));
+      const curve2D = new THREE.SplineCurve(twoDPoints);
 
-    // Update the geometry and restart the animation loop
-    updatePathGeometry(mesh, 0, true);
+      path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
+        p.x = Math.max(-1, Math.min(1, p.x));
+        p.y = Math.max(-1, Math.min(1, p.y));
+        return p;
+      });
 
-    setIsPathLoaded(true);
-    setIsPlaying(true);
-    animationTimeRef.current = 0;
-    if (clockRef.current && !clockRef.current.running) clockRef.current.start();
+      // Update the geometry and restart the animation loop
+      updatePathGeometry(mesh, 0, true);
 
-  }, [handleRemoveAllPaths, updatePathGeometry]);
+      setIsPathLoaded(true);
+      setIsPlaying(true);
+      animationTimeRef.current = 0;
+      if (clockRef.current && !clockRef.current.running)
+        clockRef.current.start();
+    },
+    [handleRemoveAllPaths, updatePathGeometry, meshRef, clockRef],
+  );
 
   const getMaxSteps = useCallback(() => {
-    if (!parametersArrayRef.current || parametersArrayRef.current.length === 0) return 1;
+    if (!parametersArrayRef.current || parametersArrayRef.current.length === 0)
+      return 1;
     // Use parametersArrayRef because it holds the raw, un-resampled backend data
-    return Math.max(...parametersArrayRef.current.map(arr => arr.length));
+    return Math.max(...parametersArrayRef.current.map((arr) => arr.length));
   }, []);
 
   const getMaxDuration = useCallback(() => {
-    if (!animationDurationsRef.current || animationDurationsRef.current.length === 0) return 1;
+    if (
+      !animationDurationsRef.current ||
+      animationDurationsRef.current.length === 0
+    )
+      return 1;
     return Math.max(...animationDurationsRef.current);
   }, []);
 
@@ -590,7 +620,14 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         }
       }
     },
-    [placingPathId, getOrCreateMarker],
+    [
+      placingPathId,
+      getOrCreateMarker,
+      rendererRef,
+      cameraRef,
+      meshRef,
+      raycasterRef,
+    ],
   );
 
   const handleInputClick = useCallback(
@@ -646,7 +683,15 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       setIsPlacingMode(false);
       setPlacingPathId(null);
     },
-    [placingPathId, onPathConfigChange, getOrCreateMarker],
+    [
+      placingPathId,
+      onPathConfigChange,
+      getOrCreateMarker,
+      rendererRef,
+      cameraRef,
+      meshRef,
+      raycasterRef,
+    ],
   );
 
   const togglePlayPause = useCallback(() => {
@@ -654,7 +699,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     if (isPlaying) {
       clockRef.current.stop();
     } else {
-      const maxDuration = Math.max(...animationDurationsRef.current, 0)
+      const maxDuration = Math.max(...animationDurationsRef.current, 0);
       if (animationTimeRef.current >= maxDuration) {
         animationTimeRef.current = 0;
         clockRef.current.start();
@@ -667,47 +712,55 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
       }
     }
     setIsPlaying((prev) => !prev);
-  }, [isPlaying]);
+  }, [isPlaying, clockRef]);
 
   const handleSkipBack = useCallback(() => {
-      const maxSteps = getMaxSteps();
-      const maxDuration = getMaxDuration();
+    const maxSteps = getMaxSteps();
+    const maxDuration = getMaxDuration();
 
-      // Time duration of exactly one original point
-      const stepTime = maxDuration / Math.max(1, maxSteps - 1);
-      
-      animationTimeRef.current = Math.max(0, animationTimeRef.current - (20 * stepTime)); 
-      
-      const currentProg = (animationTimeRef.current / maxDuration) * 100;
-      const currentF = Math.floor((animationTimeRef.current / maxDuration) * (maxSteps - 1)) + 1;
-      
-      setProgress(currentProg);
-      setCurrentFrame(currentF);
-      setTotalFrames(maxSteps);
+    // Time duration of exactly one original point
+    const stepTime = maxDuration / Math.max(1, maxSteps - 1);
+
+    animationTimeRef.current = Math.max(
+      0,
+      animationTimeRef.current - 20 * stepTime,
+    );
+
+    const currentProg = (animationTimeRef.current / maxDuration) * 100;
+    const currentF =
+      Math.floor((animationTimeRef.current / maxDuration) * (maxSteps - 1)) + 1;
+
+    setProgress(currentProg);
+    setCurrentFrame(currentF);
+    setTotalFrames(maxSteps);
   }, [getMaxSteps, getMaxDuration]);
 
   const handleSkipForward = useCallback(() => {
-      const maxSteps = getMaxSteps();
-      const maxDuration = getMaxDuration();
+    const maxSteps = getMaxSteps();
+    const maxDuration = getMaxDuration();
 
-      // Time duration of exactly one original point
-      const stepTime = maxDuration / Math.max(1, maxSteps - 1);
-      
-      animationTimeRef.current = Math.min(maxDuration, animationTimeRef.current + (20 * stepTime)); 
-           
-      const currentProg = (animationTimeRef.current / maxDuration) * 100;
-      const currentF = Math.floor((animationTimeRef.current / maxDuration) * (maxSteps - 1)) + 1;
-      
-      setProgress(currentProg);
-      setCurrentFrame(Math.min(currentF, maxSteps));
-      setTotalFrames(maxSteps);
+    // Time duration of exactly one original point
+    const stepTime = maxDuration / Math.max(1, maxSteps - 1);
+
+    animationTimeRef.current = Math.min(
+      maxDuration,
+      animationTimeRef.current + 20 * stepTime,
+    );
+
+    const currentProg = (animationTimeRef.current / maxDuration) * 100;
+    const currentF =
+      Math.floor((animationTimeRef.current / maxDuration) * (maxSteps - 1)) + 1;
+
+    setProgress(currentProg);
+    setCurrentFrame(Math.min(currentF, maxSteps));
+    setTotalFrames(maxSteps);
   }, [getMaxSteps, getMaxDuration]);
 
   const onViewPath = useCallback(
     (id: number) => {
       setViewId(id);
       viewIdRef.current = id;
-      setFidelity((fidelityArrayRef.current[id] * 100));
+      setFidelity(fidelityArrayRef.current[id] * 100);
     },
     [viewId],
   );
@@ -731,7 +784,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         setPlacingPathId(id);
       }
     },
-    [placingPathId],
+    [placingPathId, disposeObject],
   );
 
   // --- Placing Mode Effect ---
@@ -783,182 +836,195 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     getOrCreateMarker,
     handleInputMove,
     handleInputClick,
+    controlsRef,
+    rendererRef,
+    sceneRef,
   ]);
 
   useEffect(() => {
     // Animation Loop
     const animate = () => {
-        rafRef.current = requestAnimationFrame(animate);
+      rafRef.current = requestAnimationFrame(animate);
 
-        const clock = clockRef.current;
-        if (!clock) return;
+      const clock = clockRef.current;
+      if (!clock) return;
 
-        const delta = clock.getDelta();
+      const delta = clock.getDelta();
 
-        if (!isPathLoadedRef.current) return;
+      if (!isPathLoadedRef.current) return;
 
-        if (isPlayingRef.current) {
-            animationTimeRef.current += delta;
+      if (isPlayingRef.current) {
+        animationTimeRef.current += delta;
+      }
+
+      const elapsedTime = animationTimeRef.current;
+
+      for (let i = 0; i < pathLinesRef.current.length; i++) {
+        const pathLine = pathLinesRef.current[i];
+        const ball = ballsRef.current[i];
+        const animationDuration = animationDurationsRef.current[i];
+        const pts = pathPointsArrayRef.current[i];
+        const norms = pathNormalsArrayRef.current[i];
+
+        if (!pathLine || !ball || !animationDuration || !pts || !norms)
+          continue;
+
+        const LAG_TIME_SECONDS = 0.1;
+
+        const ballProgress = Math.min(1.0, elapsedTime / animationDuration);
+        const lineProgress = Math.max(
+          0,
+          (elapsedTime - LAG_TIME_SECONDS) / animationDuration,
+        );
+
+        // Stop if finished
+        if (lineProgress > 1.0) {
+          // Check if this was the longest path to stop global playing
+          if (animationDuration >= Math.max(...animationDurationsRef.current)) {
+            setIsPlaying(false);
+          }
+          continue;
         }
 
-        const elapsedTime = animationTimeRef.current;
+        // Animate Line
+        const lineGeom = pathLine.geometry as LineGeometry;
+        const totalLineSegments = lineGeom.attributes.instanceStart.count;
+        const drawCount = Math.floor(lineProgress * totalLineSegments);
+        lineGeom.instanceCount = drawCount;
 
-        for (let i = 0; i < pathLinesRef.current.length; i++) {
-            const pathLine = pathLinesRef.current[i];
-            const ball = ballsRef.current[i];
-            const animationDuration = animationDurationsRef.current[i];
-            const pts = pathPointsArrayRef.current[i];
-            const norms = pathNormalsArrayRef.current[i];
+        // Animate Ball
+        const totalBallSegments = pts.length - 1;
+        const currentSegmentFloat = ballProgress * totalBallSegments;
+        const segmentIndex = Math.floor(currentSegmentFloat);
+        const segmentProgress = currentSegmentFloat - segmentIndex;
+        const i1 = Math.min(segmentIndex, totalBallSegments);
+        const i2 = Math.min(i1 + 1, totalBallSegments);
 
-            if (!pathLine || !ball || !animationDuration || !pts || !norms)
-                continue;
+        if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
+          const oldPos = ball.position.clone();
 
-            const LAG_TIME_SECONDS = 0.1;
+          // Calculate new position and normal
+          TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
+          TEMP_BALL_NORM.copy(norms[i1])
+            .lerp(norms[i2], segmentProgress)
+            .normalize();
 
-            const ballProgress = Math.min(1.0, elapsedTime / animationDuration);
-            const lineProgress = Math.max(0, (elapsedTime - LAG_TIME_SECONDS) / animationDuration);
+          const radius = (ball.geometry as any).parameters?.radius ?? 0;
+          TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
 
-            // Stop if finished
-            if (lineProgress > 1.0) {
-                // Check if this was the longest path to stop global playing
-                if (animationDuration >= Math.max(...animationDurationsRef.current)) {
-                  setIsPlaying(false);
-                }
-                continue;
+          const newPos = TEMP_BALL_POS.clone().add(TEMP_BALL_OFFSET);
+
+          // Only roll if the ball has actually moved and isn't at the origin (0,0,0)
+          if (radius > 0 && oldPos.lengthSq() > 0) {
+            const deltaPos = newPos.clone().sub(oldPos);
+            const distance = deltaPos.length();
+
+            if (distance > 0.0001) {
+              // Ignore tiny jitters
+              const moveDir = deltaPos.normalize();
+
+              // The axis of rotation is perpendicular to the normal and movement dir
+              const rotationAxis = new THREE.Vector3()
+                .crossVectors(TEMP_BALL_NORM, moveDir)
+                .normalize();
+
+              // Angle = distance / radius
+              const angle = distance / radius;
+
+              ball.rotateOnWorldAxis(rotationAxis, angle);
             }
+          }
 
-            // Animate Line
-            const lineGeom = pathLine.geometry as LineGeometry;
-            const totalLineSegments = lineGeom.attributes.instanceStart.count;
-            const drawCount = Math.floor(lineProgress * totalLineSegments);
-            lineGeom.instanceCount = drawCount;
+          ball.position.copy(newPos);
+        }
 
-            // Animate Ball
-            const totalBallSegments = pts.length - 1;
-            const currentSegmentFloat = ballProgress * totalBallSegments;
-            const segmentIndex = Math.floor(currentSegmentFloat);
-            const segmentProgress = currentSegmentFloat - segmentIndex;
-            const i1 = Math.min(segmentIndex, totalBallSegments);
-            const i2 = Math.min(i1 + 1, totalBallSegments);
+        // Update network weights and loss
+        if (viewIdRef.current !== null && viewIdRef.current === i) {
+          const timeStep = Math.floor(
+            ballProgress * (parametersArrayRef.current[i].length - 1),
+          );
+          if (timeStep < parametersArrayRef.current[i].length) {
+            setCurrentParams(
+              parametersArrayRef.current[viewIdRef.current][timeStep],
+            );
+            // Extract and set the loss for the current step
+            if (pathPointsArrayRef.current[i][timeStep]) {
+              const currentY = pathPointsArrayRef.current[i][timeStep].y;
+              const minL = minMaxLossRef.current[0];
+              const maxL = minMaxLossRef.current[1];
+              const currentScale = zScaleRef.current || 1;
 
-            if (pts[i1] && norms[i1] && pts[i2] && norms[i2]) {
-              const oldPos = ball.position.clone();
+              // Calculate actual current loss
+              const rawNormalizedY = currentY / currentScale;
+              const accLoss = rawNormalizedY * (maxL - minL) + minL;
+              setCurrentLoss(accLoss);
 
-              // Calculate new position and normal
-              TEMP_BALL_POS.copy(pts[i1]).lerp(pts[i2], segmentProgress);
-              TEMP_BALL_NORM.copy(norms[i1])
-              .lerp(norms[i2], segmentProgress)
-              .normalize();
-                        
-              const radius = (ball.geometry as any).parameters?.radius ?? 0;
-              TEMP_BALL_OFFSET.copy(TEMP_BALL_NORM).multiplyScalar(radius);
-                    
-              const newPos = TEMP_BALL_POS.clone().add(TEMP_BALL_OFFSET);
+              // Calculate percentage change over the last 10 steps
+              const previousStep = Math.max(0, timeStep - 10);
+              if (timeStep > previousStep) {
+                const rawPrevY = pathPointsArrayRef.current[i][previousStep].y;
+                const prevNormalizedY = rawPrevY / currentScale;
+                const prevAccLoss = prevNormalizedY * (maxL - minL) + minL;
 
-              // Only roll if the ball has actually moved and isn't at the origin (0,0,0)
-              if (radius > 0 && oldPos.lengthSq() > 0) { 
-                const deltaPos = newPos.clone().sub(oldPos);
-                const distance = deltaPos.length();
-
-                if (distance > 0.0001) { // Ignore tiny jitters
-                  const moveDir = deltaPos.normalize();
-                            
-                    // The axis of rotation is perpendicular to the normal and movement dir
-                    const rotationAxis = new THREE.Vector3().crossVectors(TEMP_BALL_NORM, moveDir).normalize();
-                            
-                    // Angle = distance / radius
-                    const angle = distance / radius;
-                            
-                    ball.rotateOnWorldAxis(rotationAxis, angle);
+                if (prevAccLoss !== 0) {
+                  // Use accLoss instead of currentY here so the units match
+                  const change =
+                    ((accLoss - prevAccLoss) / Math.abs(prevAccLoss)) * 100;
+                  setLossChange(Math.round(change));
+                } else {
+                  setLossChange(0);
                 }
+              } else {
+                setLossChange(0); // If less than 10 steps have passed, default to 0
               }
-
-              ball.position.copy(newPos);
             }
-
-            // Update network weights and loss
-            if (viewIdRef.current !== null && viewIdRef.current === i) {
-                const timeStep = Math.floor(ballProgress * (parametersArrayRef.current[i].length - 1));
-                if (timeStep < parametersArrayRef.current[i].length) {
-                  setCurrentParams(parametersArrayRef.current[viewIdRef.current][timeStep]);
-                  // Extract and set the loss for the current step
-                  if (pathPointsArrayRef.current[i][timeStep]) {
-                    const currentY = pathPointsArrayRef.current[i][timeStep].y;
-                    const minL = minMaxLossRef.current[0];
-                    const maxL = minMaxLossRef.current[1];
-                    const currentScale = zScaleRef.current || 1;
-                    
-                    // Calculate actual current loss
-                    const rawNormalizedY = currentY / currentScale;
-                    const accLoss = (rawNormalizedY * (maxL - minL)) + minL;
-                    setCurrentLoss(accLoss);
-
-                    // Calculate percentage change over the last 10 steps
-                    const previousStep = Math.max(0, timeStep - 10);
-                    if (timeStep > previousStep) {
-                      const rawPrevY = pathPointsArrayRef.current[i][previousStep].y;
-                      const prevNormalizedY = rawPrevY / currentScale; 
-                      const prevAccLoss = (prevNormalizedY * (maxL - minL)) + minL;
-                      
-                      if (prevAccLoss !== 0) {
-                        // Use accLoss instead of currentY here so the units match
-                        const change = ((accLoss - prevAccLoss) / Math.abs(prevAccLoss)) * 100;
-                        setLossChange(Math.round(change));
-                      } else {
-                        setLossChange(0);
-                      }
-                    } else {
-                      setLossChange(0); // If less than 10 steps have passed, default to 0
-                    }
-                  }
-                }
-            }
-
+          }
         }
+      }
 
-        if (isPlayingRef.current && isPathLoadedRef.current) {
-            const delta = clock.getDelta();
-            animationTimeRef.current += delta;
-            const elapsedTime = animationTimeRef.current;
+      if (isPlayingRef.current && isPathLoadedRef.current) {
+        const delta = clock.getDelta();
+        animationTimeRef.current += delta;
+        const elapsedTime = animationTimeRef.current;
+        const now = performance.now();
+        // Throttle UI updates to every 100ms to avoid excessive re-renders
+        if (now - lastUiUpdateRef.current > 100) {
+          const maxDuration = getMaxDuration();
+          const maxSteps = getMaxSteps();
 
-            const maxDuration = Math.max(...animationDurationsRef.current, 1);
-        
-            const now = performance.now();
-            if (now - lastUiUpdateRef.current > 100) {
-              const maxDuration = getMaxDuration();
-              const maxSteps = getMaxSteps();
+          const currentProg = Math.min(100, (elapsedTime / maxDuration) * 100);
+          const currentF =
+            Math.floor((elapsedTime / maxDuration) * (maxSteps - 1)) + 1;
 
-              const currentProg = Math.min(100, (elapsedTime / maxDuration) * 100);
-              const currentF = Math.floor((elapsedTime / maxDuration) * (maxSteps - 1)) + 1;
+          setProgress(currentProg);
+          setCurrentFrame(Math.min(currentF, maxSteps));
+          setTotalFrames(maxSteps);
 
-              setProgress(currentProg);
-              setCurrentFrame(Math.min(currentF, maxSteps));
-              setTotalFrames(maxSteps);
-            
-              lastUiUpdateRef.current = now;
-            }
+          lastUiUpdateRef.current = now;
         }
-        if (isPlayingRef.current) {
-            const now = performance.now();
-            if (now - lastUiUpdateRef.current > 100) {
-                const maxDuration = getMaxDuration();
-                const maxSteps = getMaxSteps();
+      }
+      if (isPlayingRef.current) {
+        const now = performance.now();
+        if (now - lastUiUpdateRef.current > 100) {
+          const maxDuration = getMaxDuration();
+          const maxSteps = getMaxSteps();
 
-                const currentProg = Math.min(100, (elapsedTime / maxDuration) * 100);
-                const currentF = Math.floor((elapsedTime / maxDuration) * (maxSteps - 1)) + 1;
+          const currentProg = Math.min(100, (elapsedTime / maxDuration) * 100);
+          const currentF =
+            Math.floor((elapsedTime / maxDuration) * (maxSteps - 1)) + 1;
 
-                setProgress(currentProg);
-                setCurrentFrame(Math.min(currentF, maxSteps));
-                setTotalFrames(maxSteps);
-                
-                lastUiUpdateRef.current = now;
-            }
+          setProgress(currentProg);
+          setCurrentFrame(Math.min(currentF, maxSteps));
+          setTotalFrames(maxSteps);
+
+          lastUiUpdateRef.current = now;
         }
-      };
+      }
+    };
 
-      // Start everything
-      animate();
-  }, []);
+    // Start everything
+    animate();
+  }, [clockRef, getMaxDuration, getMaxSteps, rafRef]);
 
   const handleLoadAllPathsButtonClick = useCallback(
     () => loadAndAnimateAllPaths(),

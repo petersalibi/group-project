@@ -1,6 +1,6 @@
-import * as React from "react";
-import { View, Animated, ViewStyle, StyleProp } from "react-native";
-import { useTheme } from "./theme-provider";
+import * as React from 'react';
+import { View, Animated, ViewStyle, StyleProp } from 'react-native';
+import { useTheme } from './theme-provider';
 
 export type ProgressProps = {
   /**
@@ -14,7 +14,7 @@ export type ProgressProps = {
 export function Progress({ value = 0, style, indicatorStyle }: ProgressProps) {
   //  1. Call the hook inside the function
   const { theme } = useTheme();
-  
+
   // Animation value for smooth transitions
   const progressAnim = React.useRef(new Animated.Value(value)).current;
 
@@ -29,29 +29,29 @@ export function Progress({ value = 0, style, indicatorStyle }: ProgressProps) {
 
   const width = progressAnim.interpolate({
     inputRange: [0, 100],
-    outputRange: ["0%", "100%"],
-    extrapolate: "clamp",
+    outputRange: ['0%', '100%'],
+    extrapolate: 'clamp',
   });
 
   return (
     <View
-      data-slot="progress"
+      data-slot='progress'
       style={[
         {
           height: 8,
-          width: "100%",
+          width: '100%',
           backgroundColor: theme.colors.muted, //  Uses theme safely
           borderRadius: theme.radius.full,
-          overflow: "hidden",
+          overflow: 'hidden',
         },
         style,
       ]}
     >
       <Animated.View
-        data-slot="progress-indicator"
+        data-slot='progress-indicator'
         style={[
           {
-            height: "100%",
+            height: '100%',
             backgroundColor: theme.colors.primary, //  Uses theme safely
             width: width,
           },

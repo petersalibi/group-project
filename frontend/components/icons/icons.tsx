@@ -1,7 +1,16 @@
-import * as React from "react";
-import { Animated, Easing, View, StyleSheet } from "react-native";
-import Svg, { Circle, Path, Rect, Line, Polygon, Defs, LinearGradient, Stop } from "react-native-svg";
-import { useTheme } from "../theme-provider"
+import * as React from 'react';
+import { Animated, Easing, View, StyleSheet } from 'react-native';
+import Svg, {
+  Circle,
+  Path,
+  Rect,
+  Line,
+  Polygon,
+  Defs,
+  LinearGradient,
+  Stop,
+} from 'react-native-svg';
+import { useTheme } from '../theme-provider';
 
 type IconProps = {
   size?: number;
@@ -19,26 +28,49 @@ function useIconColor(propColor?: string) {
 
 export function DataIcon({ size = 24, color }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x="3" y="8" width="6" height="12" rx="1" fill={useIconColor(color)} opacity="0.3" />
-      <Rect x="9" y="4" width="6" height="16" rx="1" fill={useIconColor(color)} opacity="0.6" />
-      <Rect x="15" y="10" width="6" height="10" rx="1" fill={useIconColor(color)} />
+    <Svg width={size} height={size} viewBox='0 0 24 24' fill='none'>
+      <Rect
+        x='3'
+        y='8'
+        width='6'
+        height='12'
+        rx='1'
+        fill={useIconColor(color)}
+        opacity='0.3'
+      />
+      <Rect
+        x='9'
+        y='4'
+        width='6'
+        height='16'
+        rx='1'
+        fill={useIconColor(color)}
+        opacity='0.6'
+      />
+      <Rect
+        x='15'
+        y='10'
+        width='6'
+        height='10'
+        rx='1'
+        fill={useIconColor(color)}
+      />
     </Svg>
   );
 }
 
 export function NetworkIcon({ size = 24, color }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="6" cy="12" r="2" fill={useIconColor(color)} />
-      <Circle cx="12" cy="6" r="2" fill={useIconColor(color)} />
-      <Circle cx="12" cy="18" r="2" fill={useIconColor(color)} />
-      <Circle cx="18" cy="12" r="2" fill={useIconColor(color)} />
+    <Svg width={size} height={size} viewBox='0 0 24 24' fill='none'>
+      <Circle cx='6' cy='12' r='2' fill={useIconColor(color)} />
+      <Circle cx='12' cy='6' r='2' fill={useIconColor(color)} />
+      <Circle cx='12' cy='18' r='2' fill={useIconColor(color)} />
+      <Circle cx='18' cy='12' r='2' fill={useIconColor(color)} />
       <Path
-        d="M8 12L10 6M8 12L10 18M14 6L16 12M14 18L16 12"
+        d='M8 12L10 6M8 12L10 18M14 6L16 12M14 18L16 12'
         stroke={useIconColor(color)}
-        strokeWidth="1.5"
-        opacity="0.3"
+        strokeWidth='1.5'
+        opacity='0.3'
       />
     </Svg>
   );
@@ -46,49 +78,94 @@ export function NetworkIcon({ size = 24, color }: IconProps) {
 
 export function OptimizationIcon({ size = 24, color }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M3 20C3 20 6 16 12 16C18 16 21 20 21 20" stroke={useIconColor(color)} strokeWidth="2" strokeLinecap="round" />
-      <Path d="M12 16V4" stroke={useIconColor(color)} strokeWidth="2" strokeLinecap="round" />
-      <Circle cx="12" cy="4" r="2" fill={useIconColor(color)} />
+    <Svg width={size} height={size} viewBox='0 0 24 24' fill='none'>
+      <Path
+        d='M3 20C3 20 6 16 12 16C18 16 21 20 21 20'
+        stroke={useIconColor(color)}
+        strokeWidth='2'
+        strokeLinecap='round'
+      />
+      <Path
+        d='M12 16V4'
+        stroke={useIconColor(color)}
+        strokeWidth='2'
+        strokeLinecap='round'
+      />
+      <Circle cx='12' cy='4' r='2' fill={useIconColor(color)} />
     </Svg>
   );
 }
 
 export function VisualizationIcon({ size = 24, color }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x="3" y="3" width="8" height="8" rx="1" fill={useIconColor(color)} opacity="0.2" />
-      <Rect x="13" y="3" width="8" height="8" rx="1" fill={useIconColor(color)} opacity="0.4" />
-      <Rect x="3" y="13" width="8" height="8" rx="1" fill={useIconColor(color)} opacity="0.6" />
-      <Rect x="13" y="13" width="8" height="8" rx="1" fill={useIconColor(color)} />
+    <Svg width={size} height={size} viewBox='0 0 24 24' fill='none'>
+      <Rect
+        x='3'
+        y='3'
+        width='8'
+        height='8'
+        rx='1'
+        fill={useIconColor(color)}
+        opacity='0.2'
+      />
+      <Rect
+        x='13'
+        y='3'
+        width='8'
+        height='8'
+        rx='1'
+        fill={useIconColor(color)}
+        opacity='0.4'
+      />
+      <Rect
+        x='3'
+        y='13'
+        width='8'
+        height='8'
+        rx='1'
+        fill={useIconColor(color)}
+        opacity='0.6'
+      />
+      <Rect
+        x='13'
+        y='13'
+        width='8'
+        height='8'
+        rx='1'
+        fill={useIconColor(color)}
+      />
     </Svg>
   );
 }
 
 export function LossIcon({ size = 24 }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox='0 0 24 24' fill='none'>
       <Path
-        d="M3 18L8 13L12 17L21 8"
+        d='M3 18L8 13L12 17L21 8'
         stroke={useIconColor()}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeWidth='2'
+        strokeLinecap='round'
+        strokeLinejoin='round'
       />
-      <Circle cx="21" cy="8" r="2" fill="#C6F382" />
-      <Circle cx="3" cy="18" r="2" fill={useIconColor()} />
+      <Circle cx='21' cy='8' r='2' fill='#C6F382' />
+      <Circle cx='3' cy='18' r='2' fill={useIconColor()} />
     </Svg>
   );
 }
 
 export function ModelIcon({ size = 24, color }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z" fill={useIconColor(color)} opacity="0.2" />
+    <Svg width={size} height={size} viewBox='0 0 24 24' fill='none'>
       <Path
-        d="M12 3L20 7.5M12 3L4 7.5M12 3V12M20 7.5V16.5L12 21M20 7.5L12 12M4 7.5V16.5L12 21M4 7.5L12 12M12 12L12 21"
+        d='M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z'
+        fill={useIconColor(color)}
+        opacity='0.2'
+      />
+      <Path
+        d='M12 3L20 7.5M12 3L4 7.5M12 3V12M20 7.5V16.5L12 21M20 7.5L12 12M4 7.5V16.5L12 21M4 7.5L12 12M12 12L12 21'
         stroke={useIconColor(color)}
-        strokeWidth="1.5"
+        strokeWidth='1.5'
       />
     </Svg>
   );
@@ -117,27 +194,34 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
 
   // Data Generation
   const { dots, lines, quads } = React.useMemo(() => {
-    const dots = [], lines = [], quads = [], GRID = 15;
-    const getIdx = (i, j) => i * GRID + j;
+    const dots = [],
+      lines = [],
+      quads = [],
+      GRID = 15;
+    const getIdx = (i: number, j: number) => i * GRID + j;
 
     // Generate Dots
     for (let i = 0; i < GRID; i++) {
       for (let j = 0; j < GRID; j++) {
-        const u = i / (GRID - 1), v = j / (GRID - 1);
-        
+        const u = i / (GRID - 1),
+          v = j / (GRID - 1);
+
         // Lift Logic
         let lift = Math.pow(u - 0.45, 2) * 16;
-        lift += Math.sin(u * Math.PI * 4) * 0.6 + Math.cos(v * Math.PI * 2) * 0.8;
-        lift += (Math.random() * 2) - 0.5;
+        lift +=
+          Math.sin(u * Math.PI * 4) * 0.6 + Math.cos(v * Math.PI * 2) * 0.8;
+        lift += Math.random() * 2 - 0.5;
 
         // Perspective
-        const scale = 1 - (v * 0.25);
-        
+        const scale = 1 - v * 0.25;
+
         dots.push({
           x: 12 + (u - 0.5) * 24 * scale,
           y: 20 - v * 12,
           targetY: 20 - v * 12 - lift,
-          lift, u, v
+          lift,
+          u,
+          v,
         });
       }
     }
@@ -146,7 +230,9 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
     for (let i = 0; i < GRID; i++) {
       for (let j = 0; j < GRID; j++) {
         const idx = getIdx(i, j);
-        const dist = Math.sqrt(Math.pow(dots[idx].u - 0.5, 2) + Math.pow(dots[idx].v - 0.5, 2));
+        const dist = Math.sqrt(
+          Math.pow(dots[idx].u - 0.5, 2) + Math.pow(dots[idx].v - 0.5, 2),
+        );
 
         // Lines
         if (i < GRID - 1) lines.push({ from: idx, to: getIdx(i + 1, j), dist });
@@ -154,9 +240,13 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
 
         // Quads (Surface Fill)
         if (i < GRID - 1 && j < GRID - 1) {
-          const p1 = getIdx(i, j), p2 = getIdx(i + 1, j), p3 = getIdx(i + 1, j + 1), p4 = getIdx(i, j + 1);
-          const avgLift = (dots[p1].lift + dots[p2].lift + dots[p3].lift + dots[p4].lift) / 4;
-          
+          const p1 = getIdx(i, j),
+            p2 = getIdx(i + 1, j),
+            p3 = getIdx(i + 1, j + 1),
+            p4 = getIdx(i, j + 1);
+          const avgLift =
+            (dots[p1].lift + dots[p2].lift + dots[p3].lift + dots[p4].lift) / 4;
+
           // Brightness based on height
           const norm = Math.max(0, Math.min(1, (avgLift + 2) / 18));
           const opacity = Math.pow(norm, 1.5) * 1.5 + 0.5;
@@ -175,77 +265,128 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
       return;
     }
 
-    const timing = (anim, to, dur, easing = Easing.linear) => 
-      Animated.timing(anim, { toValue: to, duration: dur, easing, useNativeDriver: true });
-    
-    const seq = (delay, anim) => Animated.sequence([Animated.delay(delay), anim]);
+    const timing = (
+      anim: Animated.Value,
+      to: number,
+      dur: number,
+      easing = Easing.linear,
+    ) =>
+      Animated.timing(anim, {
+        toValue: to,
+        duration: dur,
+        easing,
+        useNativeDriver: true,
+      });
 
-    Animated.loop(Animated.sequence([
-      // Reset
-      Animated.parallel([
-        timing(liftAnim, 0, 0), timing(lineAnim, 0, 0), 
-        timing(vanishAnim, 1, 0), timing(fillAnim, 0, 0)
+    const seq = (delay: number, anim: Animated.CompositeAnimation) =>
+      Animated.sequence([Animated.delay(delay), anim]);
+
+    Animated.loop(
+      Animated.sequence([
+        // Reset
+        Animated.parallel([
+          timing(liftAnim, 0, 0),
+          timing(lineAnim, 0, 0),
+          timing(vanishAnim, 1, 0),
+          timing(fillAnim, 0, 0),
+        ]),
+        // Build Up
+        Animated.parallel([
+          timing(liftAnim, 1, 800, Easing.out(Easing.quad)),
+          seq(200, timing(lineAnim, 1, 800)),
+          seq(800, timing(vanishAnim, 0, 600, Easing.in(Easing.quad))),
+          seq(1000, timing(fillAnim, 1, 800, Easing.out(Easing.quad))),
+        ]),
+        // Tear Down
+        Animated.parallel([
+          timing(fillAnim, 0, 600),
+          timing(vanishAnim, 1, 600),
+          seq(200, timing(liftAnim, 0, 800, Easing.inOut(Easing.cubic))),
+          seq(400, timing(lineAnim, 0, 600)),
+        ]),
+        Animated.delay(200),
       ]),
-      // Build Up
-      Animated.parallel([
-        timing(liftAnim, 1, 800, Easing.out(Easing.quad)),
-        seq(200, timing(lineAnim, 1, 800)),
-        seq(800, timing(vanishAnim, 0, 600, Easing.in(Easing.quad))),
-        seq(1000, timing(fillAnim, 1, 800, Easing.out(Easing.quad)))
-      ]),
-      // Tear Down
-      Animated.parallel([
-        timing(fillAnim, 0, 600),
-        timing(vanishAnim, 1, 600),
-        seq(200, timing(liftAnim, 0, 800, Easing.inOut(Easing.cubic))),
-        seq(400, timing(lineAnim, 0, 600))
-      ]),
-      Animated.delay(200)
-    ])).start();
-  }, [isLandscapeLoading]);
+    ).start();
+  }, [isLandscapeLoading, liftAnim, lineAnim, vanishAnim, fillAnim]);
 
   if (!isLandscapeLoading) return null;
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={StyleSheet.absoluteFill} pointerEvents='none'>
       <View style={styles.loadingOverlay}>
-        <Svg width={size} height={size} viewBox="-8 -8 40 40" fill="none">
-          
+        <Svg width={size} height={size} viewBox='-8 -8 40 40' fill='none'>
           {/* Surface Fill */}
           {quads.map((q, i) => {
-            const pts = q.points.map(idx => `${dots[idx].x},${dots[idx].targetY}`).join(' ');
+            const pts = q.points
+              .map((idx: number) => `${dots[idx].x},${dots[idx].targetY}`)
+              .join(' ');
             const opacity = fillAnim.interpolate({
               inputRange: [0, q.v * 0.4, q.v * 0.4 + 0.2, 1],
               outputRange: [0, 0, q.opacity, q.opacity],
-              extrapolate: 'clamp'
+              extrapolate: 'clamp',
             });
-            return <AnimatedPolygon key={`q${i}`} points={pts} fill={useIconColor()} opacity={opacity} />;
+            return (
+              <AnimatedPolygon
+                key={`q${i}`}
+                points={pts}
+                fill={useIconColor()}
+                opacity={opacity}
+              />
+            );
           })}
 
           {/* Lines */}
           {lines.map((l, i) => {
-            const start = dots[l.from], end = dots[l.to];
+            const start = dots[l.from],
+              end = dots[l.to];
             const opacity = Animated.multiply(
               lineAnim.interpolate({
-                inputRange: [0, Math.max(0, 1 - l.dist/0.7 - 0.2), Math.min(1, 1 - l.dist/0.7 + 0.1), 1],
-                outputRange: [0, 0, 0.4, 0.4], extrapolate: 'clamp'
+                inputRange: [
+                  0,
+                  Math.max(0, 1 - l.dist / 0.7 - 0.2),
+                  Math.min(1, 1 - l.dist / 0.7 + 0.1),
+                  1,
+                ],
+                outputRange: [0, 0, 0.4, 0.4],
+                extrapolate: 'clamp',
               }),
-              vanishAnim
+              vanishAnim,
             );
             return (
-              <AnimatedLine key={`l${i}`}
-                x1={start.x} x2={end.x} stroke={useIconColor()} strokeWidth="0.3" opacity={opacity}
-                y1={liftAnim.interpolate({ inputRange: [0, 1], outputRange: [start.y, start.targetY] })}
-                y2={liftAnim.interpolate({ inputRange: [0, 1], outputRange: [end.y, end.targetY] })}
+              <AnimatedLine
+                key={`l${i}`}
+                x1={start.x}
+                x2={end.x}
+                stroke={useIconColor()}
+                strokeWidth='0.3'
+                opacity={opacity}
+                y1={liftAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [start.y, start.targetY],
+                })}
+                y2={liftAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [end.y, end.targetY],
+                })}
               />
             );
           })}
 
           {/* Dots */}
           {dots.map((d, i) => (
-            <AnimatedCircle key={`d${i}`} cx={d.x} fill={useIconColor()} opacity={vanishAnim}
-              cy={liftAnim.interpolate({ inputRange: [0, 1], outputRange: [d.y, d.targetY] })}
-              r={vanishAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] })}
+            <AnimatedCircle
+              key={`d${i}`}
+              cx={d.x}
+              fill={useIconColor()}
+              opacity={vanishAnim}
+              cy={liftAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [d.y, d.targetY],
+              })}
+              r={vanishAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.4],
+              })}
             />
           ))}
         </Svg>
@@ -258,46 +399,47 @@ const AnimatedPath = makeAnimated(Path);
 
 export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
   const progressAnim = React.useRef(new Animated.Value(0)).current;
-  const iconColor = useIconColor(); 
+  const iconColor = useIconColor();
 
   const pathData = React.useMemo(() => {
     if (numPathsLoading === 0) return [];
-    
+
     const count = Math.min(numPathsLoading, 5);
     const data = [];
 
     const centerX = 100;
-    const centerY = 150; 
+    const centerY = 150;
 
     for (let i = 0; i < count; i++) {
-      const rand1 = Math.random() * 2 - 1; 
+      const rand1 = Math.random() * 2 - 1;
       const rand2 = Math.random() * 2 - 1;
 
       // Perspective End Points
-      const endAngle = (i * 2 * Math.PI) / count + (Math.PI / 4) + (rand1 * 0.5); 
-      const endRadiusX = count === 1 ? 0 : 20 + (rand2 * 5); 
-      const endRadiusY = count === 1 ? 0 : 6 + (rand1 * 2);  
-      
-      const end = { 
-        x: centerX + endRadiusX * Math.cos(endAngle), 
-        y: centerY + endRadiusY * Math.sin(endAngle) 
+      const endAngle = (i * 2 * Math.PI) / count + Math.PI / 4 + rand1 * 0.5;
+      const endRadiusX = count === 1 ? 0 : 20 + rand2 * 5;
+      const endRadiusY = count === 1 ? 0 : 6 + rand1 * 2;
+
+      const end = {
+        x: centerX + endRadiusX * Math.cos(endAngle),
+        y: centerY + endRadiusY * Math.sin(endAngle),
       };
 
       // Horizon Start Points
-      const startAngle = count === 1 
-        ? 1.25 * Math.PI 
-        : Math.PI + (Math.PI / (count + 1)) * (i + 1);
-        
+      const startAngle =
+        count === 1
+          ? 1.25 * Math.PI
+          : Math.PI + (Math.PI / (count + 1)) * (i + 1);
+
       const startRadius = 90;
       const start = {
         x: centerX + startRadius * Math.cos(startAngle),
-        y: centerY - 40 + startRadius * Math.sin(startAngle), 
+        y: centerY - 40 + startRadius * Math.sin(startAngle),
       };
 
       // Control point for Quadratic Bezier
       const cp = {
-        x: start.x * 0.4 + end.x * 0.6 + (rand1 * 30), 
-        y: centerY + 20 + (rand2 * 20), 
+        x: start.x * 0.4 + end.x * 0.6 + rand1 * 30,
+        y: centerY + 20 + rand2 * 20,
       };
 
       const numSteps = 50;
@@ -309,28 +451,30 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
       let pathLen = 0;
       let lastPt = start;
 
-      const waveFreq = 6 + (rand1 * 3);
-      const waveAmp = 8 + (rand2 * 3);
+      const waveFreq = 6 + rand1 * 3;
+      const waveAmp = 8 + rand2 * 3;
 
       for (let step = 0; step <= numSteps; step++) {
         const t = step / numSteps;
         inputRange.push(t);
 
         const invT = 1 - t;
-        const baseX = invT * invT * start.x + 2 * invT * t * cp.x + t * t * end.x;
-        const baseY = invT * invT * start.y + 2 * invT * t * cp.y + t * t * end.y;
+        const baseX =
+          invT * invT * start.x + 2 * invT * t * cp.x + t * t * end.x;
+        const baseY =
+          invT * invT * start.y + 2 * invT * t * cp.y + t * t * end.y;
 
         const dX = 2 * invT * (cp.x - start.x) + 2 * t * (end.x - cp.x);
         const dY = 2 * invT * (cp.y - start.y) + 2 * t * (end.y - cp.y);
         const length = Math.hypot(dX, dY);
-        
-        const nx = -dY / length; 
+
+        const nx = -dY / length;
         const ny = dX / length;
 
-        const rawWave = Math.sin(t * Math.PI * waveFreq); 
-        const perspectiveScale = waveAmp * (1 - t * 0.8); 
-        const wave = rawWave * perspectiveScale; 
-        
+        const rawWave = Math.sin(t * Math.PI * waveFreq);
+        const perspectiveScale = waveAmp * (1 - t * 0.8);
+        const wave = rawWave * perspectiveScale;
+
         const ptX = baseX + nx * wave;
         const ptY = baseY + ny * wave;
 
@@ -350,9 +494,16 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
       }
 
       // Convert accumulated lengths to exact dash offsets (Total Length - Distance Traveled)
-      const outputDash = accumulatedLengths.map(len => pathLen - len);
+      const outputDash = accumulatedLengths.map((len) => pathLen - len);
 
-      data.push({ inputRange, outputX, outputY, outputDash, pathString, pathLen });
+      data.push({
+        inputRange,
+        outputX,
+        outputY,
+        outputDash,
+        pathString,
+        pathLen,
+      });
     }
     return data;
   }, [numPathsLoading]);
@@ -364,12 +515,12 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
         Animated.sequence([
           Animated.timing(progressAnim, {
             toValue: 1,
-            duration: 1800, 
-            easing: Easing.inOut(Easing.ease), 
+            duration: 1800,
+            easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.delay(400),
-        ])
+        ]),
       ).start();
     } else {
       progressAnim.stopAnimation();
@@ -379,13 +530,21 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
   if (numPathsLoading === 0) return null;
 
   return (
-    <View style={[{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }]}>
-      <Svg width="100%" height="100%" viewBox="0 0 200 200" fill="none">
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+      ]}
+    >
+      <Svg width='100%' height='100%' viewBox='0 0 200 200' fill='none'>
         {pathData.map((path, index) => {
-          
           const dashOffset = progressAnim.interpolate({
             inputRange: path.inputRange,
-            outputRange: path.outputDash, 
+            outputRange: path.outputDash,
           });
 
           const dotX = progressAnim.interpolate({
@@ -407,19 +566,19 @@ export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
               <AnimatedPath
                 d={path.pathString}
                 stroke={iconColor}
-                strokeWidth="2.5"
+                strokeWidth='2.5'
                 strokeDasharray={`${path.pathLen} ${path.pathLen}`}
                 strokeDashoffset={dashOffset}
-                strokeLinecap="round"
-                strokeLinejoin="round" 
+                strokeLinecap='round'
+                strokeLinejoin='round'
                 opacity={opacity}
               />
-              <AnimatedCircle 
-                cx={dotX} 
-                cy={dotY} 
-                r="5" 
-                fill={iconColor} 
-                opacity={opacity} 
+              <AnimatedCircle
+                cx={dotX}
+                cy={dotY}
+                r='5'
+                fill={iconColor}
+                opacity={opacity}
               />
             </React.Fragment>
           );
