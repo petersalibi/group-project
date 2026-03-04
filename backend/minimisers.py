@@ -1,8 +1,10 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from utils import print_progress_bar, flatten_params
+from utils import print_progress_bar, flatten_params, jump_count, generate_random_points
 from network import NetworkParams, TrainingDataType, TrainingData, Model
+from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 class MinimiserParams:
     def __init__(self,
@@ -174,7 +176,100 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
     fidelity = plane_path_length / (full_path_length + 1e-12) # avoid div by zero
     return fidelity, loss_path
 
+import numpy as np
+from sklearn.model_selection import train_test_split
 
+def create_instability_vectors(params, model : callable, Xtrain : np.ndarray, Ytrain : np.ndarray, Xtest : np.ndarray = None,
+                               change_func : callable = jump_count, n_iterations : int = 10, 
+                               condense : bool = False) -> np.ndarray :
+  
+    # If no argument for testing points assume entire dataset is training and we train on random points within the range
+    if Xtest is None :
+        Xtest = generate_random_points(Xtrain, n = len(Xtrain))
+  
+    # Stores expected instability across all iterations
+    expected_instability_table = np.zeros((n_iterations, len(Xtest)))
+    
+    for global_iter in range(n_iterations) : 
+        
+        optimiser = params.optimiser(model.parameters(), lr=params.learning_rate) 
+        
+        # Reset the model weights without needing a new variable
+        model.apply(lambda m: m.reset_parameters() if hasattr(m, 'reset_parameters') else None)
+        
+        # Storing all the function valuations to calculate jumps
+        instability_table = np.zeros(( params.epochs + 1, len(Xtest) ))
+        
+        for training_iter in range(params.epochs + 1) :
+            
+            # Evaluation mode to avoid accidentally training here
+            model.eval()
+            with torch.no_grad() :
+                raw_predictions = model(Xtest).cpu().numpy()
+                
+                predictions = np.argmax(raw_predictions, axis = 1)
+                
+                instability_table[training_iter] = predictions.ravel()
+                
+            model.train()
+            if training_iter != params.epochs : # Avoid wasting time
+                optimiser.zero_grad()
+                loss = params.loss(model(Xtrain), Ytrain)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                optimiser.step()
+                
+        # Apply the function to determine how volatile each point is
+        instabilities = change_func(instability_table, axis = 0)
+        
+        expected_instability_table[global_iter] = instabilities
+    
+    # Determine if we just want the expected instability across points 
+    if condense : 
+        # Expected instability across all the iterations
+        expected_instability_table = np.mean(expected_instability_table, axis = 0)
+
+    return expected_instability_table
+
+from sklearn.neighbors import KNeighborsRegressor
+
+def instability_knn(params, model : callable, X : np.ndarray, Y : np.ndarray, change_func : callable = jump_count,
+                    k : int = 5, test_size : float = 0.5, type_leniency : bool = True,
+                    uses_pca : bool = False, pca_k : int = 2) -> None :
+    
+    # # Slacking on types - will incur testing debt later!
+    # if type_leniency :
+    #     X, Y = [obj.cpu().numpy() if isinstance(obj, torch.Tensor) else np.array(obj) for obj in [X, Y]]
+    # else :
+    #     for obj in [X,Y] :     # No fuzziness is permitted.
+    #         assert isinstance(obj, np.ndarray)
+    
+    Xtrain, Xtest, Ytrain, _ = train_test_split(X, Y, test_size = test_size)
+    
+    instabilities = create_instability_vectors(params, model, Xtrain, Ytrain, Xtest, change_func, 10, True)
+    
+    if uses_pca :
+        pipeline = Pipeline([
+            ("pca", PCA(n_components=pca_k)),
+            ("knn", KNeighborsRegressor(n_neighbors=k))
+        ])
+        pipeline.fit(Xtest, instabilities)
+        return pipeline
+            
+    # Renaming them for clarity - since the test data for creating instability is now needed to teach the model
+    # where instability lies, hence unseen data becomes new training data
+    P_train = Xtest
+    Q_train = instabilities
+    
+    knn = KNeighborsRegressor(n_neighbors = k)
+    knn.fit(P_train, Q_train)
+    
+    return knn
+
+
+    
+    
+    
 
 def _params_from_plane(model, theta0, dir1, dir2, a, b):
     pos = theta0 + a * dir1 + b * dir2
@@ -198,3 +293,5 @@ def _load_flat_params(model, flat_params):
 
 def _clamp(x, lo=-1.0, hi=1.0):
     return max(lo, min(hi, float(x)))
+
+

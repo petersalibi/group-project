@@ -3,9 +3,12 @@ import numpy as np
 from matplotlib import cm
 from matplotlib.animation import FuncAnimation
 from losslandscape import generate_loss_landscape, LandscapeParams, VisualisationMethod, TrainingDataType
-from minimisers import animate_optimiser, MinimiserParams, convert_plane_coordinates
+from minimisers import animate_optimiser, MinimiserParams, convert_plane_coordinates, instability_knn, create_instability_vectors
 from directions import get_pca_directions
-from network import NetworkParams
+from network import NetworkParams, Model
+
+from sklearn.model_selection import train_test_split
+from network import TrainingData
 
 # pre-generated testcases
 from testcases import *
@@ -110,13 +113,20 @@ print(f"pca_direction_x: {pca_directions[0]}")
 print(f"pca_direction_y: {pca_directions[1]}")
 
 
-truepath =get_pca_directions(None, paths["parameters_path"], transformed_points= True)
+# truepath =get_pca_directions(None, paths["parameters_path"], transformed_points= True)
 
-animate_landscape([pca_landscape["surface"], 
-                pca_landscape["surface_log"]], 
-                pca_landscape["x_axis"], 
-                pca_landscape["y_axis"], 
-                truepath, fidelity)
+# animate_landscape([pca_landscape["surface"], 
+#                 pca_landscape["surface_log"]], 
+#                 pca_landscape["x_axis"], 
+#                 pca_landscape["y_axis"], 
+#                 truepath, fidelity)
+
+new_model = Model(minimiser_params.network, 1, 1)
+
+data =  TrainingData(TrainingDataType.SINREGRESSION)
+knn = instability_knn(minimiser_params, new_model, data.X, data.y )
+
+
 
 # minimiser_params = MinimiserParams(
 #     network=params.network,

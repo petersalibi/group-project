@@ -128,3 +128,8 @@ def prepare_param_structure(model):
         start += sz
 
     return params, shapes, slices
+
+    
+    
+    
+    
