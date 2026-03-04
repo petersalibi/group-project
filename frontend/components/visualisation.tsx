@@ -29,8 +29,6 @@ import {
   Minimize2,
   RotateCcw,
   RefreshCw,
-  Eye,
-  Network,
   Palette,
   Plus,
   Upload,
