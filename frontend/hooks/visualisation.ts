@@ -132,6 +132,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     lossChange,
     fidelity,
     parametersArrayRef,
+    fidelityArrayRef,
     handleLoadAllPathsButtonClick,
     loadRegenPath,
     handleRemovePath,
@@ -226,7 +227,55 @@ export function useVisualisation(props: UseVisualisationProps) {
       renderer.render(scene, camera);
     };
 
-    animate();
+    const {
+      isPathLoading,
+      isPathLoaded,
+      isPlaying,
+      progress,
+      currentFrame,
+      totalFrames,
+      isPlacingMode,
+      placingPathId,
+      currentParams,
+      viewId,
+      currentLoss,
+      lossChange,
+      fidelity,
+      markersRef,
+      parametersArrayRef,
+      fidelityArrayRef,
+      handleLoadAllPathsButtonClick,
+      loadRegenPath,
+      handleRemovePath,
+      handleClearPaths,
+      togglePlayPause,
+      handleSkipBack,
+      handleSkipForward,
+      togglePlacingMode,
+      onViewPath,
+    } = usePathVisualisations({
+      activation,
+      depth,
+      width,
+      data,
+      csv,
+      loss,
+      setLog,
+      minMaxLoss,
+      zScale: zValue,
+      pathConfigs,
+      onPathConfigChange,
+      disposeObject,
+      sceneRef,
+      cameraRef,
+      rendererRef,
+      controlsRef,
+      meshRef,
+      raycasterRef,
+      clockRef,
+      rafRef,
+      dictRef,
+    });
 
     // Resize Logic
     const onResize = () => {
@@ -353,9 +402,45 @@ export function useVisualisation(props: UseVisualisationProps) {
       setZValue(val);
       if (meshRef.current) {
         meshRef.current.scale.z = val;
+        meshRef.current.updateMatrixWorld();
+
+        // Update placed markers
+        if (markersRef.current) {
+          const downDir = new THREE.Vector3(0, -1, 0);
+          const dropRaycaster = new THREE.Raycaster();
+
+          Object.values(markersRef.current).forEach((marker: any) => {
+            if (!marker || !marker.ball || !marker.ball.visible) return;
+
+            // Grab the 2D floor coordinates of the existing marker
+            const currentX = marker.ball.position.x;
+            const currentZ = marker.ball.position.z;
+
+            // Shoot a ray from high above that exact spot straight down
+            dropRaycaster.set(
+              new THREE.Vector3(currentX, 100, currentZ),
+              downDir,
+            );
+
+            const intersects = dropRaycaster.intersectObject(meshRef.current);
+
+            if (intersects.length > 0) {
+              const hit = intersects[0];
+
+              TEMP_HIT_VECTOR.copy(hit.point).add(LINE_TOP_OFFSET);
+              marker.ball.position.copy(TEMP_HIT_VECTOR);
+
+              (marker.line.geometry as THREE.BufferGeometry).setFromPoints([
+                hit.point,
+                TEMP_HIT_VECTOR,
+              ]);
+              marker.line.computeLineDistances();
+            }
+          });
+        }
       }
     },
-    [isPathLoaded],
+    [isPathLoaded, markersRef],
   );
 
   const handleLogPlotToggle = useCallback(() => {
@@ -416,15 +501,21 @@ export function useVisualisation(props: UseVisualisationProps) {
 
       // Save the original parameters before wiping the arrays
       const savedParams = parametersArrayRef.current[pathId];
+      const savedFidelity = fidelityArrayRef.current[pathId];
 
       await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
 
       if (regenPathRef.current) {
-        loadRegenPath(savedParams, regenPathRef.current);
+        loadRegenPath(savedParams, savedFidelity, regenPathRef.current);
         return true;
       }
     },
-    [loadAndBuildLandscape, parametersArrayRef, loadRegenPath],
+    [
+      loadAndBuildLandscape,
+      parametersArrayRef,
+      fidelityArrayRef,
+      loadRegenPath,
+    ],
   );
 
   return {

@@ -446,13 +446,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         );
         parametersArrayRef.current[index] = parameters_arr;
         const curve2D = new THREE.SplineCurve(twoDPoints);
-        path2DArrayRef.current[index] = curve2D
-          .getSpacedPoints(500)
-          .map((p) => {
-            p.x = Math.max(-1, Math.min(1, p.x));
-            p.y = Math.max(-1, Math.min(1, p.y));
-            return p;
-          });
+        path2DArrayRef.current[index] = curve2D.getSpacedPoints(500);
 
         // Create the geometry, line, and ball for this path
         updatePathGeometry(mesh, index, true);
@@ -514,11 +508,9 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   ]);
 
   const loadRegenPath = useCallback(
-    (savedParams: number[][], newPath2D: number[][]) => {
+    (savedParams: number[][], savedFidelity: number, newPath2D: number[][]) => {
       const mesh = meshRef.current;
       if (!mesh) return;
-
-      console.log(savedParams);
 
       handleRemoveAllPaths();
 
@@ -526,9 +518,14 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
 
       // Inject the data into index 0
       parametersArrayRef.current[0] = savedParams;
+      fidelityArrayRef.current[0] = savedFidelity;
 
       const twoDPoints = newPath2D.map((p) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
+
+      path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
+        return p;
+      });
 
       path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
         p.x = Math.max(-1, Math.min(1, p.x));
@@ -1045,7 +1042,9 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     currentLoss,
     lossChange,
     fidelity,
+    markersRef,
     parametersArrayRef,
+    fidelityArrayRef,
     handleLoadAllPathsButtonClick,
     loadRegenPath,
     handleRemovePath,
