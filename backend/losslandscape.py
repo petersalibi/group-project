@@ -33,12 +33,24 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     
     dir1, dir2, pca_trajectories = get_directions(model, landscape_params.method, landscape_params.args)
     
-    k=1
+    # Give some breathing room - k controls how much zoom in/out we want
+    k=1.1
     pca_mean = None
     if landscape_params.method == VisualisationMethod.PCAMINIMISER :
 
-        landscape_params.scale = [k*pca_trajectories[:, 0].min(), k*pca_trajectories[:, 0].max(),
-                                  k*pca_trajectories[: , 1].min(), k*pca_trajectories[:, 1].max()]
+        # It needs to be a square plot so we will pick out the absolute lowest and absolute highest, applying to both dimensions
+        bounds = k * np.array([pca_trajectories[:, 0].min(), pca_trajectories[:, 0].max(), pca_trajectories[: , 1].min(),
+                            pca_trajectories[:, 1].max() ])
+        
+        lowest, highest = bounds.min(), bounds.max()
+
+        # Force a square plot
+        landscape_params.scale = [lowest, highest,
+                                  lowest, highest]
+        
+        # Old code - this was for rectangular plot generation, keeping for posterity
+        # landscape_params.scale = [k*pca_trajectories[:, 0].min(), k*pca_trajectories[:, 0].max(),
+        #                           k*pca_trajectories[: , 1].min(), k*pca_trajectories[:, 1].max()]
         
         # args contains your list of 300 weight vectors
         traj_tensors = [torch.tensor(p) for p in landscape_params.args]
