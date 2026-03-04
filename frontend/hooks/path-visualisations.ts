@@ -421,10 +421,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         }
 
         const pathData = resp.data;
-        const path_arr =
-          pathData.minimiser_path?.data ?? pathData.minimiser_path;
-        const parameters_arr =
-          pathData.parameters_path?.data ?? pathData.parameters_path;
+        const path_arr = pathData.minimiser_path?.data ?? pathData.minimiser_path;
+        const parameters_arr = pathData.parameters_path?.data ?? pathData.parameters_path;
         fidelityArrayRef.current[index] = pathData.fidelity;
 
         if (!Array.isArray(path_arr) || path_arr.length < 2) {
@@ -441,11 +439,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
         );
         parametersArrayRef.current[index] = parameters_arr;
         const curve2D = new THREE.SplineCurve(twoDPoints);
-        path2DArrayRef.current[index] = curve2D
-          .getSpacedPoints(500)
-          .map((p) => {
-            return p;
-          });
+        path2DArrayRef.current[index] = curve2D.getSpacedPoints(500)
 
         // Create the geometry, line, and ball for this path
         updatePathGeometry(mesh, index, true);
@@ -974,6 +968,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps){
     currentLoss,
     lossChange,
     fidelity,
+    markersRef,
     parametersArrayRef,
     fidelityArrayRef,
     handleLoadAllPathsButtonClick,

@@ -131,6 +131,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         currentLoss,
         lossChange,
         fidelity,
+        markersRef,
         parametersArrayRef,
         fidelityArrayRef,
         handleLoadAllPathsButtonClick,
@@ -342,9 +343,40 @@ export function useVisualisation(props: UseVisualisationProps) {
     const handleZChange = useCallback((val: number) => {
         setZValue(val);
         if (meshRef.current) {
+
             meshRef.current.scale.z = val;
-        }
-    }, [isPathLoaded] );
+            meshRef.current.updateMatrixWorld();
+
+            // Update placed markers
+            if (markersRef.current) {
+                const downDir = new THREE.Vector3(0, -1, 0);
+                const dropRaycaster = new THREE.Raycaster();
+
+                Object.values(markersRef.current).forEach((marker: any) => {
+                    if (!marker || !marker.ball || !marker.ball.visible) return;
+
+                    // Grab the 2D floor coordinates of the existing marker
+                    const currentX = marker.ball.position.x;
+                    const currentZ = marker.ball.position.z; 
+
+                    // Shoot a ray from high above that exact spot straight down
+                    dropRaycaster.set(new THREE.Vector3(currentX, 100, currentZ), downDir);
+                    
+                    const intersects = dropRaycaster.intersectObject(meshRef.current);
+                    
+                    if (intersects.length > 0) {
+                        const hit = intersects[0];
+                        
+                        TEMP_HIT_VECTOR.copy(hit.point).add(LINE_TOP_OFFSET);
+                        marker.ball.position.copy(TEMP_HIT_VECTOR);
+                        
+                        (marker.line.geometry as THREE.BufferGeometry).setFromPoints([hit.point, TEMP_HIT_VECTOR]);
+                        marker.line.computeLineDistances();
+                    }
+                });
+            }
+            }
+    }, [isPathLoaded, markersRef] );
 
     const handleLogPlotToggle = useCallback(() => {
         if (!sceneRef.current) return;
@@ -399,7 +431,6 @@ export function useVisualisation(props: UseVisualisationProps) {
         }
 
         const pathParameters = parametersArrayRef.current[pathId];
-        const pathFidelity = fidelityArrayRef.current[pathId];
 
         // Save the original parameters before wiping the arrays
         const savedParams = parametersArrayRef.current[pathId];
