@@ -24,7 +24,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, log, isPath
                 <StatsCard 
                   label="Current Loss" 
                   value={currentLoss !== null ? currentLoss.toFixed(2) : "0.00"} 
-                  subText={lossChange === 0 ? "" : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
+                  subText={!lossChange || lossChange === 0 ? "" : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
                   subColor={lossChange > 0 ? "#e80c0c" : "#22c55e"}
                   valueTooltip='The loss of the neural network at the current position of the optimiser.'
                   subTextTooltip='The change in loss over the last 10 epochs.'
@@ -47,21 +47,23 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, log, isPath
       )}
       
       {/* Live Log Section */}
-      <View style={[styles.logContainer, { backgroundColor: logBgColor, borderColor: logBorderColor }]}>
-        <Text style={styles.logLabel}>LIVE PARAMETER LOG</Text>
-        <ScrollView 
-          ref={scrollViewRef}
-          style={{ flex: 1 }} 
-          contentContainerStyle={{ gap: 2 }}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        >
-          {log.map((entry, index) => (
-            <Text key={index} style={[styles.logEntry, { color: logTextColor }]}>              
-              {entry}
-            </Text>
-          ))}
-        </ScrollView>
-      </View>
+      {log && (
+        <View style={[styles.logContainer, { backgroundColor: logBgColor, borderColor: logBorderColor }]}>
+          <Text style={styles.logLabel}>LIVE PARAMETER LOG</Text>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={{ flex: 1 }} 
+            contentContainerStyle={{ gap: 2 }}
+            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          >
+            {log.map((entry, index) => (
+              <Text key={index} style={[styles.logEntry, { color: logTextColor }]}>              
+                {entry}
+              </Text>
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 }

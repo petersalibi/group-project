@@ -481,3 +481,97 @@ export function cleanupScene(
     console.warn('Error during scene cleanup:', err);
   }
 }
+
+/**
+ * Generates a synthetic dataset for the MSE Loss bowl to be used with createLandscapeMesh.
+ */
+export function generateMSEData(gridSize: number = 20) {
+  const zGrid: number[][] = [];
+  const xs: number[] = [];
+  const ys: number[] = [];
+
+  // Generate the 0.0 to 1.0 axis steps
+  for (let i = 0; i <= gridSize; i++) {
+    xs.push(i / gridSize);
+    ys.push(i / gridSize);
+  }
+
+  // Generate the loss (Z) values for every combination of weight and bias
+  for (let j = 0; j <= gridSize; j++) {
+    const row: number[] = [];
+    for (let i = 0; i <= gridSize; i++) {
+      const w = xs[i];
+      const b = ys[j];
+      // Calculate distance from optimal point (0.5, 0.5)
+      const dist = Math.sqrt(Math.pow(w - 0.5, 2) + Math.pow(b - 0.5, 2));
+      const loss = Math.min(1, dist * 1.5);
+      row.push(loss);
+    }
+    zGrid.push(row);
+  }
+
+  return { surface: zGrid, x_axis: xs, y_axis: ys };
+}
+
+/**
+ * Updates the mesh visibility to create a "fog of war" effect based on visited coordinates.
+ */
+export function updateLandscapeVisibility(
+  mesh: THREE.Mesh,
+  visited: Set<string>,
+  isDone: boolean,
+  gridSize: number
+) {
+  if (!mesh || !mesh.geometry || !mesh.geometry.attributes.color) return;
+  const geom = mesh.geometry as THREE.PlaneGeometry;
+  const posAttr = geom.attributes.position;
+  const colAttr = geom.attributes.color;
+
+  // Calculate the Z range to properly map the colors
+  const zs = [];
+  for (let k = 0; k < posAttr.count; k++) zs.push(posAttr.getZ(k));
+  const minZ = Math.min(...zs);
+  const maxZ = Math.max(...zs);
+  const range = maxZ - minZ || 1;
+
+  const RAINBOW = ['#9333ea', '#3b82f6', '#22d3ee', '#4ade80', '#eab308', '#ef4444'];
+  const segmentCount = RAINBOW.length - 1;
+  const _c1 = new THREE.Color();
+  const _c2 = new THREE.Color();
+  const _finalColor = new THREE.Color();
+  const _hiddenColor = new THREE.Color('#0a0a0a'); // Background color for hidden areas
+
+  let v = 0;
+  for (let j = 0; j <= gridSize; j++) {
+    for (let i = 0; i <= gridSize; i++) {
+      // PlaneGeometry builds from top-left, so we map to our grid coordinates
+      const row = gridSize - j;
+      const col = i;
+
+      // Unhide if the cell itself or any immediate neighbor is visited
+      const isVisible = isDone || 
+        visited.has(`${col}-${row}`) ||
+        visited.has(`${Math.max(0, col-1)}-${row}`) ||
+        visited.has(`${col}-${Math.max(0, row-1)}`) ||
+        visited.has(`${Math.min(gridSize, col+1)}-${row}`) ||
+        visited.has(`${col}-${Math.min(gridSize, row+1)}`);
+
+      const zVal = posAttr.getZ(v);
+      const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
+
+      if (isVisible) {
+        const scaledT = t * segmentCount;
+        const index = Math.floor(scaledT);
+        const localT = scaledT - index;
+        _c1.set(RAINBOW[Math.min(index, segmentCount)]);
+        _c2.set(RAINBOW[Math.min(index + 1, segmentCount)]);
+        _finalColor.copy(_c1).lerp(_c2, localT);
+        colAttr.setXYZ(v, _finalColor.r, _finalColor.g, _finalColor.b);
+      } else {
+        colAttr.setXYZ(v, _hiddenColor.r, _hiddenColor.g, _hiddenColor.b);
+      }
+      v++;
+    }
+  }
+  colAttr.needsUpdate = true;
+}

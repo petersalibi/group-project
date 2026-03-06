@@ -6,6 +6,7 @@ import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
 import { Button } from '../components/button'; 
 import { CurriculumMenu } from '../components/curriculum-menu';
+import { LossPage } from './LossPage';
 import { LandscapeGenerationPage } from './LandscapeGenerationPage';
 import { GDPage } from './GDPage';
 import { LearningPage } from './LearningPage';
@@ -292,6 +293,17 @@ export function VisualisationPage() {
           </Animated.View>
         )}
 
+        {/* 2. LOSS PAGE */}
+        {currentPage === 'loss' && (
+          <Animated.View 
+            entering={FadeIn.duration(300)} 
+            exiting={FadeOut.duration(300)}
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+          >
+             <LossPage />
+          </Animated.View>
+        )}
+
         {/* 3. GRADIENT DESCENT PAGE */}
         {currentPage === 'gd' && (
           <Animated.View 
@@ -315,7 +327,7 @@ export function VisualisationPage() {
         )}
 
         {/* 5. LOCKED/FALLBACK PAGE */}
-        {currentPage !== 'visualisations' && currentPage !== 'learning' && currentPage !== 'gd' && currentPage !== 'landscape' && (
+        {currentPage !== 'visualisations' && currentPage !== 'learning' && currentPage !== 'loss' && currentPage !== 'gd' && currentPage !== 'landscape' && (
           <Animated.View 
             entering={FadeIn.duration(300)} 
             exiting={FadeOut.duration(300)}
