@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Platform,
   View,
@@ -54,15 +54,12 @@ export function LossPage() {
   const [isMaximized, setIsMaximized] = useState(false);
 
   // Heatmap State
-  const [weight, setWeight] = useState(0);
-  const [bias, setBias] = useState(0);
+  const [weight, setWeight] = useState(-1);
+  const [bias, setBias] = useState(-1);
   const [isDone, setIsDone] = useState(false);
   const [isHeld, setIsHeld] = useState(false);
   const [is3D, setIs3D] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  // Calculate live loss
-  const currentLoss = Math.sqrt(Math.pow(weight - 0.5, 2) + Math.pow(bias - 0.5, 2));
 
   // Success Box Animation
   const scale = useSharedValue(0);
@@ -98,8 +95,8 @@ export function LossPage() {
       easing: Easing.out(Easing.cubic),
     });
     // Reset state
-    setWeight(0);
-    setBias(0);
+    setWeight(-1);
+    setBias(-1);
     setIsDone(false);
     scale.value = 0;
     setRefreshKey(prev => prev + 1);
@@ -123,22 +120,34 @@ export function LossPage() {
     }
   };
 
-  const dataPoints = [
-    { x: 0.2, y: 0.6 },
-    { x: 0.4, y: 0.7 },
-    { x: 0.6, y: 0.8 },
-    { x: 0.8, y: 0.9 },
-  ];
-  const mapX = (val: number) => `${15 + val * 80}%`;
-  const mapY = (val: number) => `${85 - val * 75}%`;
+  const dataPoints = useMemo(() => [
+    { x: -0.8, y: 0 },
+    { x: -0.4, y: 0 },
+    { x:  0.0, y:  0 },
+    { x:  0.4, y:  0 },
+    { x:  0.8, y:  0 },
+  ], []);
+
+  const currentLoss = useMemo(() => {
+    let sumSqErr = 0;
+    for (const pt of dataPoints) {
+      sumSqErr += Math.pow(pt.y - (weight * pt.x + bias), 2);
+    }
+    return sumSqErr / dataPoints.length;
+  }, [weight, bias, dataPoints]);
+
+  const mapX = (val: number) => `${50 + val * 45}%`;
+  const mapY = (val: number) => `${50 - val * 45}%`;
+
   const LineGraphContent = (
     <View style={{ flex: 1, width: '100%', minHeight: 60, marginTop: 4 }}>
       <Svg width="100%" height="100%">
         
         {/* Y-Axis */}
-        <Line x1="10%" y1="5%" x2="10%" y2="95%" stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
+        <Line x1="50%" y1="0%" x2="50%" y2="100%" stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
+        
         {/* X-Axis */}
-        <Line x1="10%" y1="95%" x2="95%" y2="95%" stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
+        <Line x1="0%" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
 
         {/* Draw the dataset points */}
         {dataPoints.map((p, i) => (
@@ -146,15 +155,14 @@ export function LossPage() {
             key={i} 
             cx={mapX(p.x)} 
             cy={mapY(p.y)} 
-            r={3.5} // Absolute pixels so it stays a perfect circle!
+            r={3.5} 
             fill="#22f3ff" 
           />
         ))}
 
-        {/* Draw the live prediction line: y = wx + b */}
         <Line
-          x1={mapX(0)}
-          y1={mapY(bias)} 
+          x1={mapX(-1)}
+          y1={mapY(weight * -1 + bias)} 
           x2={mapX(1)}
           y2={mapY(weight * 1 + bias)} 
           stroke={brandAccent}
@@ -243,7 +251,7 @@ export function LossPage() {
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Slider
                       style={{ flex: 1, height: 40 }}
-                      minimumValue={0}
+                      minimumValue={-1}
                       maximumValue={1}
                       value={weight}
                       onValueChange={setWeight}
@@ -262,7 +270,7 @@ export function LossPage() {
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Slider
                       style={{ flex: 1, height: 40 }}
-                      minimumValue={0}
+                      minimumValue={-1}
                       maximumValue={1}
                       value={bias}
                       onValueChange={setBias}
@@ -320,6 +328,8 @@ export function LossPage() {
                 <LossHeatmap 
                   weight={weight} 
                   bias={bias}
+                  currentLoss={currentLoss}
+                  dataPoints={dataPoints}
                   isHeld={isHeld} 
                   isDone={isDone}
                   is3D={is3D}
