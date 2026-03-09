@@ -42,8 +42,12 @@ export interface UseVisualisationProps {
   csv: string;
   loss: string;
   pathConfigs: PathConfigInterface[];
-  onPathConfigChange;
-  setLog;
+  onPathConfigChange: (
+    id: number,
+    field: keyof PathConfigInterface,
+    value: number | [number, number] | string | boolean | null,
+  ) => void;
+  setLog: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export function useVisualisation(props: UseVisualisationProps) {
@@ -92,7 +96,7 @@ export function useVisualisation(props: UseVisualisationProps) {
   const controlsRef = useRef<OrbitControls | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
-  const clockRef = useRef<THREE.Clock | null>(null);
+  const clockRef = useRef<THREE.Timer | null>(null);
   const rafRef = useRef<number>(0);
   const landscapeColoursRef = useRef(gradientPresets[0].colors);
 
@@ -215,13 +219,13 @@ export function useVisualisation(props: UseVisualisationProps) {
     rendererRef.current = renderer;
     controlsRef.current = controls;
 
-    clockRef.current = new THREE.Clock();
+    clockRef.current = new THREE.Timer();
     raycasterRef.current = new THREE.Raycaster();
 
     // Animation Loop
     const animate = () => {
       rafRef.current = requestAnimationFrame(animate);
-
+      clockRef.current.update();
       if (!scene || !camera || !renderer) return;
 
       controls.update();
@@ -393,7 +397,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         }
       }
     },
-    [isPathLoaded, markersRef],
+    [markersRef],
   );
 
   const handleLogPlotToggle = useCallback(() => {

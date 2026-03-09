@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { View } from 'react-native';
 import { useVisualisation } from './visualisation';
 import { useLandscapeControls } from './landscape-controls';
 import { PathConfigInterface } from '../components/path-config';
@@ -17,7 +15,7 @@ export interface UseLossLandscapeProps {
   onPathConfigChange: (
     id: number,
     field: keyof PathConfigInterface,
-    value: number | string | boolean | null,
+    value: number | [number, number] | string | boolean | null,
   ) => void;
   setLog: (log: string[]) => void;
 }
