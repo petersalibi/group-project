@@ -174,7 +174,7 @@ export function Visualisation({ id }: VisualisationProps) {
     onPathConfigChange: (
       id: number,
       field: keyof PathConfigInterface,
-      value: number | string | boolean | null,
+      value: number | [number, number] | string | boolean | null,
     ) => {
       // Callback for the hook to update the state
       setPathConfigs((currentConfigs) =>

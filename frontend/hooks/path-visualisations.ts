@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import * as THREE from 'three';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
@@ -12,6 +19,15 @@ import {
 import { PathConfigInterface } from '../components/path-config';
 import { PATH_COLORS } from '../constants/constants';
 
+interface LandscapeProjectionData {
+  x_axis: number[];
+  y_axis: number[];
+  x_direction: number[];
+  y_direction: number[];
+  theta_0: number[];
+  [id: number]: THREE.Object3D;
+}
+
 export interface UsePathVisualisationsProps {
   activation: string;
   depth: number;
@@ -19,14 +35,14 @@ export interface UsePathVisualisationsProps {
   data: string;
   csv: string;
   loss: string;
-  setLog: (log: string[]) => void;
+  setLog: Dispatch<SetStateAction<string[]>>;
   minMaxLoss: number[];
   zScale: number;
   pathConfigs: PathConfigInterface[];
   onPathConfigChange: (
     id: number,
     field: keyof PathConfigInterface,
-    value: any,
+    value: number | [number, number] | string | boolean | null,
   ) => void;
   disposeObject: (obj: THREE.Object3D | null) => void;
   sceneRef: React.RefObject<THREE.Scene>;
@@ -35,9 +51,9 @@ export interface UsePathVisualisationsProps {
   controlsRef: React.RefObject<any>;
   meshRef: React.RefObject<THREE.Mesh>;
   raycasterRef: React.RefObject<THREE.Raycaster>;
-  clockRef: React.RefObject<THREE.Clock>;
+  clockRef: React.RefObject<THREE.Timer>;
   rafRef: React.RefObject<number>;
-  dictRef: React.RefObject<{ [id: number]: THREE.Object3D }>;
+  dictRef: React.RefObject<LandscapeProjectionData>;
 }
 
 // --- Constants ---
@@ -54,7 +70,7 @@ const VIRTUAL_GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // Helper function to get normalised device coordinates from an event
 const getNormalisedCoordinates = (event: any, rect: DOMRect) => {
-  let clientX, clientY;
+  let clientX: number, clientY: number;
 
   // Check for Touch Events
   if (event.touches && event.touches.length > 0) {
@@ -194,7 +210,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       pathLinesRef.current.forEach((line, i) => {
         const newColor = PATH_COLORS[i % PATH_COLORS.length].value;
         if (line && line.material) {
-          (line.material as THREE.LineBasicMaterial).color.set(newColor);
+          line.material.color.set(newColor);
         }
       });
 
@@ -236,7 +252,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       if (pathLinesRef.current.length === 0) {
         setIsPathLoaded(false);
         animationTimeRef.current = 0;
-        clockRef.current = new THREE.Clock();
+        clockRef.current = new THREE.Timer();
       }
     },
     [clockRef, disposeObject],
@@ -264,7 +280,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     animationDurationsRef.current = [];
     setIsPathLoaded(false);
     animationTimeRef.current = 0;
-    clockRef.current = new THREE.Clock();
+    clockRef.current = new THREE.Timer();
   }, [clockRef, disposeObject]);
 
   const handleClearPaths = useCallback(() => {
@@ -482,8 +498,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       });
 
       animationTimeRef.current = 0;
-      if (clockRef.current && !clockRef.current.running)
-        clockRef.current.start();
+      if (clockRef.current && clockRef.current.getTimescale() === 0)
+        clockRef.current.setTimescale(1);
     } catch (err) {
       console.error('Failed to load one or more paths:', err);
       setIsPathLoaded(false);
@@ -539,8 +555,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       setIsPathLoaded(true);
       setIsPlaying(true);
       animationTimeRef.current = 0;
-      if (clockRef.current && !clockRef.current.running)
-        clockRef.current.start();
+      if (clockRef.current && clockRef.current.getTimescale() === 0)
+        clockRef.current.setTimescale(1);
     },
     [handleRemoveAllPaths, updatePathGeometry, meshRef, clockRef],
   );
@@ -694,18 +710,18 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const togglePlayPause = useCallback(() => {
     if (!clockRef.current) return;
     if (isPlaying) {
-      clockRef.current.stop();
+      clockRef.current.setTimescale(0);
     } else {
       const maxDuration = Math.max(...animationDurationsRef.current, 0);
       if (animationTimeRef.current >= maxDuration) {
         animationTimeRef.current = 0;
-        clockRef.current.start();
+        clockRef.current.setTimescale(1);
       } else if (animationTimeRef.current > 0) {
-        clockRef.current.oldTime = performance.now();
-        clockRef.current.running = true;
+        clockRef.current.update(); // Sync clock to current animation time for smooth resuming
+        clockRef.current.setTimescale(1);
       } else {
         animationTimeRef.current = 0;
-        clockRef.current.start();
+        clockRef.current.setTimescale(1);
       }
     }
     setIsPlaying((prev) => !prev);
@@ -753,14 +769,17 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     setTotalFrames(maxSteps);
   }, [getMaxSteps, getMaxDuration]);
 
-  const onViewPath = useCallback(
-    (id: number) => {
-      setViewId(id);
-      viewIdRef.current = id;
-      setFidelity(fidelityArrayRef.current[id] * 100);
-    },
-    [viewId],
-  );
+  const onViewPath = useCallback((id: number) => {
+    setViewId(id);
+    viewIdRef.current = id;
+    setFidelity(fidelityArrayRef.current[id] * 100);
+    console.log(
+      'Viewing path',
+      id,
+      'with fidelity',
+      fidelityArrayRef.current[id],
+    );
+  }, []);
 
   const togglePlacingMode = useCallback(
     (id: number | null) => {
@@ -846,7 +865,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       const clock = clockRef.current;
       if (!clock) return;
 
-      const delta = clock.getDelta();
+      const delta = clock.getDelta() / 1000; // Convert to ms
 
       if (!isPathLoadedRef.current) return;
 

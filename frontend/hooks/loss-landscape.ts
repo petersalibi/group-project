@@ -17,7 +17,7 @@ export interface UseLossLandscapeProps {
   onPathConfigChange: (
     id: number,
     field: keyof PathConfigInterface,
-    value: number | string | boolean | null,
+    value: number | [number, number] | string | boolean | null,
   ) => void;
   setLog: (log: string[]) => void;
 }
