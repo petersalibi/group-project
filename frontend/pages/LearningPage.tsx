@@ -1,328 +1,208 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withRepeat, Easing } from 'react-native-reanimated';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Maximize2, Minimize2, RotateCcw, RefreshCw } from "lucide-react-native";
-
-import { useTheme } from "../components/theme-provider";
-import { useLoading } from "../components/loading-provider";
-import { LayoutManager } from "../components/docking-provider";
-import { DockPanel } from "../components/dock-panel";
-import { Text } from "../components/text";
-import { VerticalSlider } from "../components/vertical-slider";
-import { NumberInput } from "../components/number-input";
-import { Button } from "../components/button";
-import { Tooltip } from '../components/tooltip';
-import { LandscapeLoadingIcon } from "../components/icons/icons";
-
+import { View, StyleSheet, TouchableOpacity, Animated as RNAnimated } from "react-native";
 import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuItem 
-} from "../components/dropdown-menu";
+  BookOpen, CheckCircle2, Circle, ChevronLeft, ChevronRight, 
+  AlertCircle, CheckCircle, XCircle, Lightbulb, Target
+} from "lucide-react-native";
+import { useTheme } from "../components/theme-provider";
+import { Text } from "../components/text";
+import { Button } from "../components/button";
 
-import { dataSets, activations, methods, regLosses, ceLoss, bceLoss } from '../constants/constants';
-import { useLossLandscape } from "../hooks/loss-landscape";
+// Lesson Registry remains the same...
+// Lesson Imports
+import { InitialSurfaceLesson } from "./curriculum/InitialSurfaceLesson1";
+import { ComplexityLesson } from "./curriculum/ComplexityLesson";
+import { LandscapeOriginLesson } from "./curriculum/LandscapeOriginLesson";
+
+const LESSON_REGISTRY = [
+  {
+    id: 0,
+    title: "1. The Initial Surface",
+    module: "BASICS",
+    instruction: "Loss landscapes visualize the 'error' of a model.",
+    taskGoal: "Generate a landscape using the 'SINREGRESSION' dataset.",
+    hint: "Try opening the 'Set Dataset' menu and selecting 'Sine Regression'.",
+    Component: InitialSurfaceLesson
+  },
+  {
+    id: 1,
+    title: "2. The Complexity",
+    module: "BASICS",
+    instruction: "Understanding how model complexity affects the surface.",
+    taskGoal: "Increase the network depth to see the landscape get 'messier'.",
+    hint: "Adjust the depth slider to 5 and hit generate.",
+    Component: ComplexityLesson
+  },
+  {
+    id: 2,
+    title: "3. Origin of Landscape",
+    module: "INTERACTIVE",
+    instruction: "See how the landscape emerges from individual error points.",
+    taskGoal: "Plot at least 5 points to build the 3D visualization.",
+    hint: "Move the sliders and click 'Plot Point' repeatedly.",
+    Component: LandscapeOriginLesson
+  }
+];
+
+
 
 export function LearningPage() {
   const { theme, isDark } = useTheme();
-  const { setIsLoading } = useLoading();
-  const brandAccent = isDark ? '#C6F382' : '#353F91';
-  
-  // Basic Configuration State
-  const [data, setData] = useState<string>('SINREGRESSION');
-  const [activation, setActivation] = useState<string>('Tanh');
-  const [loss, setLoss] = useState<string>('MSELoss');
-  const [method, setMethod] = useState<string>('RANDOMDIRS');
-  const [depth, setDepth] = useState<number>(2);
-  const [width, setWidth] = useState<number>(10);
-  
-  const [dir1, setDir1] = useState<number | null>(null);
-  const [dir2, setDir2] = useState<number | null>(null);
-  const [inputs, setInputs] = useState(['x']);
-  const [losses, setLosses] = useState(regLosses);
-  const [isMaximized, setIsMaximized] = useState(false);
-  const [localDims, setLocalDims] = useState({ width: 0, height: 0 });
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [isTaskComplete, setIsTaskComplete] = useState(false);
+  const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const { 
-    isLandscapeLoading,
-    isLandscapeLoaded,
-    onGenerateLandscape,
-    zValue,
-    handleZChange,
-    isRotating,
-    handleRotate,
-    handleRefresh,
-    containerRef,
-  } = useLossLandscape({
-    activation,
-    depth,
-    width,
-    method,
-    dir1,
-    dir2,
-    data,
-    loss,
-    pathConfigs: [],
-    onPathConfigChange: () => {},
-    setLog: () => {}, 
-  });
+  const lesson = LESSON_REGISTRY[currentIdx];
 
-  // Handle global loading state
-  useEffect(() => {
-    setIsLoading(isLandscapeLoading);
-    return () => setIsLoading(false);
-  }, [isLandscapeLoading, setIsLoading]);
-
-  // Adjust inputs when dataset changes
-  useEffect(() => {
-    switch (data) {
-      case 'SINREGRESSION': setInputs(['x']); break;
-      case 'PENGUINS': setInputs(['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']); break;
-      case 'PURPLECOLOURS': setInputs(['R', 'G', 'B']); break;
-    }
-    if (inputs && inputs.length < 2) {
-      setMethod(methods[0].value);
-    }
-  }, [data]);
-
-  // Adjust losses when dataset changes
-  useEffect(() => {
-    let newLosses = regLosses;
-    switch (data) {
-      case 'SINREGRESSION': newLosses = regLosses; setMethod('RANDOMDIRS'); break;
-      case 'PENGUINS': newLosses = ceLoss; break;
-      case 'PURPLECOLOURS': newLosses = bceLoss; break;
-    }
-    setLosses(newLosses);
-    setLoss(newLosses[0].value);
-  }, [data]);
-
-  // Animations for Icons
-  const rotateAnim = useSharedValue(0);
-  const refreshAnim = useSharedValue(0);
+  const changeLesson = (idx: number) => {
+    setCurrentIdx(idx);
+    setIsTaskComplete(false);
+    setErrorFeedback(null);
+    setShowHint(false);
+  };
 
   useEffect(() => {
-    if (isRotating) {
-      rotateAnim.value = 0; 
-      rotateAnim.value = withRepeat(
-        withTiming(-360, { duration: 2000, easing: Easing.linear }), -1, false
-      );
+    let timer: any;
+    if (errorFeedback) {
+      timer = setTimeout(() => setShowHint(true), 7000);
     } else {
-      rotateAnim.value = 0;
+      setShowHint(false);
     }
-  }, [isRotating, rotateAnim]);
-
-  const rotateStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotateAnim.value}deg` }] }));
-  const refreshStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${refreshAnim.value}deg` }] }));
-
-  const onRefreshPress = () => {
-    if (!isLandscapeLoaded) return;
-    handleRefresh();
-    refreshAnim.value = withTiming(refreshAnim.value + 360, { duration: 600, easing: Easing.out(Easing.cubic) });
-  };
-
-  const handleLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setLocalDims({ width, height });
-  };
+    return () => clearTimeout(timer);
+  }, [errorFeedback]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleLayout}>
-    {localDims.width > 0 && localDims.height > 0 && (
-        <LayoutManager 
-            width={localDims.width} 
-            height={localDims.height}
-            initialRegistry={{
-            'CONFIG': 'LEFT', 
-            'ENGINE': 'TOP_MAIN'
-          }}
-        >
-        
-        {/* CONFIGURATION SIDEBAR */}
-        <DockPanel id="CONFIG" title="LANDSCAPE CONFIGURATION" isMaximized={false}>
-          <ScrollView contentContainerStyle={styles.sidebarContent}>
-            
-            {/* DATASET DROPDOWN */}
-            <View style={styles.controlGroup}>
-              <Text style={styles.label}>DATASET</Text>
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{dataSets.find(item => item.value === data)?.label || data}</Text>
-                  </View>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {dataSets.filter(item => item.value !== 'CUSTOM').map((item) => (
-                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading} onSelect={() => setData(item.value)}>
-                      <Text>{item.label}</Text>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </View>
-
-            {/* NETWORK CONFIGURATION */}
-            <View style={styles.controlGroup}>
-              <Text style={styles.label}>NETWORK SETTINGS</Text>
-              
-              <Text style={styles.subLabel}>Activation Function</Text>
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{activations.find(item => item.value === activation)?.label || activation}</Text>
-                  </View>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {activations.map((item) => (
-                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading} onSelect={() => setActivation(item.value)}>
-                      <Text>{item.label}</Text>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Text style={styles.subLabel}>Loss Function</Text>
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{losses.find(item => item.value === loss)?.label || loss}</Text>
-                  </View>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {losses.map((item) => (
-                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading} onSelect={() => setLoss(item.value)}>
-                      <Text>{item.label}</Text>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Text style={styles.subLabel}>Visualisation Method</Text>
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                    <Text style={styles.dropdownValue}>{methods.find(item => item.value === method)?.label || method}</Text>
-                  </View>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {methods.filter(item => item.value !== 'TWOPARAMETERS' || (inputs && inputs.length > 1)).map((item) => (
-                    <DropdownMenuItem key={item.id} disabled={isLandscapeLoading} onSelect={() => setMethod(item.value)}>
-                      <Text>{item.label}</Text>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </View>
-
-            {/* ARCHITECTURE */}
-            <View style={styles.controlGroup}>
-              <Text style={styles.label}>ARCHITECTURE</Text>
-              <View style={styles.rowGap}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.subLabel}>Depth</Text>
-                  <NumberInput defaultValue={3} disabled={isLandscapeLoading} value={depth} step={1} min={1} max={10} onChange={setDepth} />
-                </View>
-                {depth > 1 && (
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.subLabel}>Width</Text>
-                    <NumberInput defaultValue={10} disabled={isLandscapeLoading} value={width} min={1} max={100} onChange={setWidth} />
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <Button variant="secondary" disabled={isLandscapeLoading} onPress={() => onGenerateLandscape()}>
-              {isLandscapeLoading ? "Loading..." : "Generate Landscape"}
-            </Button>
-          </ScrollView>
-        </DockPanel>
-
-        {/* 3D ENGINE AREA */}
-        <DockPanel id="ENGINE" title="LOSS LANDSCAPE VISUALISATION" isMaximized={isMaximized}>
-          <View style={styles.engineContainer}>
-            <View style={styles.engineHeader}>
-              <TouchableOpacity 
-                disabled={!isLandscapeLoaded}
-                onPress={() => setIsMaximized(!isMaximized)} 
-                style={{ zIndex: 10, opacity: isLandscapeLoaded ? 1 : 0.4 }}
-              >
-                {isMaximized ? <Minimize2 size={18} color="white" /> : <Maximize2 size={18} color="white" />}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                disabled={!isLandscapeLoaded}
-                onPress={handleRotate}
-                style={{ opacity: isLandscapeLoaded ? 1 : 0.4 }}
-              >
-                <Animated.View style={rotateStyle}>
-                  <RotateCcw size={18} color={isRotating ? brandAccent : "white"} />
-                </Animated.View>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                disabled={!isLandscapeLoaded}
-                onPress={onRefreshPress}
-                style={{ opacity: isLandscapeLoaded ? 1 : 0.4 }}
-              >
-                <Animated.View style={refreshStyle}>
-                  <RefreshCw size={18} color="white" />
-                </Animated.View>
-              </TouchableOpacity>
-            </View>
-            
-            {isLandscapeLoaded && !isLandscapeLoading && (
-              <View style={styles.rightSidebar}>
-                <Tooltip tip="Adjusts the visual height of the 3D landscape.">
-                  <Text style={styles.label}>Z SCALE</Text>
-                </Tooltip>
-                <View style={{ marginTop: 16, height: '25%' }}> 
-                  <VerticalSlider 
-                    value={zValue} 
-                    onValueChange={handleZChange} 
-                    min={0.01} 
-                    max={5} 
-                    step={0.01} 
-                    height={parent.innerHeight * 0.25}
-                  />
-                </View>
-              </View>
-            )}
-            
-            {isLandscapeLoading && (
-              <View style={styles.hudOverlay}>
-                <LandscapeLoadingIcon isLandscapeLoading={isLandscapeLoading} />
-              </View>
-            )}
-
-            {/* 3D WebGL Canvas Container */}
-            <View ref={containerRef} style={{ flex: 1, minWidth: 0, backgroundColor: 'transparent' }} />
+    <View style={styles.container}>
+      {/* SIDEBAR */}
+      {isSidebarOpen && (
+        <View style={[styles.sidebar, { borderRightColor: theme.colors.border }]}>
+          <View style={styles.sidebarHeader}>
+            <BookOpen size={14} color="#C6F382" />
+            <Text style={styles.sidebarTitle}>CURRICULUM</Text>
           </View>
-        </DockPanel>
+          {LESSON_REGISTRY.map((l, idx) => (
+            <TouchableOpacity 
+              key={l.id} 
+              style={[styles.stepItem, idx === currentIdx && styles.activeStep]} 
+              onPress={() => changeLesson(idx)}
+            >
+              {idx < currentIdx ? <CheckCircle2 size={14} color="#C6F382" /> : <Circle size={14} color="#444" />}
+              <Text style={[styles.stepText, idx === currentIdx && { color: 'white', fontWeight: '600' }]}>{l.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
-      </LayoutManager>
-    )}
-    </GestureHandlerRootView>
+      <View style={{ flex: 1 }}>
+        {/* CLEAN HEADER - No Tabs */}
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <TouchableOpacity style={styles.collapseBtn} onPress={() => setIsSidebarOpen(!isSidebarOpen)}>
+            {isSidebarOpen ? <ChevronLeft size={20} color="white" /> : <ChevronRight size={20} color="white" />}
+          </TouchableOpacity>
+          
+          <View style={styles.headerContent}>
+             <Text style={styles.breadcrumbText}>{lesson.module} / LESSON {currentIdx + 1}</Text>
+             <Text style={styles.lessonTitleText}>{lesson.title}</Text>
+          </View>
+        </View>
+
+        <View style={styles.lessonSlot}>
+          <lesson.Component 
+            key={lesson.id} 
+            onTaskUpdate={(comp: boolean, err: string | null) => {
+                setIsTaskComplete(comp);
+                setErrorFeedback(err);
+            }} 
+            theme={theme} 
+          />
+        </View>
+
+        {/* RE-STYLED TASK DRAWER */}
+        <View style={[styles.drawer, { borderTopColor: theme.colors.border }]}>
+          <View style={styles.drawerLeft}>
+             <Text style={styles.instructionText}>{lesson.instruction}</Text>
+             
+             <View style={[
+                styles.taskCard, 
+                { 
+                    borderColor: isTaskComplete ? '#C6F382' : errorFeedback ? '#ff4d4d' : '#f59e0b',
+                    backgroundColor: isTaskComplete ? 'rgba(198, 243, 130, 0.05)' : errorFeedback ? 'rgba(255, 77, 77, 0.05)' : 'rgba(245, 158, 11, 0.05)'
+                }
+             ]}>
+               <Target size={14} color={isTaskComplete ? '#C6F382' : errorFeedback ? '#ff4d4d' : '#f59e0b'} />
+               <Text style={[styles.taskLabel, { color: isTaskComplete ? '#C6F382' : errorFeedback ? '#ff4d4d' : '#f59e0b' }]}>
+                 {errorFeedback || lesson.taskGoal}
+               </Text>
+             </View>
+          </View>
+
+          <View style={styles.drawerRight}>
+            {showHint && !isTaskComplete && (
+                <View style={styles.hintBubble}>
+                    <Lightbulb size={12} color="#C6F382" />
+                    <Text style={styles.hintText}>{lesson.hint}</Text>
+                </View>
+            )}
+
+            <Button 
+                disabled={!isTaskComplete} 
+                variant={isTaskComplete ? "primary" : "secondary"}
+                style={{ width: 140, height: 44 }}
+                onPress={() => currentIdx < LESSON_REGISTRY.length - 1 && changeLesson(currentIdx + 1)}
+            >
+                <Text style={{ fontWeight: 'bold' }}>Continue</Text>
+                <ChevronRight size={16} color={isTaskComplete ? "black" : "#666"} />
+            </Button>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sidebarContent: { padding: 16, gap: 24 },
-  controlGroup: { gap: 8 },
-  label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5, opacity: 0.8 },
-  subLabel: { fontSize: 9, fontWeight: '600', opacity: 0.5, marginBottom: 2 },
-  rowGap: { flexDirection: 'row', gap: 10 },
-  dropdownTrigger: { 
-    height: 36, 
-    borderWidth: 1, 
-    borderRadius: 8, 
-    justifyContent: 'center', 
-    paddingHorizontal: 12 
+  container: { flex: 1, backgroundColor: '#06080b', flexDirection: 'row' },
+  sidebar: { width: 240, borderRightWidth: 1, backgroundColor: '#0b0e14' },
+  sidebarHeader: { padding: 24, flexDirection: 'row', gap: 10, alignItems: 'center' },
+  sidebarTitle: { fontSize: 10, fontWeight: '900', color: '#666', letterSpacing: 1.5 },
+  stepItem: { flexDirection: 'row', padding: 16, gap: 12, alignItems: 'center' },
+  activeStep: { backgroundColor: 'rgba(255,255,255,0.03)' },
+  stepText: { fontSize: 12, color: '#888' },
+  
+  header: { height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: 1 },
+  collapseBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerContent: { marginLeft: 12 },
+  breadcrumbText: { fontSize: 9, color: '#C6F382', fontWeight: 'bold', letterSpacing: 1 },
+  lessonTitleText: { fontSize: 16, fontWeight: 'bold', color: 'white', marginTop: 2 },
+  
+  lessonSlot: { flex: 1 },
+  
+  drawer: { height: 110, paddingHorizontal: 30, flexDirection: 'row', borderTopWidth: 1, backgroundColor: '#0b0e14', alignItems: 'center' },
+  drawerLeft: { flex: 1, gap: 8 },
+  instructionText: { color: '#888', fontSize: 12, lineHeight: 18 },
+  taskCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 10, 
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 6, 
+    borderWidth: 1,
+    alignSelf: 'flex-start' 
   },
-  dropdownValue: { fontSize: 12 },
-  engineContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.1)', overflow: 'hidden', position: 'relative' },
-  engineHeader: { position: 'absolute', top: 16, right: 16, flexDirection: 'row', gap: 16, zIndex: 10 },
-  rightSidebar: { position: 'absolute', right: 0, top: '20%', bottom: '20%', zIndex: 10, alignItems: 'center', paddingRight: 16, gap: 10 },
-  hudOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
+  taskLabel: { fontSize: 12, fontWeight: 'bold' },
+  
+  drawerRight: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  hintBubble: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    backgroundColor: 'rgba(198, 243, 130, 0.1)', 
+    padding: 10, 
+    borderRadius: 8,
+    maxWidth: 250
+  },
+  hintText: { color: '#C6F382', fontSize: 11, fontStyle: 'italic' }
 });
