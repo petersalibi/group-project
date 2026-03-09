@@ -8,11 +8,13 @@ import { Text } from '../components/text';
 export function DockPanel({ 
   id, 
   title, 
+  isMaximized = false,
   isDraggable = true, // Default to true so other lessons don't break
   children 
 }: { 
   id: string, 
   title: string, 
+  isMaximized: boolean,
   isDraggable?: boolean, 
   children: React.ReactNode 
 }) {
@@ -55,13 +57,26 @@ export function DockPanel({
       runOnJS(requestSwap)(id, e.absoluteX, e.absoluteY);
     });
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    width: width.value,
-    height: height.value,
-    transform: [{ translateX: x.value }, { translateY: y.value }] as any,
-    zIndex: isDragging.value ? 1000 : 1,
-    position: 'absolute',
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (isMaximized) {
+      return {
+        width: '100%' as any, 
+        height: '100%' as any,
+        top: 0,
+        left: 0,
+        transform: [{ translateX: 0 }, { translateY: 0 }] as any,
+        zIndex: 9999,
+      };
+    }
+
+    // Otherwise, return normal docking styles
+    return {
+      width: width.value, height: height.value,
+      transform: [{ translateX: x.value }, { translateY: y.value }] as any,
+      zIndex: isDragging.value ? 1000 : 1,
+      position: 'absolute' as any,
+    };
+  });
 
   return (
     <Animated.View style={[
@@ -69,17 +84,19 @@ export function DockPanel({
       animatedStyle
     ]}>
       {/* If not draggable, we don't even wrap it in the detector */}
-      {isDraggable ? (
-        <GestureDetector gesture={pan}>
+      {title?.trim().length > 0 ? (
+        isDraggable ? (
+          <GestureDetector gesture={pan}>
+            <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>
+            </View>
+          </GestureDetector>
+        ) : (
           <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
             <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>
           </View>
-        </GestureDetector>
-      ) : (
-        <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
-          <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>
-        </View>
-      )}
+        )
+      ) : null}
       <View style={{ flex: 1 }}>{children}</View>
     </Animated.View>
   );

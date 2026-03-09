@@ -17,6 +17,7 @@ import Animated, {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Line, Circle } from 'react-native-svg';
 import {
+  Dock,
   Maximize2,
   Minimize2,
   RefreshCw,
@@ -41,12 +42,16 @@ import {
   DropdownMenuTrigger,
 } from '../components/dropdown-menu';
 
-export function LossPage() {
+interface LossPageProps {
+  onTaskUpdate?: (isComplete: boolean, error: string | null) => void;
+}
+
+export function LossPage({ onTaskUpdate }: LossPageProps) {
   const { theme, isDark } = useTheme();
   const { setIsLoading } = useLoading();
   const brandAccent = isDark ? '#C6F382' : '#353F91';
 
-  const [activation, setActivation] = useState<string>('Tanh');
+  const [activation, setActivation] = useState<string>('');
   const [depth, setDepth] = useState<number>(1);
   const [width, setWidth] = useState<number>(1);
   const [inputs] = useState(['x']);
@@ -55,7 +60,7 @@ export function LossPage() {
 
   // Heatmap State
   const [weight, setWeight] = useState(-1);
-  const [bias, setBias] = useState(-1);
+  const [bias, setBias] = useState(0);
   const [isDone, setIsDone] = useState(false);
   const [isHeld, setIsHeld] = useState(false);
   const [is3D, setIs3D] = useState(false);
@@ -100,6 +105,7 @@ export function LossPage() {
     setIsDone(false);
     scale.value = 0;
     setRefreshKey(prev => prev + 1);
+    if (onTaskUpdate) onTaskUpdate(false, null);
   };
 
   const refreshStyle = useAnimatedStyle(() => ({
@@ -117,6 +123,8 @@ export function LossPage() {
     if (isCorrect) {
       setIsDone(true);
       scale.value = withSpring(1, { damping: 20, stiffness: 500 });
+
+      if (onTaskUpdate) onTaskUpdate(true, null);
     }
   };
 
@@ -149,25 +157,42 @@ export function LossPage() {
         {/* X-Axis */}
         <Line x1="0%" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
 
-        {/* Draw the dataset points */}
-        {dataPoints.map((p, i) => (
-          <Circle 
-            key={i} 
-            cx={mapX(p.x)} 
-            cy={mapY(p.y)} 
-            r={3.5} 
-            fill="#22f3ff" 
-          />
-        ))}
+        {dataPoints.map((p, i) => {
+          const predictedY = weight * p.x + bias;
+          return (
+            <Line
+              key={`residual-${i}`}
+              x1={mapX(p.x)}
+              y1={mapY(p.y)}
+              x2={mapX(p.x)}
+              y2={mapY(predictedY)}
+              stroke="#ff4d4d"
+              strokeWidth={1.5}
+              strokeDasharray="3, 3"
+              opacity={0.6}
+            />
+          );
+        })}
 
         <Line
           x1={mapX(-1)}
           y1={mapY(weight * -1 + bias)} 
           x2={mapX(1)}
           y2={mapY(weight * 1 + bias)} 
-          stroke={brandAccent}
-          strokeWidth={2}
+          stroke={"#f59e0b"}
+          strokeWidth={"3"}
         />
+
+        {dataPoints.map((p, i) => (
+          <Circle 
+            key={`point-${i}`} 
+            cx={mapX(p.x)} 
+            cy={mapY(p.y)} 
+            r={3.5} 
+            fill="#fff" 
+          />
+        ))}
+
       </Svg>
     </View>
   );
@@ -182,18 +207,6 @@ export function LossPage() {
             isMaximized={false}
           >
             <ScrollView contentContainerStyle={styles.sidebarContent}>
-
-              {/* INSTRUCTIONS */}
-              <View style={styles.controlGroup}>
-                <Text style={styles.label}>INSTRUCTIONS</Text>
-                <Text style={styles.subText}>
-                  Adjust the sliders to find the optimal Weight and Bias that 
-                  minimises the network's error on the dataset.
-                  {'\n\n'}
-                  The map is hidden until you explore it. (Hint: warm colors = high loss,
-                  dark/cool colors = low loss)
-                </Text>
-              </View>
               {/* SUCCESS TEXT */}
               {isDone && (
                 <Animated.View style={[styles.successBox, successAnimatedStyle]}>
@@ -341,24 +354,22 @@ export function LossPage() {
             </View>
           </DockPanel>
 
-          <StatsGroupPanel
-            archContent={
+          <DockPanel
+            id='STATS_GROUP'
+            title=''
+            isMaximized={false}
+          >
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'stretch', gap: 12 }}>
               <NetworkArchitecture
-                inputs={inputs.length || 0}
-                depth={depth}
-                width={width}
-                activation={activation}
-                outputs={outputs}
-                weights={[weight, bias]} // Network Weights connected to state
+                  inputs={inputs.length || 0}
+                  depth={depth}
+                  width={width}
+                  activation={activation}
+                  outputs={outputs}
+                  weights={[weight, bias]}
               />
-            }
-            metricsContent={
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'stretch', gap: 12 }}>
                 <View style={{ 
                   flex: 1,
-                  borderRadius: 8, 
-                  borderWidth: 1, 
-                  borderColor: theme.colors.border, 
                   padding: 12,
                 }}>
                   <Text style={{ fontSize: 9, fontWeight: "700", color: theme.colors.mutedForeground, letterSpacing: 0.5 }}>DATA FIT</Text>
@@ -374,8 +385,8 @@ export function LossPage() {
                   />
                 </View>
               </View>
-            }
-          />
+
+          </DockPanel>
         </LayoutManager>
       )}
     </GestureHandlerRootView>
@@ -418,21 +429,17 @@ const styles = StyleSheet.create({
   },
   sliderGroup: { marginBottom: 10 },
   successBox: {
-    padding: 10,
-    marginTop: 10,
-    backgroundColor: 'rgba(34, 243, 255, 0.1)',
-    borderRadius: 8,
-    alignItems: 'center',
-    flexDirection: 'column',
-    gap: 10,
-    justifyContent: 'center',
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 6, 
     borderWidth: 1,
-    borderColor: 'rgba(34, 243, 255, 0.3)'
+    alignSelf: 'flex-start',
+    borderColor: "#C6F382"
   },
   successText: {
-    color: '#22f3ff',
+    color: "#C6F382",
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 12,
   },
 });

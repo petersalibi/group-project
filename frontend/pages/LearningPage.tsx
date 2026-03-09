@@ -10,19 +10,19 @@ import { Button } from "../components/button";
 
 // Lesson Registry remains the same...
 // Lesson Imports
-import { InitialSurfaceLesson } from "./curriculum/InitialSurfaceLesson1";
+import { LossPage } from "./LossPage";
 import { ComplexityLesson } from "./curriculum/ComplexityLesson";
 import { LandscapeOriginLesson } from "./curriculum/LandscapeOriginLesson";
 
 const LESSON_REGISTRY = [
   {
     id: 0,
-    title: "1. The Initial Surface",
+    title: "1. What is loss?",
     module: "BASICS",
-    instruction: "Loss landscapes visualize the 'error' of a model.",
-    taskGoal: "Generate a landscape using the 'SINREGRESSION' dataset.",
-    hint: "Try opening the 'Set Dataset' menu and selecting 'Sine Regression'.",
-    Component: InitialSurfaceLesson
+    instruction: "Loss landscapes visualise the 'error' of a model. The 2D landscape gives a 'birds-eye' view of the landscape (toggle the switch to see the 3D landscape).",
+    taskGoal: "Adjust the sliders to find the 'minimum', where the loss is minimised.",
+    hint: "Look at what happens to the graph as you adjust the sliders.",
+    Component: LossPage
   },
   {
     id: 1,
@@ -53,6 +53,7 @@ export function LearningPage() {
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const bounceAnim = useState(new RNAnimated.Value(1))[0];
 
   const lesson = LESSON_REGISTRY[currentIdx];
 
@@ -72,6 +73,24 @@ export function LearningPage() {
     }
     return () => clearTimeout(timer);
   }, [errorFeedback]);
+
+  useEffect(() => {
+    if (isTaskComplete) {
+      RNAnimated.sequence([
+        RNAnimated.timing(bounceAnim, {
+          toValue: 1.05,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        RNAnimated.spring(bounceAnim, {
+          toValue: 1,
+          friction: 4,
+          tension: 40,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  }, [isTaskComplete, bounceAnim]);
 
   return (
     <View style={styles.container}>
@@ -124,18 +143,23 @@ export function LearningPage() {
           <View style={styles.drawerLeft}>
              <Text style={styles.instructionText}>{lesson.instruction}</Text>
              
-             <View style={[
+             <RNAnimated.View style={[
                 styles.taskCard, 
                 { 
                     borderColor: isTaskComplete ? '#C6F382' : errorFeedback ? '#ff4d4d' : '#f59e0b',
-                    backgroundColor: isTaskComplete ? 'rgba(198, 243, 130, 0.05)' : errorFeedback ? 'rgba(255, 77, 77, 0.05)' : 'rgba(245, 158, 11, 0.05)'
+                    backgroundColor: isTaskComplete ? 'rgba(198, 243, 130, 0.05)' : errorFeedback ? 'rgba(255, 77, 77, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                    transform: [{ scale: bounceAnim }]
                 }
              ]}>
-               <Target size={14} color={isTaskComplete ? '#C6F382' : errorFeedback ? '#ff4d4d' : '#f59e0b'} />
+               {isTaskComplete ? (
+                 <CheckCircle2 size={14} color="#C6F382" />
+               ) : (
+                 <Target size={14} color={errorFeedback ? '#ff4d4d' : '#f59e0b'} />
+               )}
                <Text style={[styles.taskLabel, { color: isTaskComplete ? '#C6F382' : errorFeedback ? '#ff4d4d' : '#f59e0b' }]}>
-                 {errorFeedback || lesson.taskGoal}
+                 {isTaskComplete ? "Task completed successfully!" : (errorFeedback || lesson.taskGoal)}
                </Text>
-             </View>
+             </RNAnimated.View>
           </View>
 
           <View style={styles.drawerRight}>

@@ -146,11 +146,6 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
     });
   };
 
-  // Configuration for "Bigger" neurons
-  const NODE_RADIUS = 6;
-  const PADDING_H = 40;
-  const PADDING_V = 30;
-
   const targetLayout = useMemo(() => {
     if (dimensions.w === 0 || dimensions.h === 0) return [];
 
@@ -609,11 +604,13 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
 
       {weights && weights.length > 0 && <NetworkWeightKey theme={theme} />}
 
-      <View style={styles.labelContainer}>
-        <Text style={styles.infoText}>
-          {activation.toUpperCase()} • {depth * width} HIDDEN { isTruncated && '(TRUNCATED)' }
-        </Text>
-      </View>
+      {activation && depth ? (
+        <View style={styles.labelContainer}>
+          <Text style={styles.infoText}>
+            {activation.toUpperCase()} • {depth * width} HIDDEN { isTruncated && '(TRUNCATED)' }
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }

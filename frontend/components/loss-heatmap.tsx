@@ -30,7 +30,7 @@ interface LossHeatmapProps {
 }
 
 export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3D, isDone, refreshKey, onResult }: LossHeatmapProps) {
-  const [visited, setVisited] = useState(new Set(['0-0', '0-1', '1-0', '1-1']));
+  const [visited, setVisited] = useState<Set<string>>(new Set());
   const containerRef = useRef<any>(null);
   const sceneRef = useRef<any>(null);
 
@@ -38,7 +38,7 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
   const currentGridY = Math.min(GRID - 1, Math.max(0, Math.floor(((bias + 1) / 2) * GRID)));
 
   useEffect(() => {
-    setVisited(new Set(['0-0', '0-1', '1-0', '1-1']));
+    setVisited(new Set());
   }, [refreshKey]);
 
   useEffect(() => {
@@ -48,22 +48,26 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
     }
 
     if (!isDone) {
-      const newVisited = new Set(visited);
-      let changed = false;
-      for (let x = currentGridX - 1; x <= currentGridX + 1; x++) {
-        for (let y = currentGridY - 1; y <= currentGridY + 1; y++) {
-          if (x >= 0 && x < GRID && y >= 0 && y < GRID) {
-            const key = `${x}-${y}`;
-            if (!newVisited.has(key)) {
-              newVisited.add(key);
-              changed = true;
+      setVisited(prevVisited => {
+        const newVisited = new Set(prevVisited);
+        let changed = false;
+        
+        for (let x = currentGridX - 1; x <= currentGridX + 1; x++) {
+          for (let y = currentGridY - 1; y <= currentGridY + 1; y++) {
+            if (x >= 0 && x < GRID && y >= 0 && y < GRID) {
+              const key = `${x}-${y}`;
+              if (!newVisited.has(key)) {
+                newVisited.add(key);
+                changed = true;
+              }
             }
           }
         }
-      }
-      if (changed) setVisited(newVisited);
+        
+        return changed ? newVisited : prevVisited;
+      });
     }
-  }, [currentGridX, currentGridY, currentLoss, isDone, visited, onResult, isHeld]);
+  }, [currentGridX, currentGridY, currentLoss, isDone, onResult, isHeld]);
 
   const landscape2D = useMemo(() => {
     if (is3D) return [];
