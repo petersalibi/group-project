@@ -483,29 +483,33 @@ export function cleanupScene(
 }
 
 /**
- * Generates a synthetic dataset for the MSE Loss bowl to be used with createLandscapeMesh.
+ * Generates an MSE Loss bowl based on the provided dataset.
  */
-export function generateMSEData(gridSize: number = 20) {
+export function generateMSEData(gridSize: number = 20, dataPoints: {x: number, y: number}[]) {
   const zGrid: number[][] = [];
   const xs: number[] = [];
   const ys: number[] = [];
 
-  // Generate the 0.0 to 1.0 axis steps
   for (let i = 0; i <= gridSize; i++) {
-    xs.push(i / gridSize);
-    ys.push(i / gridSize);
+    xs.push((i / gridSize) * 2 - 1);
+    ys.push((i / gridSize) * 2 - 1);
   }
 
-  // Generate the loss (Z) values for every combination of weight and bias
+  // Calculate the MSE for every combination of weight and bias
   for (let j = 0; j <= gridSize; j++) {
     const row: number[] = [];
     for (let i = 0; i <= gridSize; i++) {
       const w = xs[i];
       const b = ys[j];
-      // Calculate distance from optimal point (0.5, 0.5)
-      const dist = Math.sqrt(Math.pow(w - 0.5, 2) + Math.pow(b - 0.5, 2));
-      const loss = Math.min(1, dist * 1.5);
-      row.push(loss);
+      
+      let sumSqErr = 0;
+      for (const pt of dataPoints) {
+        sumSqErr += Math.pow(pt.y - (w * pt.x + b), 2);
+      }
+      const mse = sumSqErr / dataPoints.length;
+
+      const visualLoss = Math.min(1, mse);
+      row.push(visualLoss);
     }
     zGrid.push(row);
   }
@@ -548,13 +552,8 @@ export function updateLandscapeVisibility(
       const row = gridSize - j;
       const col = i;
 
-      // Unhide if the cell itself or any immediate neighbor is visited
-      const isVisible = isDone || 
-        visited.has(`${col}-${row}`) ||
-        visited.has(`${Math.max(0, col-1)}-${row}`) ||
-        visited.has(`${col}-${Math.max(0, row-1)}`) ||
-        visited.has(`${Math.min(gridSize, col+1)}-${row}`) ||
-        visited.has(`${col}-${Math.min(gridSize, row+1)}`);
+      // FIXED: Only check the current cell! The 'visited' set already handles the brush radius.
+      const isVisible = isDone || visited.has(`${col}-${row}`);
 
       const zVal = posAttr.getZ(v);
       const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
