@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { View, PanResponder, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import { useTheme } from '../components/theme-provider';
 
@@ -20,23 +20,35 @@ export function LayoutManager({
   height: number;
   initialRegistry?: Record<string, string>;
 }) {
-
   const { theme } = useTheme();
 
-  // REACTIVE DIMENSIONS
   const SCREEN_W = width;
   const SCREEN_H = height;
+  const USABLE_H = SCREEN_H;
   
   const [registry, setRegistry] = useState<Record<string, string>>(initialRegistry);
 
-  const USABLE_H = SCREEN_H;
+  // 1. ADDED: State for dynamic sidebar width
+  const [currentBarWidth, setCurrentBarWidth] = useState(270);
+
+  // 2. ADDED: PanResponder for the resize handle
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (_, gestureState) => {
+      // Constraints: Min 150px, Max 70% of screen
+      const newWidth = Math.max(150, Math.min(gestureState.moveX, SCREEN_W * 0.7));
+      setCurrentBarWidth(newWidth);
+    },
+  }), [SCREEN_W]);
 
   const ghostOpacity = useSharedValue(0);
   const ghostMode = useSharedValue<'swap' | 'stack'>('swap');
   const ghostDim = useSharedValue({ x: 0, y: 0, w: 0, h: 0 });
 
   const getSlotDims = useCallback((slotId: string) => {
-    const sideW = 270;
+    // 3. UPDATED: Use the dynamic state instead of hardcoded 270
+    const sideW = currentBarWidth;
     const gap = 12;
     
     const hasRightSidebar = Object.values(registry).includes('RIGHT');
@@ -71,7 +83,7 @@ export function LayoutManager({
       default: 
         return { x: 0, y: 0, w: 0, h: 0 };
     }
-  }, [SCREEN_W, USABLE_H, registry]);
+  }, [SCREEN_W, USABLE_H, registry, currentBarWidth]);
 
   const updateGhost = useCallback((absX: number, absY: number, isDragging: boolean) => {
     'worklet';
@@ -87,7 +99,8 @@ export function LayoutManager({
       ghostMode.value = 'swap';
       
       let targetId = 'TOP_MAIN';
-      if (absX < 300) {
+      // 4. UPDATED: Threshold for swapping to LEFT uses current bar width
+      if (absX < currentBarWidth + 40) {
         targetId = 'LEFT';
       } else if (absX > SCREEN_W - 300 && Object.values(registry).includes('RIGHT')) {
         targetId = 'RIGHT';
@@ -98,7 +111,7 @@ export function LayoutManager({
       ghostDim.value = getSlotDims(targetId);
     }
     ghostOpacity.value = withTiming(1);
-  }, [SCREEN_W, USABLE_H, registry, getSlotDims]);
+  }, [SCREEN_W, USABLE_H, registry, getSlotDims, currentBarWidth]);
 
   const requestSwap = useCallback((id: string, absX: number, absY: number) => {
     const relativeY = absY;
@@ -108,7 +121,7 @@ export function LayoutManager({
       return;
     }
     setRegistry(prev => {
-      const nextSlot = absX < 300 
+      const nextSlot = absX < currentBarWidth + 40 
         ? 'LEFT' 
         : (absX > SCREEN_W - 300 && Object.values(prev).includes('RIGHT') 
             ? 'RIGHT' 
@@ -118,7 +131,7 @@ export function LayoutManager({
       if (occupant) return { ...prev, [id]: nextSlot, [occupant]: prev[id] };
       return { ...prev, [id]: nextSlot };
     });
-  }, [SCREEN_W, USABLE_H]);
+  }, [SCREEN_W, USABLE_H, currentBarWidth]);
 
   const ghostStyle = useAnimatedStyle(() => ({
     left: ghostDim.value.x,
@@ -136,10 +149,33 @@ export function LayoutManager({
     <LayoutContext.Provider value={{ theme, registry, requestSwap, updateGhost, getSlotDims }}>
       <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         {children}
+        
+        {/* 5. ADDED: The Resize Handle View */}
+        {Object.values(registry).includes('LEFT') && (
+          <View 
+            {...panResponder.panHandlers}
+            style={[styles.resizeHandle, { left: currentBarWidth }]}
+          />
+        )}
+
         <Animated.View pointerEvents="none" style={[ghostStyle, { position: 'absolute', zIndex: 999 }]} />
       </View>
     </LayoutContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  resizeHandle: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 20,
+    marginLeft: -10,
+    zIndex: 1000,
+    backgroundColor: 'transparent',
+    // cursor: 'col-resize' is for web compatibility
+    ...({ cursor: 'col-resize' } as any)
+  }
+});
 
 export const useLayout = () => useContext(LayoutContext);

@@ -8,7 +8,6 @@ export function InteractiveLessonPage() {
     return (
         <View>
             <LossLandscape2D></LossLandscape2D>
-            <LossLandscape3D></LossLandscape3D>
         </View>
     )
 }
