@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { View } from 'react-native';
 import { useVisualisation } from './visualisation';
 import { useLandscapeControls } from './landscape-controls';
 import { PathConfigInterface } from '../components/path-config';
