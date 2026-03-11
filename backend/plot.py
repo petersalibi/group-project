@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 from collections import OrderedDict
 
+
 def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=None, copies=1):
 
     # Horizontal Layout
@@ -121,10 +122,75 @@ print(f"pca_direction_y: {pca_directions[1]}")
 #                 pca_landscape["y_axis"], 
 #                 truepath, fidelity)
 
-new_model = Model(minimiser_params.network, 1, 1)
 
-data =  TrainingData(TrainingDataType.SINREGRESSION)
-knn = instability_knn(minimiser_params, new_model, data.X, data.y )
+
+
+peng_data =  TrainingData(TrainingDataType.PENGUINS)
+
+peng_params = penguin_params_complex
+
+penguin_minim_params = MinimiserParams(
+    network=peng_params.network,
+    data=peng_params.data,
+    x_direction=directions[0],
+    y_direction=directions[1],
+    theta_0=theta_0,
+    init_xy=init_xy,
+    loss=peng_params.loss,
+    lock_to_plane=False
+)
+
+
+new_model = Model(penguin_minim_params.network, peng_data.inputs, peng_data.outputs)
+
+knn = instability_knn(penguin_minim_params, new_model, peng_data.X, peng_data.y )
+
+instab_data = create_instability_vectors(penguin_minim_params, new_model, peng_data.X, peng_data.y)
+
+print(instab_data)
+
+ys = knn.predict(peng_data.X)
+xs = peng_data.X
+
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+def plot_instability_surface_raw(knn, X_data, pca_k=2):
+    # 1. Fit a new PCA specifically for the visualization "lens"
+    pca = PCA(n_components=pca_k)
+    X_pca = pca.fit_transform(X_data)
+    
+    # 2. Create the grid in the 2D PCA space
+    x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
+    y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 50),
+                         np.linspace(y_min, y_max, 50))
+    grid_2d = np.c_[xx.ravel(), yy.ravel()]
+    
+    # 3. BRIDGE: Project the 2D grid back into the high-dimensional space
+    # This matches the dimensionality your KNN expects
+    grid_high_dim = pca.inverse_transform(grid_2d)
+    
+    # 4. Predict instability using the high-dimensional grid
+    # Now the KNN is happy because the input matches its training shape
+    surface_instability = knn.predict(grid_high_dim).reshape(xx.shape)
+    
+    # 5. Plot 3D Surface
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    surf = ax.plot_surface(xx, yy, surface_instability, cmap='magma', 
+                           edgecolor='none', alpha=0.9)
+    
+    ax.set_title("Neural Instability Landscape (Raw Space Projection)")
+    ax.set_xlabel("PCA Component 1")
+    ax.set_ylabel("PCA Component 2")
+    ax.set_zlabel("Instability Score")
+    
+    fig.colorbar(surf, shrink=0.5, aspect=5, label='Volatility')
+    plt.show()
+
+plot_instability_surface_raw(knn, peng_data.X)
 
 
 
