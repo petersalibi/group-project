@@ -305,14 +305,14 @@ def trainability_vectors(params, model : callable_type, Xtrain : np.ndarray, Ytr
             loss = params.loss(model(Xtrain), Ytrain)
             loss.backward()
             
-            grad_vector = get_model_parameters(model).detach().cpu().numpy()
+            param_vector = get_model_parameters(model).detach().cpu().numpy()
             
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             grad_mag = grad_norm.item()
             
             optimiser.step()           
 
-            data_X.append( grad_vector)
+            data_X.append( param_vector)
             
             # Check for convergence
             if grad_mag < tol :
