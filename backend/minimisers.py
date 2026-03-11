@@ -5,6 +5,7 @@ from utils import print_progress_bar, flatten_params, jump_count, generate_rando
 from network import NetworkParams, TrainingDataType, TrainingData, Model
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import FunctionTransformer
 
 
 from typing import Callable as callable_type
@@ -240,44 +241,52 @@ def create_instability_vectors(params, model : callable_type, Xtrain : np.ndarra
     return expected_instability_table
 
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.preprocessing import StandardScaler
 
 def instability_knn(params, model : callable_type, X : np.ndarray, Y : np.ndarray, change_func : callable_type = jump_count,
                     k : int = 5, test_size : float = 0.5, type_leniency : bool = True,
                     uses_pca : bool = False, pca_k : int = 2) -> None :
     
-    # # Slacking on types - will incur testing debt later!
-    # if type_leniency :
-    #     X, Y = [obj.cpu().numpy() if isinstance(obj, torch.Tensor) else np.array(obj) for obj in [X, Y]]
-    # else :
-    #     for obj in [X,Y] :     # No fuzziness is permitted.
-    #         assert isinstance(obj, np.ndarray)
-    
     Xtrain, Xtest, Ytrain, _ = train_test_split(X, Y, test_size = test_size)
     
     instabilities = create_instability_vectors(params, model, Xtrain, Ytrain, Xtest, change_func, 10, False).mean(axis=0)
     
-    if uses_pca :
-        pipeline = Pipeline([
-            ("pca", PCA(n_components=pca_k)),
-            ("knn", KNeighborsRegressor(n_neighbors=k))
-        ])
-        pipeline.fit(Xtest, instabilities)
-        return pipeline
+    # Define the transformer: PCA if requested, otherwise pass through (Identity)
+    preprocessor = PCA(n_components=pca_k) if uses_pca else FunctionTransformer(lambda x: x)
+    
+
+    pipeline = Pipeline([
+        ("zscaler", StandardScaler()),
+        ("pca_preprocessing", preprocessor),
+        ("knn", KNeighborsRegressor(n_neighbors=k))
+    ])
+    pipeline.fit(Xtest, instabilities)
+    return pipeline
             
-    # Renaming them for clarity - since the test data for creating instability is now needed to teach the model
-    # where instability lies, hence unseen data becomes new training data
-    P_train = Xtest
-    Q_train = instabilities
+
+def trainability_knn(params, model : callable_type, Xtrain : np.ndarray, Ytrain : np.ndarray,
+                         trainability_score : callable_type = trainability_score_exp,
+                         tol : float = 1e-6, n_iters : int = 10, uses_pca : bool = True, k : int = 5,
+                         pca_k : int = 2 ) :
     
-    knn = KNeighborsRegressor(n_neighbors = k)
-    knn.fit(P_train, Q_train)
+    P, Q = trainability_vectors(params, model, Xtrain, Ytrain, trainability_score, tol, n_iters)
     
-    return knn
+    # Define the transformer: PCA if requested, otherwise pass through (Identity)
+    preprocessor = PCA(n_components=pca_k) if uses_pca else FunctionTransformer(lambda x: x)
+    pipeline = Pipeline([
+        ("zscaler", StandardScaler()),
+        ("pca_preprocessing", preprocessor),
+        ("knn", KNeighborsRegressor(n_neighbors=k))
+    ])
+    pipeline.fit(P, Q)
+    return pipeline
+
+    
 
 
 def trainability_vectors(params, model : callable_type, Xtrain : np.ndarray, Ytrain : np.ndarray,
                          trainability_score : callable_type = trainability_score_exp,
-                         tol : float = 1e-6, n_iters : int = 10, flatten : bool = True) -> tuple[np.ndarray, np.ndarray] :
+                         tol : float = 1e-6, n_iters : int = 10) -> tuple[np.ndarray, np.ndarray] :
     
       
     total_data_X = []
