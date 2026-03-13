@@ -6,17 +6,17 @@ import numpy as np
 import time
 
 class LandscapeParams:
-    def __init__(self, 
-                 network: NetworkParams, 
-                 method: VisualisationMethod, 
+    def __init__(self,
+                 network: NetworkParams,
+                 method: VisualisationMethod,
                  data: TrainingDataType,
                  args=[],
                  loss=nn.MSELoss(),
-                 scale=1, 
+                 scale=1,
                  training_samples=128,
                  surface_samples=50,
                  rawdata=None):
-        
+
         self.network = network
         self.method = method
         self.loss = loss
@@ -35,16 +35,16 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     data = TrainingData(landscape_params.data, landscape_params.surface_samples, landscape_params.rawdata)
 
     model = Model(landscape_params.network, data.inputs, data.outputs)
-    
+
     dir1, dir2, pca_trajectories = get_directions(model, landscape_params.method, landscape_params.args)
-    
+
     k=1
     pca_mean = None
     if landscape_params.method == VisualisationMethod.PCAMINIMISER :
 
         landscape_params.scale = [k*pca_trajectories[:, 0].min(), k*pca_trajectories[:, 0].max(),
                                   k*pca_trajectories[: , 1].min(), k*pca_trajectories[:, 1].max()]
-        
+
         # args contains your list of 300 weight vectors
         traj_tensors = [torch.tensor(p) for p in landscape_params.args]
         pca_mean = torch.mean(torch.stack(traj_tensors), dim=0)
@@ -53,7 +53,7 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
     with torch.inference_mode():
         xAxis, yAxis, loss_surface, loss_surface_log = compute_loss_surface(model, data.X, data.y,
                                                         dir1, dir2,
-                                                        landscape_params.loss, 
+                                                        landscape_params.loss,
                                                         landscape_params.surface_samples,
                                                         landscape_params.scale,
                                                         verbose=verbose,
@@ -61,7 +61,7 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
 
     return {"surface": loss_surface.tolist(),
             "surface_log": loss_surface_log.tolist(),
-            "x_axis": xAxis.tolist(), 
+            "x_axis": xAxis.tolist(),
             "y_axis": yAxis.tolist(),
             "x_direction": flatten_params(dir1).tolist(),
             "y_direction": flatten_params(dir2).tolist(),
@@ -74,7 +74,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
 
     if not ( isinstance(scale, list) or isinstance(scale, tuple) ) :
         scale = [-scale, scale, -scale, scale]
-        
+
     alpha_min, alpha_max, beta_min, beta_max = scale
 
     if verbose:
@@ -86,7 +86,7 @@ def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, v
 
     # backup original state
     saved = {k: v.clone() for k,v in model.state_dict().items()}
-    
+
     alphas = torch.linspace(alpha_min, alpha_max, samples)
     betas  = torch.linspace(beta_min, beta_max, samples)
     loss_surface = torch.zeros(samples, samples)
@@ -193,7 +193,8 @@ def generate_loss_manifold(landscape_params: LandscapeParams, verbose=False):
 
     model = Model(landscape_params.network, data.inputs, data.outputs)
 
-    decoder, projected_trajectories = find_optimal_ae_manifold(model, landscape_params.args)
+    # TODO fidelity returned as the third value
+    decoder, projected_trajectories, _ = find_optimal_ae_manifold(model, landscape_params.args)
 
     # Compute surface over the provided decoder-manifold
     with torch.inference_mode():

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from network import *
 from utils import *
+from sklearn.metrics import mean_squared_error
 
 # This is where we'll put our autoencoder-based loss manifold code.
 # It will be called by `generate_loss_landscape` if the method is set to AUTOENCODER.
@@ -25,7 +26,7 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     auto_encoder = UniformAutoencoder(X.shape[1], 5, 2)
     auto_encoder.to(device)
     optimizer = optim.Adam(auto_encoder.parameters(), lr=1e-3, weight_decay=1e-8)
-    print(auto_encoder)
+    # print(auto_encoder)
 
     auto_encoder.train()
     for _ in range(epochs):
@@ -39,10 +40,24 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
         optimizer.step()
 
     auto_encoder.eval()
-    # raise NotImplementedError("This function is a placeholder. You should implement it to find the optimal autoencoder manifold from the minimiser trajectories.")
-    projected_trajectories = auto_encoder.encoder(X).detach().cpu().numpy().tolist()
-    print(f"Projected trajectories in latent space: {projected_trajectories}")
-    return auto_encoder.decoder, projected_trajectories
+    projected_trajectories = auto_encoder.encoder(X)
+    projected_trajectories_list = projected_trajectories.detach().cpu().numpy().tolist()
+    print(f"Projected trajectories in latent space: {projected_trajectories_list}")
+
+    reconstructed_traj = auto_encoder.decoder(projected_trajectories).detach().cpu().numpy()
+
+    minimiser_trajectories = np.array(minimiser_trajectories)
+
+    minimiser_distance = np.sum(minimiser_trajectories[0] - minimiser_trajectories[-1])
+    projected_distance = np.sum(reconstructed_traj[0] - reconstructed_traj[-1])
+
+    fidelity = abs(projected_distance / minimiser_distance)
+    print("Autoencoder fidelity: ", fidelity)
+
+    mse_fidelity = mean_squared_error(minimiser_trajectories, reconstructed_traj)
+    print("MSE Autoencoder fidelity: ", mse_fidelity)
+
+    return auto_encoder.decoder, projected_trajectories_list, fidelity
 
     # TODO: Implement this function to find the optimal 2D autoencoder manifold that best captures the minimiser trajectories.
     # return the decoder of the trained autoencoder, and the projected trajectories in the latent space (for visualization).
