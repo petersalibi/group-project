@@ -129,7 +129,7 @@ export function PathConfig(props: PathConfigProps) {
             onPress={() => onPathRemoval(id)}
             size='ssm'
           >
-            <Trash2 size={14} color={theme.colors.foreground} />
+            <Trash2 size={14} color='white' />
           </Button>
         </View>
       </View>
