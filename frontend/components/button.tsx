@@ -42,10 +42,10 @@ export interface ButtonProps {
 }
 
 const sizeStyles = {
-  default: { height: 40, px: 16, gap: 8 },
-  ssm: { height: 24, px: 8, gap: 4 },
-  sm: { height: 32, px: 12, gap: 6 },
-  lg: { height: 48, px: 24, gap: 8 },
+  default: { height: 40, width: undefined, px: 16, gap: 8 },
+  ssm: { height: 24, width: undefined, px: 8, gap: 4 },
+  sm: { height: 32, width: undefined, px: 12, gap: 6 },
+  lg: { height: 48, width: undefined, px: 24, gap: 8 },
   icon: { height: 40, width: 40, px: 0, gap: 0 },
 };
 
@@ -129,7 +129,7 @@ export function Button({
 
         const base: any = {
           height: variant === 'link' ? undefined : sz.height,
-          width: size === 'icon' ? sz.icon : undefined,
+          width: size === 'icon' ? sz.width : undefined,
           paddingHorizontal: size === 'icon' || variant === 'link' ? 0 : sz.px,
           borderRadius: theme.radius.md,
           backgroundColor: isCurrentlyActive ? colors.hoverBg : colors.bg,
