@@ -30,9 +30,9 @@ export function Footer() {
               height: 8,
               borderRadius: 4,
               backgroundColor: isLoading ? '#ff8800' : '#22c55e',
-              shadowColor: isLoading ? '#ff8800' : '#22c55e',
-              shadowOpacity: 0.5,
-              shadowRadius: 4,
+              boxShadow: isLoading
+                ? '0 0 4px rgb(255, 136, 0, 0.5)'
+                : '0 0 4px rgb(34, 197, 94, 0.5)',
             }}
           />
           <Text

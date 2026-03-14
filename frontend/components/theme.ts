@@ -98,10 +98,7 @@ export const lightTheme: Theme = {
     soft:
       Platform.select({
         ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 8,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
         },
         android: { elevation: 2 },
         default: {},
@@ -109,10 +106,7 @@ export const lightTheme: Theme = {
     medium:
       Platform.select({
         ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 12,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         },
         android: { elevation: 4 },
         default: {},
@@ -146,10 +140,7 @@ export const darkTheme: Theme = {
     soft:
       Platform.select({
         ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
         },
         android: { elevation: 3 },
         default: {},
@@ -157,10 +148,7 @@ export const darkTheme: Theme = {
     medium:
       Platform.select({
         ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.5,
-          shadowRadius: 12,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
         },
         android: { elevation: 6 },
         default: {},
