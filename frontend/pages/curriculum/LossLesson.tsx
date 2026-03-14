@@ -21,17 +21,17 @@ import {
   Map,
 } from 'lucide-react-native';
 
-import { useTheme } from '../components/theme-provider';
-import { Switch } from '../components/switch';
-import { Text } from '../components/text';
-import { LossHeatmap } from '../components/loss-heatmap';
-import { Slider } from '../components/slider';
+import { useTheme } from '../../components/theme-provider';
+import { Switch } from '../../components/switch';
+import { Text } from '../../components/text';
+import { LossHeatmap } from '../../components/loss-heatmap';
+import { Slider } from '../../components/slider';
 
-interface LossPageProps {
-  onTaskUpdate?: (isComplete: boolean, error: string | null) => void;
+interface LossLessonProps {
+  onTaskUpdate?: (isComplete: boolean, error: string | null, forceHint?: boolean) => void;
 }
 
-export function LossPage({ onTaskUpdate }: LossPageProps) {
+export function LossLesson({ onTaskUpdate }: LossLessonProps) {
   const { theme, isDark } = useTheme();
 
   const successColor = isDark ? '#C6F382' : '#16a34a';
@@ -44,6 +44,7 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
   const [isHeld, setIsHeld] = useState(false);
   const [is3D, setIs3D] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [coverage, setCoverage] = useState(0);
 
   // Success Box Animation
   const scale = useSharedValue(0);
@@ -99,6 +100,21 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
       if (onTaskUpdate) onTaskUpdate(true, null);
     }
   };
+
+  useEffect(() => {
+    if (isDone) {
+      if (onTaskUpdate) onTaskUpdate(true, null);
+      return;
+    }
+
+    if (coverage >= 50) {
+      if (onTaskUpdate) onTaskUpdate(false, "You've uncovered over half the map! Check the hint if you are stuck.", true);
+    } else if (coverage >= 30) {
+      if (onTaskUpdate) onTaskUpdate(false, "You've explored over 30% of the map! Watch how the line on the graph reacts as you move the sliders.");
+    } else {
+      if (onTaskUpdate) onTaskUpdate(false, null);
+    }
+  }, [coverage, isDone]);
 
   const dataPoints = useMemo(() => [
     { x: -0.8, y: 0 },
@@ -199,7 +215,7 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
                   <Text style={[styles.successText, { color: successColor }]}>
                     You found the minimum!
                     {'\n\n'}
-                    At this point, the network's line perfectly fits the dataset. The error (loss) increases as you move the weight or bias away from this ideal combination.
+                    At this point, the line fits the dataset. The error (loss) increases as you move the weight or bias away from this ideal combination.
                   </Text>
                 </Animated.View>
               )}
@@ -214,9 +230,8 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
                     maximumValue={1}
                     value={weight}
                     onValueChange={setWeight}
-                    minimumTrackTintColor={isDone ? theme.colors.muted : theme.colors.accent}
-                    thumbTintColor={isDone ? theme.colors.muted : theme.colors.foreground}
-                    disabled={isDone}
+                    minimumTrackTintColor={theme.colors.accent}
+                    thumbTintColor={theme.colors.foreground}
                   />
                 </View>
 
@@ -228,9 +243,8 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
                     maximumValue={1}
                     value={bias}
                     onValueChange={setBias}
-                    minimumTrackTintColor={isDone ? theme.colors.muted : theme.colors.accent}
-                    thumbTintColor={isDone ? theme.colors.muted : theme.colors.foreground}
-                    disabled={isDone}
+                    minimumTrackTintColor={theme.colors.accent}
+                    thumbTintColor={theme.colors.foreground}
                   />
                 </View>
               </View>
@@ -268,6 +282,7 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
               is3D={is3D}
               refreshKey={refreshKey}
               onResult={handleHeatmapResult} 
+              onCoverageUpdate={setCoverage}
             />
           </View>
         </View>

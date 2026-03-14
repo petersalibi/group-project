@@ -27,9 +27,10 @@ interface LossHeatmapProps {
   is3D: boolean;
   refreshKey: number;
   onResult: (isCorrect: boolean) => void;
+  onCoverageUpdate?: (coverage: number) => void;
 }
 
-export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3D, isDone, refreshKey, onResult }: LossHeatmapProps) {
+export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3D, isDone, refreshKey, onResult, onCoverageUpdate }: LossHeatmapProps) {
   const { theme, isDark } = useTheme();
   const [visited, setVisited] = useState<Set<string>>(new Set());
   const containerRef = useRef<any>(null);
@@ -69,6 +70,14 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
       });
     }
   }, [currentGridX, currentGridY, currentLoss, isDone, onResult, isHeld]);
+
+  useEffect(() => {
+    if (onCoverageUpdate) {
+      const totalVertices = Math.pow(GRID + 1, 2);
+      const coveragePercent = (visited.size / totalVertices) * 100;
+      onCoverageUpdate(coveragePercent);
+    }
+  }, [visited.size, onCoverageUpdate]);
 
   const landscape2D = useMemo(() => {
     if (is3D) return [];

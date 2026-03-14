@@ -6,7 +6,7 @@ import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
 import { Button } from '../components/button'; 
 import { CurriculumMenu } from '../components/curriculum-menu';
-import { LossPage } from './LossPage';
+import { LossLesson } from './curriculum/LossLesson';
 import { LandscapeGenerationPage } from './LandscapeGenerationPage';
 import { GDPage } from './GDPage';
 import { LearningPage } from './LearningPage';
@@ -300,7 +300,7 @@ export function VisualisationPage() {
             exiting={FadeOut.duration(300)}
             style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
           >
-             <LossPage />
+             <LossLesson />
           </Animated.View>
         )}
 

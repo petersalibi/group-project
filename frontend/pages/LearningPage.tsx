@@ -10,19 +10,20 @@ import { Button } from "../components/button";
 import { ScrollView } from "react-native-gesture-handler";
 import Svg, { Line } from "react-native-svg";
 import { NeuralNode } from "../components/neural-node";
-import { LossPage } from "./LossPage";
+import { InitialSurfaceLesson } from "./curriculum/InitialSurfaceLesson1";
+import { LossLesson } from "./curriculum/LossLesson";
 import { ComplexityLesson } from "./curriculum/ComplexityLesson";
 import { LandscapeOriginLesson } from "./curriculum/LandscapeOriginLesson";
 
 const LESSON_REGISTRY = [
   {
     id: 0,
-    title: "1. What is loss?",
+    title: "1. The surface",
     module: "BASICS",
     instruction: "Loss landscapes visualise the 'error' of a model. The 2D landscape gives a 'birds-eye' view of the landscape (toggle the switch to see the 3D landscape).",
     taskGoal: "Adjust the sliders to find the 'minimum', where the loss is minimised.",
-    hint: "Look at what happens to the graph as you adjust the sliders.",
-    Component: LossPage
+    hint: "Observe how the colour on the landscape changes as the loss increases/decreases.",
+    Component: InitialSurfaceLesson
   },
   {
     id: 1,
@@ -35,11 +36,20 @@ const LESSON_REGISTRY = [
   },
   {
     id: 2,
-    title: "3. Origin of Landscape",
+    title: "3. What is loss?",
+    module: "BASICS",
+    instruction: "Loss landscapes visualise the 'error' of a model. The 2D landscape gives a 'birds-eye' view of the landscape (toggle the switch to see the 3D landscape).",
+    taskGoal: "Adjust the sliders to find the 'minimum', where the loss is minimised.",
+    hint: "Observe how the colour on the landscape changes as the loss increases/decreases.",
+    Component: LossLesson
+  },
+  {
+    id: 3,
+    title: "4. Origin of Landscape",
     module: "INTERACTIVE",
-    instruction: "See how the landscape emerges from individual error points.",
-    taskGoal: "Plot at least 5 points to build the 3D visualization.",
-    hint: "Move the sliders and click 'Plot Point' repeatedly.",
+    instruction: "A landscape is only meaningful if it covers a wide area. Plot varied models across the parameter space to reveal the true topography.",
+    taskGoal: "Achieve an Exploration Coverage of at least 70%.",
+    hint: "Don't just plot in the center! Try plotting models with extreme high and low Weights/Biases.",
     Component: LandscapeOriginLesson
   }
 ];
@@ -189,10 +199,11 @@ export function LearningPage() {
         <View style={styles.lessonSlot}>
           <lesson.Component 
             key={lesson.id} 
-            onTaskUpdate={(comp: boolean, err: string | null) => {
+            onTaskUpdate={(comp: boolean, err: string | null, forceHint?: boolean) => {
                 setIsTaskComplete(comp);
                 setErrorFeedback(err);
-            }} 
+                if (forceHint) setShowHint(true);
+            }}
             theme={theme} 
           />
         </View>
