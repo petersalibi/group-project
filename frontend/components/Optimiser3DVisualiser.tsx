@@ -410,9 +410,11 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       ctx.strokeStyle = theme.colors.frenchBlue || '#3b82f6';
       ctx.beginPath();
       path.forEach((p, i) => {
-        i === 0
-          ? ctx.moveTo(mapX(i), mapY(p.loss))
-          : ctx.lineTo(mapX(i), mapY(p.loss));
+        if (i === 0) {
+          ctx.moveTo(mapX(i), mapY(p.loss));
+        } else {
+          ctx.lineTo(mapX(i), mapY(p.loss));
+        }
       });
       ctx.stroke();
 
@@ -539,6 +541,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
             borderRadius: 8,
             borderWidth: 1,
             borderColor: theme.colors.border,
+            zIndex: 1,
           }}
         >
           <Text
