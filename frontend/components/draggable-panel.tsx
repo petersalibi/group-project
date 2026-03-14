@@ -1,25 +1,31 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useLayout } from './docking-provider';
-import { Text } from '../components/text';
+import { Text } from './text';
 
 // Added isDraggable to the props interface with an optional flag
-export function DockPanel({ 
-  id, 
-  title, 
+export function DockPanel({
+  id,
+  title,
   isDraggable = true, // Defaulting to true as requested
-  children 
-}: { 
-  id: string, 
-  title: string, 
-  isDraggable?: boolean, 
-  children: React.ReactNode 
+  children,
+}: {
+  id: string;
+  title: string;
+  isDraggable?: boolean;
+  children: React.ReactNode;
 }) {
-  const { theme, registry, requestSwap, updateGhost, getSlotDims } = useLayout();
+  const { theme, registry, requestSwap, updateGhost, getSlotDims } =
+    useLayout();
   const isDragging = useSharedValue(false);
-  
+
   const slot = getSlotDims(registry[id]);
 
   const x = useSharedValue(slot.x);
@@ -43,7 +49,7 @@ export function DockPanel({
 
   const pan = Gesture.Pan()
     .enabled(isDraggable) // This line kills the gesture if isDraggable is false
-    .onStart(() => { 
+    .onStart(() => {
       isDragging.value = true;
       startX.value = x.value;
       startY.value = y.value;
@@ -62,54 +68,59 @@ export function DockPanel({
   const animatedStyle = useAnimatedStyle(() => ({
     width: width.value,
     height: height.value,
-    transform: [
-      { translateX: x.value },
-      { translateY: y.value }
-    ] as any,
+    transform: [{ translateX: x.value }, { translateY: y.value }] as any,
     zIndex: isDragging.value ? 1000 : 1,
     position: 'absolute',
   }));
 
   const HeaderContent = (
-    <View style={{ 
-      height: 32, 
-      backgroundColor: theme.colors.muted, 
-      paddingHorizontal: 12, 
-      justifyContent: 'center', 
-      borderBottomWidth: 1, 
-      borderColor: theme.colors.border 
-    }}>
-      <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>
+    <View
+      style={{
+        height: 32,
+        backgroundColor: theme.colors.muted,
+        paddingHorizontal: 12,
+        justifyContent: 'center',
+        borderBottomWidth: 1,
+        borderColor: theme.colors.border,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 9,
+          fontWeight: 'bold',
+          color: theme.colors.mutedForeground,
+        }}
+      >
         {title.toUpperCase()}
       </Text>
     </View>
   );
 
   return (
-    <Animated.View style={[
-      { 
-        backgroundColor: theme.colors.card, 
-        borderWidth: 1, 
-        borderColor: theme.colors.border, 
-        borderRadius: theme.radius.md, 
-        overflow: 'hidden',
-        // Optional: reduce shadow if not draggable to signal it's "locked"
-        ...(isDraggable ? theme.shadows.soft : {}) 
-      }, 
-      animatedStyle
-    ]}>
+    <Animated.View
+      style={[
+        {
+          backgroundColor: theme.colors.card,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          borderRadius: theme.radius.md,
+          overflow: 'hidden',
+          // Optional: reduce shadow if not draggable to signal it's "locked"
+          ...(isDraggable ? theme.shadows.soft : {}),
+        },
+        animatedStyle,
+      ]}
+    >
       {/* Wrap ONLY the header in the GestureDetector. 
         This allows the user to scroll/slide things inside the panel 
         without accidentally dragging the whole window.
       */}
       {isDraggable ? (
-        <GestureDetector gesture={pan}>
-          {HeaderContent}
-        </GestureDetector>
+        <GestureDetector gesture={pan}>{HeaderContent}</GestureDetector>
       ) : (
         HeaderContent
       )}
-      
+
       <View style={{ flex: 1 }}>{children}</View>
     </Animated.View>
   );
