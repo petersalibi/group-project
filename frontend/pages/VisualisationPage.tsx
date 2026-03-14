@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeIn, FadeOut } from 'react-native-reanimated';
-import { useTheme } from '../components/theme-provider'; 
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  ViewStyle,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  FadeIn,
+  FadeOut,
+} from 'react-native-reanimated';
+import { useTheme } from '../components/theme-provider';
 import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
-import { Button } from '../components/button'; 
+import { Button } from '../components/button';
 import { CurriculumMenu } from '../components/curriculum-menu';
 import { LossLesson } from './curriculum/LossLesson';
 import { LandscapeGenerationPage } from './LandscapeGenerationPage';
-import { GDPage } from './OptimisersLesson';
+import { OptimisersLesson } from './OptimisersLesson';
 import { LearningPage } from './LearningPage';
-import { Plus, X, ChevronRight, ChevronDown, GraduationCap } from 'lucide-react-native'; 
+import {
+  Plus,
+  X,
+  ChevronRight,
+  ChevronDown,
+  GraduationCap,
+} from 'lucide-react-native';
 
 // A distinct set of colors to map to the workspaces
 const WORKSPACE_COLORS = [
@@ -22,20 +41,21 @@ const WORKSPACE_COLORS = [
 
 export function VisualisationPage() {
   const { theme } = useTheme();
-  
+
   const [views, setViews] = useState<string[]>(['vis-1']);
   const [nextId, setNextId] = useState(2);
   const [maximizedId, setMaximizedId] = useState<string | null>(null);
   const [minimizedIds, setMinimizedIds] = useState<string[]>([]);
   const [viewColors, setViewColors] = useState<Record<string, string>>({
-    'vis-1': WORKSPACE_COLORS[0]
+    'vis-1': WORKSPACE_COLORS[0],
   });
   const [currentPage, setCurrentPage] = useState('visualisations');
   const [isHoveringTop, setIsHoveringTop] = useState(false);
   const [isCurriculumOpen, setIsCurriculumOpen] = useState(false);
 
   const isMaximized = maximizedId !== null;
-  const shouldHideTab = Platform.OS === 'web' && isMaximized && !isHoveringTop && !isCurriculumOpen;
+  const shouldHideTab =
+    Platform.OS === 'web' && isMaximized && !isHoveringTop && !isCurriculumOpen;
 
   const tabMarginTop = useSharedValue(0);
 
@@ -50,7 +70,9 @@ export function VisualisationPage() {
   const visOpacity = useSharedValue(1);
 
   useEffect(() => {
-    visOpacity.value = withTiming(currentPage === 'visualisations' ? 1 : 0, { duration: 300 });
+    visOpacity.value = withTiming(currentPage === 'visualisations' ? 1 : 0, {
+      duration: 300,
+    });
   }, [currentPage]);
 
   const visAnimatedStyle = useAnimatedStyle(() => ({
@@ -73,24 +95,26 @@ export function VisualisationPage() {
   };
 
   const handleAddView = () => {
-    if (views.length >= 4) return; 
+    if (views.length >= 4) return;
 
     // Find which colors are currently in use by active tabs
-    const usedColors = views.map(id => viewColors[id]);
-    
+    const usedColors = views.map((id) => viewColors[id]);
+
     // Find the first color in our array that isn't being used
-    const availableColor = WORKSPACE_COLORS.find(color => !usedColors.includes(color)) || WORKSPACE_COLORS[0];
+    const availableColor =
+      WORKSPACE_COLORS.find((color) => !usedColors.includes(color)) ||
+      WORKSPACE_COLORS[0];
 
     const newId = `vis-${nextId}`;
-    
+
     setViews([...views, newId]);
     setViewColors({ ...viewColors, [newId]: availableColor }); // Assign the free color
     setNextId(nextId + 1);
   };
 
   const handleRemoveView = (idToRemove: string) => {
-    setViews(views.filter(id => id !== idToRemove));
-    setMinimizedIds(minimizedIds.filter(id => id !== idToRemove));
+    setViews(views.filter((id) => id !== idToRemove));
+    setMinimizedIds(minimizedIds.filter((id) => id !== idToRemove));
     if (maximizedId === idToRemove) {
       setMaximizedId(null);
     }
@@ -104,28 +128,27 @@ export function VisualisationPage() {
   };
 
   const handleRestore = (id: string) => {
-    setMinimizedIds(minimizedIds.filter(minId => minId !== id));
+    setMinimizedIds(minimizedIds.filter((minId) => minId !== id));
   };
 
   const toggleMaximize = (id: string) => {
     if (minimizedIds.includes(id)) handleRestore(id); // Auto-restore if minimized
 
     if (maximizedId === id) {
-      setMaximizedId(null); 
+      setMaximizedId(null);
     } else {
-      setMaximizedId(id); 
+      setMaximizedId(id);
     }
   };
 
-  const getCellStyles = (id: string) => {
-
-    const hiddenStyle = { 
-      position: 'absolute' as const, 
-      opacity: 0, 
-      pointerEvents: 'none' as const, 
+  const getCellStyles = (id: string): ViewStyle => {
+    const hiddenStyle: ViewStyle = {
+      position: 'absolute',
+      opacity: 0,
+      pointerEvents: 'none',
       zIndex: -10,
-      width: '100%', 
-      height: '100%' 
+      width: '100%',
+      height: '100%',
     };
 
     // Hidden if minimized
@@ -133,12 +156,13 @@ export function VisualisationPage() {
 
     // Full screen if maximized
     if (maximizedId) {
-      if (maximizedId === id) return { width: '100%', height: '100%', display: 'flex' as const };
-      return hiddenStyle; 
+      if (maximizedId === id)
+        return { width: '100%', height: '100%', display: 'flex' };
+      return hiddenStyle;
     }
 
     // Standard grid logic calculated ONLY for active (un-minimized) views
-    const activeViews = views.filter(v => !minimizedIds.includes(v));
+    const activeViews = views.filter((v) => !minimizedIds.includes(v));
     const count = activeViews.length;
     const index = activeViews.indexOf(id);
 
@@ -149,70 +173,103 @@ export function VisualisationPage() {
       if (index === 2) return { width: '100%', height: '50%' };
     }
     if (count === 4) return { width: '50%', height: '50%' };
-    
+
     return hiddenStyle;
   };
 
   return (
     <View style={styles.container} onPointerMove={handlePointerMove}>
-      
       {/* --- GLOBAL BROWSER TAB BAR --- */}
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.tabBar, 
-          { backgroundColor: theme.colors.muted, borderBottomColor: theme.colors.border },
+          styles.tabBar,
+          {
+            backgroundColor: theme.colors.muted,
+            borderBottomColor: theme.colors.border,
+          },
           animatedTabStyle,
         ]}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => setIsCurriculumOpen(!isCurriculumOpen)}
-          style={[styles.globalCurriculumBtn, { borderRightColor: theme.colors.border }]}
+          style={[
+            styles.globalCurriculumBtn,
+            { borderRightColor: theme.colors.border },
+          ]}
         >
           <ChevronDown size={18} color={theme.colors.foreground} />
         </TouchableOpacity>
 
         {currentPage === 'visualisations' && (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
             style={{ flex: 1 }}
             contentContainerStyle={{ alignItems: 'flex-end', paddingLeft: 8 }}
           >
             {views.map((id) => {
               const color = getColorForId(id);
               const isMinimized = minimizedIds.includes(id);
-              const isActive = !isMinimized && (maximizedId === null || maximizedId === id);
+              const isActive =
+                !isMinimized && (maximizedId === null || maximizedId === id);
 
               return (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={id}
                   activeOpacity={0.8}
-                  onPress={() => isMinimized ? handleRestore(id) : toggleMaximize(id)}
+                  onPress={() =>
+                    isMinimized ? handleRestore(id) : toggleMaximize(id)
+                  }
                   style={[
-                    styles.tab, 
-                    { 
-                      backgroundColor: isActive ? theme.colors.background : 'transparent',
+                    styles.tab,
+                    {
+                      backgroundColor: isActive
+                        ? theme.colors.background
+                        : 'transparent',
                       borderTopColor: color,
-                      borderLeftColor: isActive ? theme.colors.border : 'transparent',
-                      borderRightColor: isActive ? theme.colors.border : 'transparent',
-                    }
+                      borderLeftColor: isActive
+                        ? theme.colors.border
+                        : 'transparent',
+                      borderRightColor: isActive
+                        ? theme.colors.border
+                        : 'transparent',
+                    },
                   ]}
                 >
-                  <Text style={[styles.tabTitle, { opacity: isMinimized ? 0.4 : 1 }]}>
+                  <Text
+                    style={[
+                      styles.tabTitle,
+                      { opacity: isMinimized ? 0.4 : 1 },
+                    ]}
+                  >
                     WORKSPACE {id.split('-')[1]}
                   </Text>
-                  
+
                   {/* Mac-style Buttons */}
-                  <View style={[styles.windowControls, { opacity: isMinimized ? 0.6 : 1 }]}>
+                  <View
+                    style={[
+                      styles.windowControls,
+                      { opacity: isMinimized ? 0.6 : 1 },
+                    ]}
+                  >
                     {/* Green Dot (Maximize/Restore) */}
-                    <TouchableOpacity onPress={() => toggleMaximize(id)} style={[styles.macDot, { backgroundColor: '#22c55e' }]} />
-                    
+                    <TouchableOpacity
+                      onPress={() => toggleMaximize(id)}
+                      style={[styles.macDot, { backgroundColor: '#22c55e' }]}
+                    />
+
                     {/* Orange Dot (Minimize) */}
-                    <TouchableOpacity onPress={() => handleMinimize(id)} style={[styles.macDot, { backgroundColor: '#f59e0b' }]} />
-                    
+                    <TouchableOpacity
+                      onPress={() => handleMinimize(id)}
+                      style={[styles.macDot, { backgroundColor: '#f59e0b' }]}
+                    />
+
                     {/* Red Dot with Cross (Close) */}
-                    <TouchableOpacity onPress={() => handleRemoveView(id)} style={[styles.macDot, { backgroundColor: '#ef4444' }]}>
-                      <X size={8} color="white" strokeWidth={3} />
+                    <TouchableOpacity
+                      onPress={() => handleRemoveView(id)}
+                      style={[styles.macDot, { backgroundColor: '#ef4444' }]}
+                    >
+                      <X size={8} color='white' strokeWidth={3} />
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -220,60 +277,83 @@ export function VisualisationPage() {
             })}
 
             {/* Plus Button next to the tabs */}
-            <TouchableOpacity 
-              onPress={handleAddView} 
-              disabled={views.length >= 4} 
+            <TouchableOpacity
+              onPress={handleAddView}
+              disabled={views.length >= 4}
               style={styles.addTabBtn}
             >
-              <Plus size={18} color={views.length >= 4 ? theme.colors.mutedForeground : theme.colors.foreground} />
+              <Plus
+                size={18}
+                color={
+                  views.length >= 4
+                    ? theme.colors.mutedForeground
+                    : theme.colors.foreground
+                }
+              />
             </TouchableOpacity>
           </ScrollView>
         )}
 
-        <Button 
+        <Button
           variant='ghost'
-          onPress={() => setCurrentPage(currentPage === 'learning' ? 'visualisations' : 'learning')}
+          onPress={() =>
+            setCurrentPage(
+              currentPage === 'learning' ? 'visualisations' : 'learning',
+            )
+          }
           style={[
-            styles.learningModeBtn, 
-            { 
-              marginLeft: currentPage !== 'visualisations' ? 'auto' : 0 
-            }
+            styles.learningModeBtn,
+            {
+              marginLeft: currentPage !== 'visualisations' ? 'auto' : 0,
+            },
           ]}
         >
-          <GraduationCap 
-            size={18} 
-            color={currentPage === 'learning' ? theme.colors.primary : theme.colors.foreground} 
+          <GraduationCap
+            size={18}
+            color={
+              currentPage === 'learning'
+                ? theme.colors.primary
+                : theme.colors.foreground
+            }
           />
         </Button>
-
       </Animated.View>
 
       {isCurriculumOpen && (
-        <CurriculumMenu 
-          activePage={currentPage} 
+        <CurriculumMenu
+          activePage={currentPage}
           onNavigate={(pageId) => {
             setCurrentPage(pageId);
-            setIsCurriculumOpen(false); 
+            setIsCurriculumOpen(false);
           }}
         />
       )}
 
       <View style={{ flex: 1, position: 'relative' }}>
-
         {/* 1. VISUALISATIONS */}
-        <Animated.View 
-          style={[
-            StyleSheet.absoluteFill, 
-            visAnimatedStyle
-          ]}
+        <Animated.View
+          style={[StyleSheet.absoluteFill, visAnimatedStyle]}
           pointerEvents={currentPage === 'visualisations' ? 'auto' : 'none'}
         >
           <View style={styles.gridContainer}>
             {views.map((id) => {
               const workspaceColor = getColorForId(id);
               return (
-                <View key={id} style={[styles.gridCell, getCellStyles(id), { borderTopColor: workspaceColor }]}>
-                  <View style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.colors.background }}>
+                <View
+                  key={id}
+                  style={[
+                    styles.gridCell,
+                    getCellStyles(id),
+                    { borderTopColor: workspaceColor },
+                  ]}
+                >
+                  <View
+                    style={{
+                      flex: 1,
+                      overflow: 'hidden',
+                      backgroundColor: theme.colors.background,
+                    }}
+                  >
                     <Visualisation id={id} />
                   </View>
                 </View>
@@ -284,59 +364,80 @@ export function VisualisationPage() {
 
         {/* 2. LEARNING PAGE */}
         {currentPage === 'learning' && (
-          <Animated.View 
-            entering={FadeIn.duration(300)} 
+          <Animated.View
+            entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(300)}
-            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.background },
+            ]}
           >
-             <LearningPage />
+            <LearningPage />
           </Animated.View>
         )}
 
         {/* 2. LOSS PAGE */}
         {currentPage === 'loss' && (
-          <Animated.View 
-            entering={FadeIn.duration(300)} 
+          <Animated.View
+            entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(300)}
-            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.background },
+            ]}
           >
-             <LossLesson />
+            <LossLesson />
           </Animated.View>
         )}
 
         {/* 3. GRADIENT DESCENT PAGE */}
         {currentPage === 'gd' && (
-          <Animated.View 
-            entering={FadeIn.duration(300)} 
+          <Animated.View
+            entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(300)}
-            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.background },
+            ]}
           >
-             <GDPage />
+            <OptimisersLesson />
           </Animated.View>
         )}
 
         {/* 4. LANDSCAPE GENERATION PAGE */}
         {currentPage === 'landscape' && (
-          <Animated.View 
-            entering={FadeIn.duration(300)} 
+          <Animated.View
+            entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(300)}
-            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.background },
+            ]}
           >
-             <LandscapeGenerationPage />
+            <LandscapeGenerationPage />
           </Animated.View>
         )}
 
         {/* 5. LOCKED/FALLBACK PAGE */}
-        {currentPage !== 'visualisations' && currentPage !== 'learning' && currentPage !== 'loss' && currentPage !== 'gd' && currentPage !== 'landscape' && (
-          <Animated.View 
-            entering={FadeIn.duration(300)} 
-            exiting={FadeOut.duration(300)}
-            style={[StyleSheet.absoluteFill, styles.emptyState, { backgroundColor: theme.colors.background }]}
-          >
-             <Text style={{ color: theme.colors.mutedForeground }}>This module is currently locked or under construction.</Text>
-          </Animated.View>
-        )}
-        
+        {currentPage !== 'visualisations' &&
+          currentPage !== 'learning' &&
+          currentPage !== 'loss' &&
+          currentPage !== 'gd' &&
+          currentPage !== 'landscape' && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              exiting={FadeOut.duration(300)}
+              style={[
+                StyleSheet.absoluteFill,
+                styles.emptyState,
+                { backgroundColor: theme.colors.background },
+              ]}
+            >
+              <Text style={{ color: theme.colors.mutedForeground }}>
+                This module is currently locked or under construction.
+              </Text>
+            </Animated.View>
+          )}
       </View>
     </View>
   );
@@ -360,10 +461,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 5
+    marginBottom: 5,
   },
   tab: {
-    height: 34, 
+    height: 34,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
@@ -401,7 +502,7 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     flex: 1,
-    flexDirection: 'row', 
+    flexDirection: 'row',
     flexWrap: 'wrap',
   },
   gridCell: {
