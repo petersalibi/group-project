@@ -12,8 +12,10 @@ import Svg, { Line } from "react-native-svg";
 import { NeuralNode } from "../components/neural-node";
 import { InitialSurfaceLesson } from "./curriculum/InitialSurfaceLesson1";
 import { LossLesson } from "./curriculum/LossLesson";
-import { ComplexityLesson } from "./curriculum/ComplexityLesson";
+import { ArchitectureComplexityLesson } from "./curriculum/ArchitectureComplexityLesson";
 import { LandscapeOriginLesson } from "./curriculum/LandscapeOriginLesson";
+import { ActivationLesson } from "./curriculum/ActivationLesson";
+import { OptimisersLesson } from "./OptimisersLesson";
 
 const LESSON_REGISTRY = [
   {
@@ -31,8 +33,8 @@ const LESSON_REGISTRY = [
     module: "BASICS",
     instruction: "Understanding how model complexity affects the surface.",
     taskGoal: "Increase the network depth to see the landscape get 'messier'.",
-    hint: "Adjust the depth slider to 5 and hit generate.",
-    Component: ComplexityLesson
+    hint: "Adjust the sliders to find a complex-looking landscape.",
+    Component: ArchitectureComplexityLesson
   },
   {
     id: 2,
@@ -51,6 +53,24 @@ const LESSON_REGISTRY = [
     taskGoal: "Achieve an Exploration Coverage of at least 70%.",
     hint: "Don't just plot in the center! Try plotting models with extreme high and low Weights/Biases.",
     Component: LandscapeOriginLesson
+  },
+  {
+    id: 4,
+    title: "5. Activations",
+    module: "INTERACTIVE",
+    instruction: "Without an activation function, a Neural Network is just doing basic linear math. Observe how adding non-linearity gives the network the power to fold the landscape.",
+    taskGoal: "Observe how Linear, ReLU, and Tanh activations affect a deep network.",
+    hint: "First, make the network deep and wide while using Linear activation. Then switch to ReLU and Tanh to see the landscape transform.",
+    Component: ActivationLesson
+  },
+  {
+    id: 3,
+    title: "6. Optimisers",
+    module: "INTERACTIVE",
+    instruction: "Without an activation function, a Neural Network is just doing basic linear math. Observe how adding non-linearity gives the network the power to fold the landscape.",
+    taskGoal: "Observe how Linear, ReLU, and Tanh activations affect a deep network.",
+    hint: "First, make the network deep and wide while using Linear activation. Then switch to ReLU and Tanh to see the landscape transform.",
+    Component: OptimisersLesson
   }
 ];
 
@@ -235,7 +255,7 @@ export function LearningPage() {
           <View style={styles.drawerRight}>
             {showHint && !isTaskComplete && (
                 <View style={[styles.hintBubble, { backgroundColor: isDark ? 'rgba(198, 243, 130, 0.1)' : 'rgba(22, 163, 74, 0.1)' }]}>
-                    <Lightbulb size={12} color={successColor} />
+                    <Lightbulb size={50} color={successColor} />
                     <Text style={[styles.hintText, { color: successColor }]}>{lesson.hint}</Text>
                 </View>
             )}

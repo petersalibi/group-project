@@ -184,7 +184,7 @@ function getColorAtT(t: number, colors: string[], target: THREE.Color) {
 /**
  * Updates an existing mesh's vertex colors based on a new color palette.
  */
-export function updateMeshColors(mesh: THREE.Mesh, palette: string[]) {
+export function updateMeshColors(mesh: THREE.Mesh, palette: string[], heightAxis: 'y' | 'z' = 'z') {
   if (!mesh || !mesh.geometry) return;
 
   const geom = mesh.geometry;
@@ -196,9 +196,9 @@ export function updateMeshColors(mesh: THREE.Mesh, palette: string[]) {
   let maxH = -Infinity;
 
   for (let i = 0; i < count; i++) {
-    const z = posAttr.getZ(i);
-    if (z < minH) minH = z;
-    if (z > maxH) maxH = z;
+    const h = heightAxis === 'y' ? posAttr.getY(i) : posAttr.getZ(i);
+    if (h < minH) minH = h;
+    if (h > maxH) maxH = h;
   }
 
   const range = maxH - minH || 1;
@@ -211,8 +211,8 @@ export function updateMeshColors(mesh: THREE.Mesh, palette: string[]) {
 
   // Iterate through vertices and color them
   for (let i = 0; i < count; i++) {
-    const z = posAttr.getZ(i);
-    const t = (z - minH) / range;
+    const h = heightAxis === 'y' ? posAttr.getY(i) : posAttr.getZ(i);
+    const t = (h - minH) / range;
 
     getColorAtT(t, palette, tempColor);
 
@@ -667,5 +667,46 @@ export function updateOriginHeights(mesh: THREE.Mesh, history: any[], yMultiplie
     posAttr.setY(i, height * yMultiplier);
   }
   
+  posAttr.needsUpdate = true;
+}
+
+/**
+ * Procedurally deforms a landscape based on network architecture and activation functions.
+ * - Linear: Remains a simple convex bowl (no non-linearity).
+ * - ReLU: Creates sharp, piecewise-linear creases using Math.abs().
+ * - Tanh: Creates smooth, sweeping periodic valleys using Sine/Cosine interference.
+ */
+export function updateArchitectureComplexity(mesh: THREE.Mesh, depth: number, width: number, activation: string = 'Tanh', Z_SCALE: number = 1.5) {
+  if (!mesh || !mesh.geometry) return;
+  const geom = mesh.geometry as THREE.PlaneGeometry;
+  const posAttr = geom.attributes.position;
+
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i);
+    const z = posAttr.getZ(i);
+
+    let height = (x * x + z * z) * 0.005;
+
+    if (depth > 1 && activation !== 'Linear') {
+      const freqX = 0.3 + (depth * 0.15);
+      const freqZ = 0.3 + (depth * 0.15);
+      const smoothing = Math.max(1, width * 0.3);
+      const amplitude = (0.5 + depth * 0.4) / smoothing;
+
+      if (activation === 'ReLU') {
+        const wave1 = Math.abs(Math.sin(x * freqX + z * 0.5)) - 0.5;
+        const wave2 = Math.abs(Math.cos(z * freqZ - x * 0.5)) - 0.5;
+        height += (wave1 + wave2) * amplitude * 0.8;
+      } else {
+        const wave1 = Math.sin(x * freqX + z * 0.5) * Math.cos(z * freqZ - x * 0.5);
+        const wave2 = Math.cos(x * freqX * 0.8 + z * freqZ * 0.8);
+        height += (wave1 + wave2) * amplitude * 0.5;
+      }
+    }
+
+    posAttr.setY(i, height * Z_SCALE);
+  }
+  
+  geom.computeVertexNormals();
   posAttr.needsUpdate = true;
 }

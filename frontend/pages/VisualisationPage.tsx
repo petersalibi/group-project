@@ -8,7 +8,7 @@ import { Button } from '../components/button';
 import { CurriculumMenu } from '../components/curriculum-menu';
 import { LossLesson } from './curriculum/LossLesson';
 import { LandscapeGenerationPage } from './LandscapeGenerationPage';
-import { GDPage } from './GDPage';
+import { GDPage } from './OptimisersLesson';
 import { LearningPage } from './LearningPage';
 import { Plus, X, ChevronRight, ChevronDown, GraduationCap } from 'lucide-react-native'; 
 
