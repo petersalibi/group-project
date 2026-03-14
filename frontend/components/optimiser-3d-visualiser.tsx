@@ -25,7 +25,7 @@ export interface OptimiserVisualiserHandle {
 }
 
 interface Props {
-  optimizer: 'GD' | 'SGD' | 'RMSprop' | 'Adam';
+  optimiser: 'GD' | 'SGD' | 'RMSprop' | 'Adam';
   learningRate: number;
   curveRef: React.RefObject<HTMLCanvasElement>;
   forcesRef: React.RefObject<HTMLCanvasElement>;
@@ -36,7 +36,7 @@ type PathNode = { x: number; z: number; y: number; loss: number };
 const Z_SCALE = 2.5;
 
 const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
-  ({ optimizer, learningRate, curveRef, forcesRef }, ref) => {
+  ({ optimiser, learningRate, curveRef, forcesRef }, ref) => {
     const { theme } = useTheme();
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -49,17 +49,17 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
     // Store API Data
     const dictRef = useRef<any>(null);
 
-    // Optimizer Memory & Path State (Coordinates are in Mesh Space [-1, 1])
+    // Optimiser Memory & Path State (Coordinates are in Mesh Space [-1, 1])
     const optStateRef = useRef({ m1: 0, m2: 0, v1: 0, v2: 0, t: 0 });
     const posRef = useRef({ x: 0.8, z: -0.8 }); // Start top-right
     const pathRef = useRef<PathNode[]>([]);
-    const propsRef = useRef({ optimizer, learningRate });
+    const propsRef = useRef({ optimiser, learningRate });
 
     useEffect(() => {
-      if (propsRef.current.optimizer !== optimizer)
+      if (propsRef.current.optimiser !== optimiser)
         optStateRef.current = { m1: 0, m2: 0, v1: 0, v2: 0, t: 0 };
-      propsRef.current = { optimizer, learningRate };
-    }, [optimizer, learningRate]);
+      propsRef.current = { optimiser, learningRate };
+    }, [optimiser, learningRate]);
 
     // --- API DATA INTERPOLATION MATH ---
     const getInterpolatedLoss = (x: number, z: number) => {
@@ -156,7 +156,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           if (mesh.userData.wireframe) mesh.userData.wireframe.visible = false;
           scene.add(mesh);
 
-          // Build Optimizer Elements
+          // Build Optimiser Elements
           const marker = new THREE.Mesh(
             new THREE.SphereGeometry(0.04, 16, 16),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }),
@@ -285,11 +285,11 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       };
     }, []);
 
-    // --- 2. OPTIMIZER MATH & ARROW UPDATES ---
-    const stepOptimizer = () => {
+    // --- 2. OPTIMISER MATH & ARROW UPDATES ---
+    const stepOptimiser = () => {
       if (!sceneRef.current || !dictRef.current) return;
       const { marker, line, gradArrow, momArrow, stepArrow } = sceneRef.current;
-      const { optimizer: opt, learningRate: lr } = propsRef.current;
+      const { optimiser: opt, learningRate: lr } = propsRef.current;
       let { x, z } = posRef.current;
 
       const { dx, dz } = getGradient(x, z);
@@ -480,7 +480,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
     useEffect(() => {
       let raf: number;
       const loop = () => {
-        stepOptimizer();
+        stepOptimiser();
         raf = requestAnimationFrame(loop);
       };
       if (isRunning) raf = requestAnimationFrame(loop);
@@ -489,7 +489,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
     // --- EXPOSE CONTROLS TO PARENT ---
     useImperativeHandle(ref, () => ({
-      step: () => stepOptimizer(),
+      step: () => stepOptimiser(),
       toggleRun: () => {
         setIsRunning(!isRunning);
         return !isRunning;

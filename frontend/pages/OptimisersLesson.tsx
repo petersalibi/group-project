@@ -17,7 +17,7 @@ import Optimiser3DVisualiser, {
   OptimiserVisualiserHandle,
 } from '../components/optimiser-3d-visualiser';
 
-const OPTIMIZERS = {
+const OPTIMISERS = {
   GD: {
     name: 'Gradient Descent',
     description:
@@ -40,12 +40,12 @@ const OPTIMIZERS = {
   },
 };
 
-type OptimizerType = keyof typeof OPTIMIZERS;
+type OptimiserType = keyof typeof OPTIMISERS;
 
 export function OptimisersLesson() {
   const { theme, isDark } = useTheme();
 
-  const [optimizer, setOptimizer] = useState<OptimizerType>('GD');
+  const [optimiser, setOptimiser] = useState<OptimiserType>('GD');
   const [learningRate, setLearningRate] = useState(0.01);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -130,7 +130,7 @@ export function OptimisersLesson() {
               </Text>
             </View>
 
-            {/* OPTIMIZER SELECTOR (PILLS) */}
+            {/* OPTIMISER SELECTOR (PILLS) */}
             <View style={styles.controlGroup}>
               <Text
                 style={[
@@ -138,11 +138,11 @@ export function OptimisersLesson() {
                   { color: theme.colors.mutedForeground, marginBottom: 8 },
                 ]}
               >
-                SELECT OPTIMIZER
+                SELECT OPTIMISER
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {(Object.keys(OPTIMIZERS) as OptimizerType[]).map((opt) => {
-                  const isActive = optimizer === opt;
+                {(Object.keys(OPTIMISERS) as OptimiserType[]).map((opt) => {
+                  const isActive = optimiser === opt;
                   return (
                     <TouchableOpacity
                       key={opt}
@@ -158,7 +158,7 @@ export function OptimisersLesson() {
                         },
                       ]}
                       onPress={() => {
-                        setOptimizer(opt);
+                        setOptimiser(opt);
                         handleReset();
                       }}
                     >
@@ -185,7 +185,7 @@ export function OptimisersLesson() {
                   marginTop: 8,
                 }}
               >
-                {OPTIMIZERS[optimizer].description}
+                {OPTIMISERS[optimiser].description}
               </Text>
             </View>
 
@@ -382,7 +382,7 @@ export function OptimisersLesson() {
               ref={visRef}
               curveRef={curveRef}
               forcesRef={forcesRef}
-              optimizer={optimizer}
+              optimiser={optimiser}
               learningRate={learningRate}
             />
           </View>
