@@ -108,6 +108,9 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
             fontWeight: theme.typography.weightMedium,
             color: textColor,
             textAlign: 'center',
+            textShadowColor: isLocked ? 'transparent' : theme.colors.background,
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 2,
           }}
         >
           {label}
