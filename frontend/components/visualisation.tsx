@@ -823,9 +823,9 @@ export function Visualisation({ id }: VisualisationProps) {
                   style={{ zIndex: 10, opacity: isLandscapeLoaded ? 1 : 0.4 }}
                 >
                   {isMaximized ? (
-                    <Minimize2 size={18} color='white' />
+                    <Minimize2 size={18} color={theme.colors.foreground} />
                   ) : (
-                    <Maximize2 size={18} color='white' />
+                    <Maximize2 size={18} color={theme.colors.foreground} />
                   )}
                 </TouchableOpacity>
 
@@ -837,7 +837,7 @@ export function Visualisation({ id }: VisualisationProps) {
                   <Animated.View style={rotateStyle}>
                     <RotateCcw
                       size={18}
-                      color={isRotating ? brandAccent : 'white'}
+                      color={isRotating ? brandAccent : theme.colors.foreground}
                     />
                   </Animated.View>
                 </TouchableOpacity>
@@ -848,7 +848,7 @@ export function Visualisation({ id }: VisualisationProps) {
                   style={{ opacity: isLandscapeLoaded ? 1 : 0.4 }}
                 >
                   <Animated.View style={refreshStyle}>
-                    <RefreshCw size={18} color='white' />
+                    <RefreshCw size={18} color={theme.colors.foreground} />
                   </Animated.View>
                 </TouchableOpacity>
               </View>
@@ -886,7 +886,7 @@ export function Visualisation({ id }: VisualisationProps) {
                       alignItems: 'center',
                     }}
                   >
-                    <Palette size={18} color='white' />
+                    <Palette size={18} color={theme.colors.foreground} />
                   </TouchableOpacity>
                   {showPalette && (
                     <Animated.View

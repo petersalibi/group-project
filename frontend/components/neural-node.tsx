@@ -63,14 +63,25 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
           }}
         >
           {isCompleted && <Check size={24} color="white" strokeWidth={3} />}
-          {isLocked && <Lock size={20} color={theme.colors.mutedForeground} />}
+          {isLocked && (
+            <View 
+              style={{ 
+                width: 14, 
+                height: 14, 
+                borderRadius: 7, 
+                backgroundColor: theme.colors.mutedForeground,
+                borderWidth: 2,
+                borderColor: "white"
+              }} 
+            />
+          )}
           {isAvailable && (
             <View 
               style={{ 
                 width: 14, 
                 height: 14, 
                 borderRadius: 7, 
-                backgroundColor: theme.colors.accent, // Changed to accent for a "Current" indicator
+                backgroundColor: theme.colors.chart4, // Changed to accent for a "Current" indicator
                 borderWidth: 2,
                 borderColor: "white"
               }} 

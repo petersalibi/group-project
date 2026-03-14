@@ -65,7 +65,7 @@ export const lightTheme: Theme = {
     secondaryForeground: '#ffffff',
     muted: '#f5f5f5',
     mutedForeground: '#666666',
-    accent: '#C6F382',
+    accent: '#353F91',
     accentForeground: '#333432',
     buttonHover: '#a9d366',
     destructive: '#d4183d',

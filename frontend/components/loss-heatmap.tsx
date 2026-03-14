@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text } from './text';
+import { useTheme } from "../components/theme-provider";
 import Svg, { Line, Circle, Rect, Text as SvgText, Defs, Filter, FeGaussianBlur, G, ClipPath } from 'react-native-svg';
 import * as THREE from 'three';
 
@@ -30,12 +30,13 @@ interface LossHeatmapProps {
 }
 
 export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3D, isDone, refreshKey, onResult }: LossHeatmapProps) {
+  const { theme, isDark } = useTheme();
   const [visited, setVisited] = useState<Set<string>>(new Set());
   const containerRef = useRef<any>(null);
   const sceneRef = useRef<any>(null);
 
-  const currentGridX = Math.min(GRID - 1, Math.max(0, Math.floor(((weight + 1) / 2) * GRID)));
-  const currentGridY = Math.min(GRID - 1, Math.max(0, Math.floor(((bias + 1) / 2) * GRID)));
+  const currentGridX = Math.min(GRID, Math.max(0, Math.floor(((weight + 1) / 2) * GRID)));
+  const currentGridY = Math.min(GRID, Math.max(0, Math.floor(((bias + 1) / 2) * GRID)));
 
   useEffect(() => {
     setVisited(new Set());
@@ -54,7 +55,7 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
         
         for (let x = currentGridX - 1; x <= currentGridX + 1; x++) {
           for (let y = currentGridY - 1; y <= currentGridY + 1; y++) {
-            if (x >= 0 && x < GRID && y >= 0 && y < GRID) {
+            if (x >= 0 && x <= GRID && y >= 0 && y <= GRID) {
               const key = `${x}-${y}`;
               if (!newVisited.has(key)) {
                 newVisited.add(key);
@@ -126,6 +127,8 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
             width={CELL_SIZE + 1.5}
             height={CELL_SIZE + 1.5}
             fill={`#${_finalColor.getHexString()}`}
+            stroke={`#${_finalColor.getHexString()}`}
+            strokeWidth={1.5}
           />
         );
       }
@@ -141,20 +144,32 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
         const isVisible = isDone || visited.has(`${i}-${j}`);
         if (!isVisible) {
           fog.push(
-            <Rect
-              key={`fog-${i}-${j}`}
-              x={i * CELL_SIZE}
-              y={MAP_SIZE - (j + 1) * CELL_SIZE}
-              width={CELL_SIZE + 0.6}
-              height={CELL_SIZE + 0.6}
-              fill="#0a0a0a"
-            />
+            <G key={`fog-${i}-${j}`}>
+              <Rect
+                x={i * CELL_SIZE}
+                y={MAP_SIZE - (j + 1) * CELL_SIZE}
+                width={CELL_SIZE + 1.5}
+                height={CELL_SIZE + 1.5}
+                fill={theme.colors.background}
+                stroke={theme.colors.background}
+                strokeWidth={1.5}
+              />
+              <Rect
+                x={i * CELL_SIZE}
+                y={MAP_SIZE - (j + 1) * CELL_SIZE}
+                width={CELL_SIZE + 1.5}
+                height={CELL_SIZE + 1.5}
+                fill="rgba(0,0,0,0.1)"
+                stroke="rgba(0,0,0,0.1)"
+                strokeWidth={1.5}
+              />
+            </G>
           );
         }
       }
     }
     return fog;
-  }, [is3D, isDone, visited]);
+  }, [is3D, isDone, visited, theme]);
 
   useEffect(() => {
     if (!is3D || !containerRef.current) return;
@@ -173,11 +188,13 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
     mesh.material = new THREE.MeshLambertMaterial({
       vertexColors: true,
       side: THREE.DoubleSide,
+      transparent: true,
+      alphaTest: 0.8,
     });
     scene.add(mesh);
 
     const axisMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xffffff,
+      color: new THREE.Color(theme.colors.foreground),
     });
 
     // X-Axis (Weight)
@@ -201,7 +218,7 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
       canvas.height = 64;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillStyle = theme.colors.foreground;
         ctx.font = 'bold 36px System, sans-serif';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
@@ -244,8 +261,8 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
     // Create Marker Ball
     const ballGeometry = new THREE.SphereGeometry(0.03, 32, 32);
     const ballMaterial = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xffffff),
-        emissive: new THREE.Color(0xffffff),
+        color: '#fff',
+        emissive: '#fff',
         emissiveIntensity: 0.5,
         metalness: 0.1,
         roughness: 0.1,
@@ -276,13 +293,13 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
       cleanupScene(scene, renderer);
       sceneRef.current = null;
     };
-  }, [is3D]);
+  }, [is3D, theme]);
 
   // --- UPDATE VISIBILITY (FOG OF WAR) ---
   useEffect(() => {
     if (!is3D || !sceneRef.current) return;
     updateLandscapeVisibility(sceneRef.current.mesh, visited, isDone, GRID);
-  }, [is3D, visited, isDone]);
+  }, [is3D, visited, isDone, theme]);
 
   // --- UPDATE BALL POSITION ---
   useEffect(() => {
@@ -298,13 +315,16 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
     const y = visualLoss * heightMultiplier + 0.04;
     
     ball.position.set(x, y, z);
-  }, [is3D, weight, bias, currentLoss]);
+  }, [is3D, weight, bias, currentLoss, theme]);
 
   const cx2D = ((weight + 1) / 2) * MAP_SIZE;
   const cy2D = MAP_SIZE - ((bias + 1) / 2) * MAP_SIZE;
 
   return (
-    <View style={styles.mapWrapper}>
+    <View style={[
+      styles.mapWrapper, 
+      is3D && { width: '100%', height: '100%', overflow: 'visible' }
+    ]}>
       
       {/* 2D RENDERER */}
       {!is3D && (
@@ -333,15 +353,15 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
 
           {fogOfWar2D}
 
-          <Line x1={0} y1={cy2D} x2={MAP_SIZE} y2={cy2D} stroke='white' />
-          <Line x1={cx2D} y1={0} x2={cx2D} y2={MAP_SIZE} stroke='white' />
+          <Line x1={0} y1={cy2D} x2={MAP_SIZE} y2={cy2D} stroke={theme.colors.foreground} />
+          <Line x1={cx2D} y1={0} x2={cx2D} y2={MAP_SIZE} stroke={theme.colors.foreground} />
           <Circle cx={cx2D} cy={cy2D} r={6} fill='white' stroke='#000' strokeWidth={2} />
 
           <SvgText 
             x={MAP_SIZE} 
-            y={MAP_SIZE + 20} 
-            fill="white" 
-            fontSize="15"
+            y={MAP_SIZE + 22} 
+            fill={theme.colors.foreground} 
+            fontSize="20"
             fontFamily="System"
             fontWeight="bold"
             textAnchor="end" 
@@ -352,8 +372,8 @@ export function LossHeatmap({ weight, bias, currentLoss, dataPoints, isHeld, is3
           <SvgText 
             x={-10} 
             y={0} 
-            fill="white" 
-            fontSize="15" 
+            fill={theme.colors.foreground}
+            fontSize="20" 
             fontFamily="System"
             fontWeight="bold"
             textAnchor="end" 

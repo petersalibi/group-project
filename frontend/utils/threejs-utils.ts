@@ -524,12 +524,25 @@ export function updateLandscapeVisibility(
   mesh: THREE.Mesh,
   visited: Set<string>,
   isDone: boolean,
-  gridSize: number
+  gridSize: number,
 ) {
   if (!mesh || !mesh.geometry || !mesh.geometry.attributes.color) return;
   const geom = mesh.geometry as THREE.PlaneGeometry;
   const posAttr = geom.attributes.position;
-  const colAttr = geom.attributes.color;
+  let colAttr = geom.attributes.color;
+
+  // If the buffer only has 3 slots (RGB), we replace it with a 4-slot buffer (RGBA)
+  if (!colAttr || colAttr.itemSize === 3) {
+    const rgba = new Float32Array(posAttr.count * 4);
+    geom.setAttribute('color', new THREE.BufferAttribute(rgba, 4));
+    colAttr = geom.attributes.color;
+    
+    // Tell the material it is now allowed to render transparency
+    if (mesh.material) {
+      (mesh.material as THREE.Material).transparent = true;
+      (mesh.material as THREE.Material).needsUpdate = true;
+    }
+  }
 
   // Calculate the Z range to properly map the colors
   const zs = [];
@@ -543,7 +556,6 @@ export function updateLandscapeVisibility(
   const _c1 = new THREE.Color();
   const _c2 = new THREE.Color();
   const _finalColor = new THREE.Color();
-  const _hiddenColor = new THREE.Color('#0a0a0a'); // Background color for hidden areas
 
   let v = 0;
   for (let j = 0; j <= gridSize; j++) {
@@ -552,25 +564,108 @@ export function updateLandscapeVisibility(
       const row = gridSize - j;
       const col = i;
 
-      // FIXED: Only check the current cell! The 'visited' set already handles the brush radius.
+      // Only check the current cell
       const isVisible = isDone || visited.has(`${col}-${row}`);
 
       const zVal = posAttr.getZ(v);
       const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
 
+      const scaledT = t * segmentCount;
+      const index = Math.floor(scaledT);
+      const localT = scaledT - index;
+      _c1.set(RAINBOW[Math.min(index, segmentCount)]);
+      _c2.set(RAINBOW[Math.min(index + 1, segmentCount)]);
+      _finalColor.copy(_c1).lerp(_c2, localT);
+
       if (isVisible) {
-        const scaledT = t * segmentCount;
-        const index = Math.floor(scaledT);
-        const localT = scaledT - index;
-        _c1.set(RAINBOW[Math.min(index, segmentCount)]);
-        _c2.set(RAINBOW[Math.min(index + 1, segmentCount)]);
-        _finalColor.copy(_c1).lerp(_c2, localT);
-        colAttr.setXYZ(v, _finalColor.r, _finalColor.g, _finalColor.b);
+        colAttr.setXYZW(v, _finalColor.r, _finalColor.g, _finalColor.b, 1.0);
       } else {
-        colAttr.setXYZ(v, _hiddenColor.r, _hiddenColor.g, _hiddenColor.b);
+        colAttr.setXYZW(v, _finalColor.r, _finalColor.g, _finalColor.b, 0.0);
       }
       v++;
     }
   }
   colAttr.needsUpdate = true;
+}
+
+/**
+ * Creates the base wireframe/solid plane for the Origin Landscape lesson.
+ */
+export function createOriginLandscape(gridSize: number, size: number = 20, themeAccentColor: string) {
+
+  const geometry = new THREE.PlaneGeometry(size, size, gridSize, gridSize);
+  geometry.rotateX(-Math.PI / 2);
+
+  const material = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(themeAccentColor),
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+
+  const wireframeGeom = new THREE.BufferGeometry();
+  
+  wireframeGeom.setAttribute('position', geometry.attributes.position);
+
+  const indices = [];
+  const verticesPerRow = gridSize + 1;
+  for (let row = 0; row < verticesPerRow; row++) {
+    for (let col = 0; col < verticesPerRow; col++) {
+      const i = row * verticesPerRow + col;
+      // Connect horizontal edges
+      if (col < gridSize) indices.push(i, i + 1);
+      // Connect vertical edges
+      if (row < gridSize) indices.push(i, i + verticesPerRow);
+    }
+  }
+  wireframeGeom.setIndex(indices);
+
+  const wireframeMat = new THREE.LineBasicMaterial({
+    color: new THREE.Color(themeAccentColor),
+    transparent: true,
+    opacity: 0.3,
+  });
+  const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
+  
+  mesh.add(wireframe);
+  mesh.userData.wireframe = wireframe;
+
+  return mesh;
+}
+
+/**
+ * Dynamically updates the heights (Y values) of the origin landscape mesh
+ * using Inverse Distance Weighting from the user's plotted history points.
+ */
+export function updateOriginHeights(mesh: THREE.Mesh, history: any[], yMultiplier: number = 0.05) {
+  if (!mesh || !mesh.geometry) return;
+  const geom = mesh.geometry as THREE.PlaneGeometry;
+  const posAttr = geom.attributes.position;
+
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i); // This represents Weight (m)
+    const z = posAttr.getZ(i); // This represents Bias (b)
+
+    let height = 0;
+    if (history.length > 0) {
+      let totalWeight = 0;
+      let weightedHeight = 0;
+      
+      // Interpolate height based on distance to recorded points
+      for (const p of history) {
+        const distSq = Math.pow(x - p.m, 2) + Math.pow(z - p.b, 2) + 0.2;
+        const weight = 1 / Math.pow(distSq, 2.5);
+        weightedHeight += p.mse * weight;
+        totalWeight += weight;
+      }
+      height = weightedHeight / totalWeight;
+    }
+    
+    // Set the Y axis (Height) scaled down so it fits in the camera
+    posAttr.setY(i, height * yMultiplier);
+  }
+  
+  posAttr.needsUpdate = true;
 }

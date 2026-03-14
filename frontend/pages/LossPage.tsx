@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,32 +14,18 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Svg, { Line, Circle } from 'react-native-svg';
+import Svg, { Line, Circle, Rect } from 'react-native-svg';
 import {
-  Dock,
-  Maximize2,
-  Minimize2,
   RefreshCw,
+  BarChart3,
+  Map,
 } from 'lucide-react-native';
-import { TrainingMetrics } from '../components/training_metrics';
-import { NetworkArchitecture } from '../components/network_architecture';
 
 import { useTheme } from '../components/theme-provider';
-import { useLoading } from '../components/loading-provider';
-import { LayoutManager } from '../components/docking-provider';
-import { DockPanel } from '../components/dock-panel';
-import { StatsGroupPanel } from '../components/stats-group-panel';
 import { Switch } from '../components/switch';
 import { Text } from '../components/text';
-import { NumberInput } from '../components/number-input';
-import { Tooltip } from '../components/tooltip';
 import { LossHeatmap } from '../components/loss-heatmap';
 import { Slider } from '../components/slider';
-
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-} from '../components/dropdown-menu';
 
 interface LossPageProps {
   onTaskUpdate?: (isComplete: boolean, error: string | null) => void;
@@ -48,15 +33,9 @@ interface LossPageProps {
 
 export function LossPage({ onTaskUpdate }: LossPageProps) {
   const { theme, isDark } = useTheme();
-  const { setIsLoading } = useLoading();
-  const brandAccent = isDark ? '#C6F382' : '#353F91';
 
-  const [activation, setActivation] = useState<string>('');
-  const [depth, setDepth] = useState<number>(1);
-  const [width, setWidth] = useState<number>(1);
-  const [inputs] = useState(['x']);
-  const [outputs] = useState(1);
-  const [isMaximized, setIsMaximized] = useState(false);
+  const successColor = isDark ? '#C6F382' : '#16a34a';
+  const successBgColor = isDark ? 'rgba(198, 243, 130, 0.05)' : 'rgba(22, 163, 74, 0.05)';
 
   // Heatmap State
   const [weight, setWeight] = useState(-1);
@@ -101,7 +80,7 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
     });
     // Reset state
     setWeight(-1);
-    setBias(-1);
+    setBias(-1); // Resetting back to start bias
     setIsDone(false);
     scale.value = 0;
     setRefreshKey(prev => prev + 1);
@@ -111,13 +90,6 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
   const refreshStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${refreshAnim.value}deg` }],
   }));
-
-  const [localDims, setLocalDims] = useState({ width: 0, height: 0 });
-
-  const handleLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setLocalDims({ width, height });
-  };
 
   const handleHeatmapResult = (isCorrect: boolean) => {
     if (isCorrect) {
@@ -148,14 +120,14 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
   const mapY = (val: number) => `${50 - val * 45}%`;
 
   const LineGraphContent = (
-    <View style={{ flex: 1, width: '100%', minHeight: 60, marginTop: 4 }}>
+    <View style={{ flex: 1, width: '100%' }}>
       <Svg width="100%" height="100%">
-        
+        <Rect width="100%" height="100%" fill={theme.colors.background} rx={4} />
         {/* Y-Axis */}
-        <Line x1="50%" y1="0%" x2="50%" y2="100%" stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
+        <Line x1="50%" y1="0%" x2="50%" y2="100%" stroke={theme.colors.border} strokeWidth={1} />
         
         {/* X-Axis */}
-        <Line x1="0%" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
+        <Line x1="0%" y1="50%" x2="100%" y2="50%" stroke={theme.colors.border} strokeWidth={1} />
 
         {dataPoints.map((p, i) => {
           const predictedY = weight * p.x + bias;
@@ -188,258 +160,149 @@ export function LossPage({ onTaskUpdate }: LossPageProps) {
             key={`point-${i}`} 
             cx={mapX(p.x)} 
             cy={mapY(p.y)} 
-            r={3.5} 
-            fill="#fff" 
+            r={4} 
+            fill={theme.colors.foreground} 
           />
         ))}
-
       </Svg>
     </View>
   );
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleLayout}>
-      {localDims.width > 0 && localDims.height > 0 && (
-        <LayoutManager width={localDims.width} height={localDims.height}>
-          <DockPanel
-            id='CONFIG'
-            title='MODEL CONFIGURATION'
-            isMaximized={false}
-          >
-            <ScrollView contentContainerStyle={styles.sidebarContent}>
+    <GestureHandlerRootView style={styles.mainContainer}>
+      <View style={styles.groupContainer}>
+        
+        {/* LEFT PANEL */}
+          <View style={styles.subPanel}>
+            <View style={[styles.subHeader, {borderBottomColor: theme.colors.border}]}>
+              <BarChart3 size={12} color={theme.colors.accent} />
+              <Text style={styles.subTitle}>MODEL PERFORMANCE</Text>
+            </View>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+
+              {/* LINE GRAPH */}
+              <View style={styles.wideGraphBox}>
+                {LineGraphContent}
+              </View>
+
+              {/* METRIC STRIP */}
+              <View style={[styles.metricStrip, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)' }]}>
+                <View>
+                  <Text style={[styles.metricLabel, { color: theme.colors.mutedForeground }]}>MSE LOSS</Text>
+                  <Text style={styles.metricValue}>{currentLoss.toFixed(4)}</Text>
+                </View>
+              </View>
+
               {/* SUCCESS TEXT */}
               {isDone && (
-                <Animated.View style={[styles.successBox, successAnimatedStyle]}>
-                  <Text style={styles.successText}>
+                <Animated.View style={[styles.successBox, successAnimatedStyle, { borderColor: successColor, backgroundColor: successBgColor }]}>
+                  <Text style={[styles.successText, { color: successColor }]}>
                     You found the minimum!
-                    {'\n'}
-                    At this point, the network's line perfectly fits the dataset.
-                    {'\n'}
-                    The error (loss) increases as you move the weight or bias away from this ideal combination.
+                    {'\n\n'}
+                    At this point, the network's line perfectly fits the dataset. The error (loss) increases as you move the weight or bias away from this ideal combination.
                   </Text>
                 </Animated.View>
               )}
-              {/* DATASET DROPDOWN */}
-              <View style={styles.controlGroup}>
-                <Text style={styles.label}>DATASET</Text>
-                <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
-                  <View style={{ flex: 1 }}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border }]}>
-                          <Text style={styles.dropdownValue}>Simple Linear Data</Text>
-                        </View>
-                      </DropdownMenuTrigger>
-                    </DropdownMenu>
-                  </View>
-                </View>
-              </View>
 
-              {/* ARCHITECTURE */}
+              {/* CONTROLS */}
               <View style={styles.controlGroup}>
-                <Text style={styles.label}>ARCHITECTURE</Text>
-                <View style={styles.rowGap}>
-                  <View style={{ flex: 1 }}>
-                    <Tooltip tip='The number of hidden layers in the network.'>
-                      <Text style={styles.subLabel}>Depth</Text>
-                    </Tooltip>
-                    <NumberInput
-                      defaultValue={1}
-                      disabled={true}
-                      value={1}
-                      step={1}
-                      min={1}
-                      max={100}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* LIVE PARAMETERS / SLIDERS */}
-              <View style={styles.controlGroup}>
-                <Text style={styles.label}>NETWORK PARAMETERS</Text>
-                
                 <View style={styles.sliderGroup}>
-                  <Text style={styles.subLabel}>Weight (w)</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Slider
-                      style={{ flex: 1, height: 40 }}
-                      minimumValue={-1}
-                      maximumValue={1}
-                      value={weight}
-                      onValueChange={setWeight}
-                      minimumTrackTintColor={isDone ? '#666' : '#ff4d4d'}
-                      thumbTintColor={isDone ? '#888' : '#fff'}
-                      disabled={isDone}
-                    />
-                    <Text style={{ marginLeft: 10, minWidth: 35, fontSize: 12 }}>
-                      {(weight).toFixed(2)}
-                    </Text>
-                  </View>
+                  <Text style={[styles.controlLabel, { color: theme.colors.mutedForeground }]}>WEIGHT (w): {weight.toFixed(2)}</Text>
+                  <Slider
+                    style={{ flex: 1, height: 40, marginTop: 4 }}
+                    minimumValue={-1}
+                    maximumValue={1}
+                    value={weight}
+                    onValueChange={setWeight}
+                    minimumTrackTintColor={isDone ? theme.colors.muted : theme.colors.accent}
+                    thumbTintColor={isDone ? theme.colors.muted : theme.colors.foreground}
+                    disabled={isDone}
+                  />
                 </View>
 
                 <View style={styles.sliderGroup}>
-                  <Text style={styles.subLabel}>Bias (b)</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Slider
-                      style={{ flex: 1, height: 40 }}
-                      minimumValue={-1}
-                      maximumValue={1}
-                      value={bias}
-                      onValueChange={setBias}
-                      minimumTrackTintColor={isDone ? '#666' : '#1e00ff'}
-                      thumbTintColor={isDone ? '#888' : '#fff'}
-                      disabled={isDone}
-                    />
-                    <Text style={{ marginLeft: 10, minWidth: 35, fontSize: 12 }}>
-                      {(bias).toFixed(2)}
-                    </Text>
-                  </View>
+                  <Text style={[styles.controlLabel, { color: theme.colors.mutedForeground }]}>BIAS (b): {bias.toFixed(2)}</Text>
+                  <Slider
+                    style={{ flex: 1, height: 40, marginTop: 4 }}
+                    minimumValue={-1}
+                    maximumValue={1}
+                    value={bias}
+                    onValueChange={setBias}
+                    minimumTrackTintColor={isDone ? theme.colors.muted : theme.colors.accent}
+                    thumbTintColor={isDone ? theme.colors.muted : theme.colors.foreground}
+                    disabled={isDone}
+                  />
                 </View>
               </View>
             </ScrollView>
-          </DockPanel>
+          </View>
 
-          {/* ENGINE AREA */}
-          <DockPanel
-            id='ENGINE'
-            title='LOSS LANDSCAPE VISUALISATION'
-            isMaximized={isMaximized}
-          >
-            <View style={styles.engineContainer}>
-              <View style={styles.engineHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 8 }}>
-                  <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold', opacity: is3D ? 1 : 0.5 }}>3D</Text>
-                  <Switch 
-                    checked={is3D} 
-                    onCheckedChange={setIs3D} 
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={() => setIsMaximized(!isMaximized)}
-                  style={{ zIndex: 10 }}
-                >
-                  {isMaximized ? (
-                    <Minimize2 size={18} color='white' />
-                  ) : (
-                    <Maximize2 size={18} color='white' />
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={onRefreshPress}
-                  style={{ opacity: 1 }}
-                >
-                  <Animated.View style={refreshStyle}>
-                    <RefreshCw size={18} color='white' />
-                  </Animated.View>
-                </TouchableOpacity>
-              </View>
-
-              {/* Centered Canvas Container */}
-              <View style={styles.canvasCenter}>
-                <LossHeatmap 
-                  weight={weight} 
-                  bias={bias}
-                  currentLoss={currentLoss}
-                  dataPoints={dataPoints}
-                  isHeld={isHeld} 
-                  isDone={isDone}
-                  is3D={is3D}
-                  refreshKey={refreshKey}
-                  onResult={handleHeatmapResult} 
-                />
-              </View>
+        {/* RIGHT PANEL (LANDSCAPE) */}
+        <View style={[styles.subPanel, { flex: 1.4, backgroundColor: 'rgba(0,0,0,0.05)' }]}>
+          <View style={[styles.subHeader, {borderBottomColor: theme.colors.border, zIndex: 10}]}>
+            <Map size={12} color={theme.colors.accent} />
+            <Text style={styles.subTitle}>LOSS LANDSCAPE</Text>
             
-            </View>
-          </DockPanel>
-
-          <DockPanel
-            id='STATS_GROUP'
-            title=''
-            isMaximized={false}
-          >
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'stretch', gap: 12 }}>
-              <NetworkArchitecture
-                  inputs={inputs.length || 0}
-                  depth={depth}
-                  width={width}
-                  activation={activation}
-                  outputs={outputs}
-                  weights={[weight, bias]}
-              />
-                <View style={{ 
-                  flex: 1,
-                  padding: 12,
-                }}>
-                  <Text style={{ fontSize: 9, fontWeight: "700", color: theme.colors.mutedForeground, letterSpacing: 0.5 }}>DATA FIT</Text>
-                  {LineGraphContent}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <TrainingMetrics
-                    currentLoss={currentLoss}
-                    lossChange={null}
-                    fidelity={null}
-                    log={null}
-                    isPathLoaded={true}
-                  />
-                </View>
+            <View style={styles.headerControls}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ color: theme.colors.foreground, fontSize: 10, fontWeight: 'bold', opacity: is3D ? 1 : 0.5 }}>3D</Text>
+                <Switch checked={is3D} onCheckedChange={setIs3D} />
               </View>
 
-          </DockPanel>
-        </LayoutManager>
-      )}
+              <TouchableOpacity onPress={onRefreshPress}>
+                <Animated.View style={refreshStyle}>
+                  <RefreshCw size={16} color={theme.colors.foreground} />
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.canvasCenter}>
+            <LossHeatmap 
+              weight={weight} 
+              bias={bias}
+              currentLoss={currentLoss}
+              dataPoints={dataPoints}
+              isHeld={isHeld} 
+              isDone={isDone}
+              is3D={is3D}
+              refreshKey={refreshKey}
+              onResult={handleHeatmapResult} 
+            />
+          </View>
+        </View>
+
+      </View>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  sidebarContent: { padding: 16, gap: 24 },
-  controlGroup: { gap: 8 },
-  label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5, opacity: 0.8 },
-  subLabel: { fontSize: 9, fontWeight: '600', opacity: 0.5, marginBottom: 2 },
-  subText: { opacity: 0.7, fontSize: 12 },
-  rowGap: { flexDirection: 'row', gap: 10 },
-  dropdownTrigger: {
-    height: 36,
-    borderWidth: 1,
-    borderRadius: 8,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  dropdownValue: { fontSize: 12 },
-  engineContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  canvasCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  engineHeader: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
-    gap: 16,
-    zIndex: 10,
-  },
-  sliderGroup: { marginBottom: 10 },
+  mainContainer: { flex: 1 },
+  groupContainer: { flex: 1, flexDirection: 'row', gap: 1 },
+  subPanel: { flex: 1 },
+  subHeader: { height: 40, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: 1, gap: 8 },
+  headerControls: { marginLeft: 'auto', flexDirection: 'row', gap: 16, alignItems: 'center' },
+  subTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingVertical: 24 },
+  wideGraphBox: { width: '100%', aspectRatio: 2.1, marginBottom: 20 },
+  metricStrip: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: 16, borderRadius: 6 },
+  metricLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  metricValue: { fontSize: 28, fontWeight: '700', color: '#f59e0b', marginTop: 4 },
+  controlGroup: { width: '100%', gap: 16 },
+  controlLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  sliderGroup: { marginBottom: 8 },
+  canvasCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   successBox: {
-    paddingVertical: 8, 
-    paddingHorizontal: 12, 
-    borderRadius: 6, 
+    paddingVertical: 12, 
+    paddingHorizontal: 16, 
+    borderRadius: 8, 
     borderWidth: 1,
-    alignSelf: 'flex-start',
-    borderColor: "#C6F382"
+    marginBottom: 20,
   },
   successText: {
-    color: "#C6F382",
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
