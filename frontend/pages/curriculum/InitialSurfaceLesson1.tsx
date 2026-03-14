@@ -38,6 +38,8 @@ export function InitialSurfaceLesson({ onTaskUpdate }: any) {
     depth: depth,
     width: 10,
     method: 'RANDOMDIRS',
+    dir1: 0,
+    dir2: 1,
     data: data,
     loss: 'MSELoss',
     pathConfigs: [],
@@ -203,7 +205,7 @@ export function InitialSurfaceLesson({ onTaskUpdate }: any) {
                   <Text
                     style={{ color: '#888', textAlign: 'center', marginTop: 8 }}
                   >
-                    The selected dataset is incompatible with this lesson's
+                    The selected dataset is incompatible with this lesson&apos;s
                     requirements.
                   </Text>
                 </View>
