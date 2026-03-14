@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 import * as THREE from 'three';
 
-import { NetworkArchitecture } from '../../components/network_architecture';
+import { NetworkArchitecture } from '../../components/network-architecture';
 
 import api from '../../src/api';
 

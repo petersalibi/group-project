@@ -34,7 +34,7 @@ import {
   Upload,
 } from 'lucide-react-native';
 import { TrainingMetrics } from '../components/training_metrics';
-import { NetworkArchitecture } from '../components/network_architecture';
+import { NetworkArchitecture } from './network-architecture';
 
 import { useTheme } from '../components/theme-provider';
 import { useLoading } from '../components/loading-provider';
