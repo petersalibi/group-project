@@ -312,7 +312,7 @@ export function VisualisationPage() {
             size={18}
             color={
               currentPage === 'learning'
-                ? theme.colors.primary
+                ? theme.colors.accent
                 : theme.colors.foreground
             }
           />

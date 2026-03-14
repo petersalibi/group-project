@@ -67,7 +67,7 @@ export const lightTheme: Theme = {
     mutedForeground: '#666666',
     accent: '#353F91',
     accentForeground: '#333432',
-    buttonHover: '#a9d366',
+    buttonHover: '#d5d5d5',
     destructive: '#d4183d',
     destructiveForeground: '#ffffff',
     border: '#e0e0e0',
@@ -134,7 +134,7 @@ export const darkTheme: Theme = {
     accent: '#C6F382',
     accentForeground: '#1a1a1a',
     border: '#333333',
-    buttonHover: '#62783f',
+    buttonHover: '#666666',
   },
   shadows: {
     soft:
