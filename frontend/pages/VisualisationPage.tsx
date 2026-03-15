@@ -49,11 +49,10 @@ export function VisualisationPage() {
     'vis-1': WORKSPACE_COLORS[0],
   });
   const [isHoveringTop, setIsHoveringTop] = useState(false);
-  const [isCurriculumOpen, setIsCurriculumOpen] = useState(false);
 
   const isMaximized = maximizedId !== null;
   const shouldHideTab =
-    Platform.OS === 'web' && isMaximized && !isHoveringTop && !isCurriculumOpen;
+    Platform.OS === 'web' && isMaximized && !isHoveringTop;
 
   const tabMarginTop = useSharedValue(0);
 
@@ -215,15 +214,6 @@ export function VisualisationPage() {
             animatedTabStyle,
           ]}
         >
-          <TouchableOpacity
-            onPress={() => setIsCurriculumOpen(!isCurriculumOpen)}
-            style={[
-              styles.globalCurriculumBtn,
-              { borderRightColor: theme.colors.border },
-            ]}
-          >
-            <ChevronDown size={18} color={theme.colors.foreground} />
-          </TouchableOpacity>
 
           <ScrollView
             horizontal
