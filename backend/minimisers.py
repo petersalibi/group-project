@@ -84,6 +84,7 @@ def animate_optimiser(params: MinimiserParams):
 
     print()
     model.load_state_dict(saved_state)
+    print(loss_path)
 
     return {
         "minimiser_path": minimiser_path,

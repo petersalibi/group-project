@@ -133,13 +133,37 @@ def prepare_param_structure(model):
     return params, shapes, slices
 
 
-def compute_loss_surface_from_autoencoder(model, X, y, decoder, samples=50, latent_limits=None, loss=nn.MSELoss(), verbose=False):
-
+def compute_loss_surface_from_autoencoder(model, X, y, decoder, projected_trajectory, samples=50, latent_limits=None, loss=nn.MSELoss(), verbose=False):
+    latent_limits = None
     # Latent limits is the same as our scale here
     if latent_limits is None:
-        latent_limits = [-1.0, 1.0, -1.0, 1.0]
-
-    alpha_min, alpha_max, beta_min, beta_max = -latent_limits, latent_limits, -latent_limits, latent_limits
+        points = np.vstack(projected_trajectory) 
+        
+        # 2. Extract mins and maxes (ensuring they are scalars)
+        x_min, y_min = points.min(axis=0)
+        x_max, y_max = points.max(axis=0)
+        
+        # Calculate current width and height
+        width = x_max - x_min
+        height = y_max - y_min
+        
+        # Find the center point
+        x_center = (x_max + x_min) / 2
+        y_center = (y_max + y_min) / 2
+        
+        # Determine the side length for a square: the larger dimension + 20%
+        # Adding 20% means multiplying the span by 1.2
+        max_span = max(width, height) * 1.2
+        half_span = max_span / 2
+        
+        # Set limits centered around the original data
+        
+        alpha_min = float(x_center - half_span)
+        alpha_max = float(x_center + half_span)
+        beta_min = float(y_center - half_span)
+        beta_max = float(y_center + half_span)
+        print(alpha_min)
+        print(type(alpha_min))
 
     if verbose:
         start = time.time()
@@ -194,7 +218,7 @@ def generate_loss_manifold(landscape_params: LandscapeParams, verbose=False):
     model = Model(landscape_params.network, data.inputs, data.outputs)
 
     # TODO fidelity returned as the third value
-    decoder, projected_trajectories, _ = find_optimal_ae_manifold(model, landscape_params.args)
+    decoder, projected_trajectories, fidelity = find_optimal_ae_manifold(model, landscape_params.args)
 
     # Compute surface over the provided decoder-manifold
     with torch.inference_mode():
@@ -203,6 +227,7 @@ def generate_loss_manifold(landscape_params: LandscapeParams, verbose=False):
             data.X,
             data.y,
             decoder,
+            projected_trajectory=projected_trajectories,
             samples=landscape_params.surface_samples,
             latent_limits=landscape_params.scale,
             loss=landscape_params.loss,
