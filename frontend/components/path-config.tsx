@@ -13,7 +13,6 @@ import {
 import { useTheme } from '../components/theme-provider';
 import { Text } from '../components/text';
 import { Button } from '../components/button';
-import { Tooltip } from './tooltip';
 
 import {
   DropdownMenu,
@@ -91,16 +90,9 @@ export function PathConfig(props: PathConfigProps) {
           PATH {id + 1}
         </Text>
         <View style={styles.actionGroup}>
-          <Tooltip
-            tip={
-              locked
-                ? 'Locking forces the optimiser to only update weights within the visible 2D plane.'
-                : 'Unlocking allows the optimiser to move freely in the true high-dimensional space.'
-            }
-          >
             <Button
               variant='ghost'
-              disabled={regen}
+              disabled={regen || isSceneLoading}
               onPress={() => onConfigChange(id, 'locked', !locked)}
               size='icon'
               style={styles.iconBtn}
@@ -111,12 +103,12 @@ export function PathConfig(props: PathConfigProps) {
                 <Unlock size={14} color={theme.colors.mutedForeground} />
               )}
             </Button>
-          </Tooltip>
           <Button
             variant='ghost'
             onPress={() => onPathRemoval(id)}
             size='icon'
             style={[styles.iconBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+            disabled={isSceneLoading}
           >
             <Trash2 size={14} color="#ef4444" />
           </Button>
@@ -128,9 +120,7 @@ export function PathConfig(props: PathConfigProps) {
       {/* 2. PARAMETERS ROW */}
       <View style={styles.paramsRow}>
         <View style={styles.paramItem}>
-          <Tooltip tip="The algorithm used to update the network's weights.">
             <Text style={styles.subLabel}>Optimiser</Text>
-          </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger>
               <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}>
@@ -143,7 +133,7 @@ export function PathConfig(props: PathConfigProps) {
               {optimisers.map((item) => (
                 <DropdownMenuItem
                   key={item.id}
-                  disabled={regen}
+                  disabled={regen || isSceneLoading}
                   onSelect={() => onConfigChange(id, 'optim', String(item.value))}
                 >
                   <Text>{item.label}</Text>
@@ -154,9 +144,7 @@ export function PathConfig(props: PathConfigProps) {
         </View>
 
         <View style={styles.paramItem}>
-          <Tooltip tip='The step size the optimiser takes at each iteration.'>
             <Text style={styles.subLabel}>Learning Rate</Text>
-          </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger>
               <View style={[styles.dropdownTrigger, { borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}>
@@ -169,7 +157,7 @@ export function PathConfig(props: PathConfigProps) {
               {lrs.map((item) => (
                 <DropdownMenuItem
                   key={item.id}
-                  disabled={regen}
+                  disabled={regen || isSceneLoading}
                   onSelect={() => onConfigChange(id, 'lr', Number(item.value))}
                 >
                   <Text>{item.label}</Text>
@@ -195,7 +183,6 @@ export function PathConfig(props: PathConfigProps) {
           )}
         </View>
         <View style={{ justifyContent: 'center' }}>
-          <Tooltip tip="Click anywhere on the loss landscape to manually set the starting position.">
             <Button
               variant={isPlacing ? 'destructive' : 'secondary'}
               size='sm'
@@ -204,7 +191,6 @@ export function PathConfig(props: PathConfigProps) {
             >
               {isPlacing ? 'Cancel' : (startPoint ? 'Replace' : 'Place Point')}
             </Button>
-          </Tooltip>
         </View>
       </View>
 
@@ -216,7 +202,6 @@ export function PathConfig(props: PathConfigProps) {
           <View style={styles.actionsRow}>
             {/* View Path Button */}
             <View style={{ flex: 1 }}>
-              <Tooltip tip='See the network weights and loss evolve as this path animates.'>
                 <Button
                   variant='outline'
                   onPress={() => onViewPath(id)}
@@ -227,14 +212,12 @@ export function PathConfig(props: PathConfigProps) {
                   <Eye size={12} color={theme.colors.foreground} style={{ marginRight: 6 }} />
                   <Text style={styles.btnText} color={theme.colors.foreground}>Watch</Text>
                 </Button>
-              </Tooltip>
             </View>
             
             {/* Regeneration Buttons */}
             {isPathLoaded && (
               <>
                 <View style={{ flex: 1 }}>
-                  <Tooltip tip='Regenerate using Principal Component Analysis (Linear projection).'>
                     <Button
                       variant='outline'
                       disabled={regen}
@@ -244,10 +227,8 @@ export function PathConfig(props: PathConfigProps) {
                     >
                       <Text style={styles.btnText} color={theme.colors.foreground}>PCA</Text>
                     </Button>
-                  </Tooltip>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Tooltip tip='Regenerate using an Autoencoder (Non-linear projection).'>
                     <Button
                       variant='outline'
                       disabled={regen}
@@ -257,7 +238,6 @@ export function PathConfig(props: PathConfigProps) {
                     >
                       <Text style={styles.btnText} color={theme.colors.foreground}>AutoEnc</Text>
                     </Button>
-                  </Tooltip>
                 </View>
               </>
             )}

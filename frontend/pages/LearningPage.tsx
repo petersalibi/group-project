@@ -24,6 +24,7 @@ import { Button } from '../components/button';
 import { ScrollView } from 'react-native-gesture-handler';
 import Svg, { Line } from 'react-native-svg';
 import { NeuralNode } from '../components/neural-node';
+import { useLocation, useNavigate } from 'react-router-native';
 import { InitialSurfaceLesson } from './curriculum/InitialSurfaceLesson1';
 import { LossLesson } from './curriculum/LossLesson';
 import { ArchitectureComplexityLesson } from './curriculum/ArchitectureComplexityLesson';
@@ -34,6 +35,7 @@ import { OptimisersLesson } from './OptimisersLesson';
 const LESSON_REGISTRY = [
   {
     id: 0,
+    slug: 'surface',
     title: '1. The surface',
     module: 'BASICS',
     instruction:
@@ -45,6 +47,7 @@ const LESSON_REGISTRY = [
   },
   {
     id: 1,
+    slug: 'complexity',
     title: '2. The Complexity',
     module: 'BASICS',
     instruction: 'Understanding how model complexity affects the surface.',
@@ -54,6 +57,7 @@ const LESSON_REGISTRY = [
   },
   {
     id: 2,
+    slug: 'loss',
     title: '3. What is loss?',
     module: 'BASICS',
     instruction:
@@ -65,6 +69,7 @@ const LESSON_REGISTRY = [
   },
   {
     id: 3,
+    slug: 'landscapes',
     title: '4. Origin of Landscape',
     module: 'INTERACTIVE',
     instruction:
@@ -75,6 +80,7 @@ const LESSON_REGISTRY = [
   },
   {
     id: 4,
+    slug: 'activations',
     title: '5. Activations',
     module: 'INTERACTIVE',
     instruction:
@@ -86,6 +92,7 @@ const LESSON_REGISTRY = [
   },
   {
     id: 5,
+    slug: 'optimisers',
     title: '6. Optimisers',
     module: 'INTERACTIVE',
     instruction:
@@ -99,7 +106,12 @@ const LESSON_REGISTRY = [
 
 export function LearningPage() {
   const { theme, isDark } = useTheme();
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const currentSlug = pathSegments[pathSegments.length - 1];
+  const matchedIndex = LESSON_REGISTRY.findIndex(l => l.slug === currentSlug);
+  const currentIdx = matchedIndex !== -1 ? matchedIndex : 0;
   const [isTaskComplete, setIsTaskComplete] = useState(false);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
@@ -132,11 +144,15 @@ export function LearningPage() {
         : 'rgba(217, 119, 6, 0.05)';
 
   const changeLesson = (idx: number) => {
-    setCurrentIdx(idx);
+    navigate(`/curriculum/${LESSON_REGISTRY[idx].slug}`);
+  };
+
+  // Reset task statuses when the URL changes
+  useEffect(() => {
     setIsTaskComplete(false);
     setErrorFeedback(null);
     setShowHint(false);
-  };
+  }, [currentIdx]);
 
   useEffect(() => {
     let timer: any;
@@ -245,7 +261,7 @@ export function LearningPage() {
       <View style={{ flex: 1 }}>
         {/* HEADER */}
         <View
-          style={[styles.header, { borderBottomColor: theme.colors.border }]}
+          style={[styles.header, { borderBottomColor: theme.colors.border, paddingRight: 50 }]}
         >
           <TouchableOpacity
             style={styles.collapseBtn}

@@ -14,14 +14,11 @@ import Animated, {
   FadeIn,
   FadeOut,
 } from 'react-native-reanimated';
+import { useNavigate, useLocation } from 'react-router-native';
 import { useTheme } from '../components/theme-provider';
 import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
 import { Button } from '../components/button';
-import { CurriculumMenu } from '../components/curriculum-menu';
-import { LossLesson } from './curriculum/LossLesson';
-import { LandscapeGenerationPage } from './LandscapeGenerationPage';
-import { OptimisersLesson } from './OptimisersLesson';
 import { LearningPage } from './LearningPage';
 import {
   Plus,
@@ -41,7 +38,9 @@ const WORKSPACE_COLORS = [
 
 export function VisualisationPage() {
   const { theme } = useTheme();
-
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isLearningMode = location.pathname.includes('/curriculum');
   const [views, setViews] = useState<string[]>(['vis-1']);
   const [nextId, setNextId] = useState(2);
   const [maximizedId, setMaximizedId] = useState<string | null>(null);
@@ -49,7 +48,6 @@ export function VisualisationPage() {
   const [viewColors, setViewColors] = useState<Record<string, string>>({
     'vis-1': WORKSPACE_COLORS[0],
   });
-  const [currentPage, setCurrentPage] = useState('visualisations');
   const [isHoveringTop, setIsHoveringTop] = useState(false);
   const [isCurriculumOpen, setIsCurriculumOpen] = useState(false);
 
@@ -70,14 +68,14 @@ export function VisualisationPage() {
   const visOpacity = useSharedValue(1);
 
   useEffect(() => {
-    visOpacity.value = withTiming(currentPage === 'visualisations' ? 1 : 0, {
+    visOpacity.value = withTiming(isLearningMode ? 0 : 1, {
       duration: 300,
     });
-  }, [currentPage]);
+  }, [isLearningMode]);
 
   const visAnimatedStyle = useAnimatedStyle(() => ({
     opacity: visOpacity.value,
-    zIndex: currentPage === 'visualisations' ? 1 : -10,
+    zIndex: isLearningMode ? -10 : 1,
   }));
 
   const handlePointerMove = (e: any) => {
@@ -179,96 +177,89 @@ export function VisualisationPage() {
 
   return (
     <View style={styles.container} onPointerMove={handlePointerMove}>
-      {/* --- GLOBAL BROWSER TAB BAR --- */}
-      <Animated.View
+      
+      {/* FLOATING MODE SWITCH BUTTON */}
+      <Button
+        variant='ghost'
+        onPress={() => {
+          if (isLearningMode) {
+            navigate('/');
+          } else {
+            navigate('/curriculum/');
+          }
+        }}
         style={[
-          styles.tabBar,
+          styles.learningModeBtn,
           {
-            backgroundColor: theme.colors.muted,
-            borderBottomColor: theme.colors.border,
+            position: 'absolute',
+            top: 4,
+            right: 0,
+            zIndex: 100, 
           },
-          animatedTabStyle,
         ]}
       >
-        <TouchableOpacity
-          onPress={() => setIsCurriculumOpen(!isCurriculumOpen)}
+        <GraduationCap
+          size={18}
+          color={isLearningMode ? theme.colors.accent : theme.colors.foreground}
+        />
+      </Button>
+
+      {/* --- GLOBAL BROWSER TAB BAR --- */}
+      {!isLearningMode && (
+        <Animated.View
           style={[
-            styles.globalCurriculumBtn,
-            { borderRightColor: theme.colors.border },
+            styles.tabBar,
+            {
+              backgroundColor: theme.colors.muted,
+              borderBottomColor: theme.colors.border,
+            },
+            animatedTabStyle,
           ]}
         >
-          <ChevronDown size={18} color={theme.colors.foreground} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setIsCurriculumOpen(!isCurriculumOpen)}
+            style={[
+              styles.globalCurriculumBtn,
+              { borderRightColor: theme.colors.border },
+            ]}
+          >
+            <ChevronDown size={18} color={theme.colors.foreground} />
+          </TouchableOpacity>
 
-        {currentPage === 'visualisations' && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={{ flex: 1 }}
-            contentContainerStyle={{ alignItems: 'flex-end', paddingLeft: 8 }}
+            contentContainerStyle={{ alignItems: 'flex-end', paddingLeft: 8, paddingRight: 44 }}
           >
             {views.map((id) => {
               const color = getColorForId(id);
               const isMinimized = minimizedIds.includes(id);
-              const isActive =
-                !isMinimized && (maximizedId === null || maximizedId === id);
+              const isActive = !isMinimized && (maximizedId === null || maximizedId === id);
 
               return (
                 <TouchableOpacity
                   key={id}
                   activeOpacity={0.8}
-                  onPress={() =>
-                    isMinimized ? handleRestore(id) : toggleMaximize(id)
-                  }
+                  onPress={() => (isMinimized ? handleRestore(id) : toggleMaximize(id))}
                   style={[
                     styles.tab,
                     {
-                      backgroundColor: isActive
-                        ? theme.colors.background
-                        : 'transparent',
+                      backgroundColor: isActive ? theme.colors.background : 'transparent',
                       borderTopColor: color,
-                      borderLeftColor: isActive
-                        ? theme.colors.border
-                        : 'transparent',
-                      borderRightColor: isActive
-                        ? theme.colors.border
-                        : 'transparent',
+                      borderLeftColor: isActive ? theme.colors.border : 'transparent',
+                      borderRightColor: isActive ? theme.colors.border : 'transparent',
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.tabTitle,
-                      { opacity: isMinimized ? 0.4 : 1 },
-                    ]}
-                  >
+                  <Text style={[styles.tabTitle, { opacity: isMinimized ? 0.4 : 1 }]}>
                     WORKSPACE {id.split('-')[1]}
                   </Text>
 
-                  {/* Mac-style Buttons */}
-                  <View
-                    style={[
-                      styles.windowControls,
-                      { opacity: isMinimized ? 0.6 : 1 },
-                    ]}
-                  >
-                    {/* Green Dot (Maximize/Restore) */}
-                    <TouchableOpacity
-                      onPress={() => toggleMaximize(id)}
-                      style={[styles.macDot, { backgroundColor: '#22c55e' }]}
-                    />
-
-                    {/* Orange Dot (Minimize) */}
-                    <TouchableOpacity
-                      onPress={() => handleMinimize(id)}
-                      style={[styles.macDot, { backgroundColor: '#f59e0b' }]}
-                    />
-
-                    {/* Red Dot with Cross (Close) */}
-                    <TouchableOpacity
-                      onPress={() => handleRemoveView(id)}
-                      style={[styles.macDot, { backgroundColor: '#ef4444' }]}
-                    >
+                  <View style={[styles.windowControls, { opacity: isMinimized ? 0.6 : 1 }]}>
+                    <TouchableOpacity onPress={() => toggleMaximize(id)} style={[styles.macDot, { backgroundColor: '#22c55e' }]} />
+                    <TouchableOpacity onPress={() => handleMinimize(id)} style={[styles.macDot, { backgroundColor: '#f59e0b' }]} />
+                    <TouchableOpacity onPress={() => handleRemoveView(id)} style={[styles.macDot, { backgroundColor: '#ef4444' }]}>
                       <X size={8} color='white' strokeWidth={3} />
                     </TouchableOpacity>
                   </View>
@@ -276,84 +267,27 @@ export function VisualisationPage() {
               );
             })}
 
-            {/* Plus Button next to the tabs */}
-            <TouchableOpacity
-              onPress={handleAddView}
-              disabled={views.length >= 4}
-              style={styles.addTabBtn}
-            >
-              <Plus
-                size={18}
-                color={
-                  views.length >= 4
-                    ? theme.colors.mutedForeground
-                    : theme.colors.foreground
-                }
-              />
+            <TouchableOpacity onPress={handleAddView} disabled={views.length >= 4} style={styles.addTabBtn}>
+              <Plus size={18} color={views.length >= 4 ? theme.colors.mutedForeground : theme.colors.foreground} />
             </TouchableOpacity>
           </ScrollView>
-        )}
-
-        <Button
-          variant='ghost'
-          onPress={() =>
-            setCurrentPage(
-              currentPage === 'learning' ? 'visualisations' : 'learning',
-            )
-          }
-          style={[
-            styles.learningModeBtn,
-            {
-              marginLeft: currentPage !== 'visualisations' ? 'auto' : 0,
-            },
-          ]}
-        >
-          <GraduationCap
-            size={18}
-            color={
-              currentPage === 'learning'
-                ? theme.colors.accent
-                : theme.colors.foreground
-            }
-          />
-        </Button>
-      </Animated.View>
-
-      {isCurriculumOpen && (
-        <CurriculumMenu
-          activePage={currentPage}
-          onNavigate={(pageId) => {
-            setCurrentPage(pageId);
-            setIsCurriculumOpen(false);
-          }}
-        />
+        </Animated.View>
       )}
 
+      {/* RENDER PAGES */}
       <View style={{ flex: 1, position: 'relative' }}>
-        {/* 1. VISUALISATIONS */}
+        
+        {/* VISUALISATIONS */}
         <Animated.View
           style={[StyleSheet.absoluteFill, visAnimatedStyle]}
-          pointerEvents={currentPage === 'visualisations' ? 'auto' : 'none'}
+          pointerEvents={isLearningMode ? 'none' : 'auto'}
         >
           <View style={styles.gridContainer}>
             {views.map((id) => {
               const workspaceColor = getColorForId(id);
               return (
-                <View
-                  key={id}
-                  style={[
-                    styles.gridCell,
-                    getCellStyles(id),
-                    { borderTopColor: workspaceColor },
-                  ]}
-                >
-                  <View
-                    style={{
-                      flex: 1,
-                      overflow: 'hidden',
-                      backgroundColor: theme.colors.background,
-                    }}
-                  >
+                <View key={id} style={[styles.gridCell, getCellStyles(id), { borderTopColor: workspaceColor }]}>
+                  <View style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.colors.background }}>
                     <Visualisation id={id} />
                   </View>
                 </View>
@@ -362,82 +296,16 @@ export function VisualisationPage() {
           </View>
         </Animated.View>
 
-        {/* 2. LEARNING PAGE */}
-        {currentPage === 'learning' && (
+        {/* CURRICULUM SHELL */}
+        {isLearningMode && (
           <Animated.View
             entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(300)}
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: theme.colors.background },
-            ]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background }]}
           >
             <LearningPage />
           </Animated.View>
         )}
-
-        {/* 2. LOSS PAGE */}
-        {currentPage === 'loss' && (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(300)}
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <LossLesson />
-          </Animated.View>
-        )}
-
-        {/* 3. GRADIENT DESCENT PAGE */}
-        {currentPage === 'gd' && (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(300)}
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <OptimisersLesson />
-          </Animated.View>
-        )}
-
-        {/* 4. LANDSCAPE GENERATION PAGE */}
-        {currentPage === 'landscape' && (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(300)}
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <LandscapeGenerationPage />
-          </Animated.View>
-        )}
-
-        {/* 5. LOCKED/FALLBACK PAGE */}
-        {currentPage !== 'visualisations' &&
-          currentPage !== 'learning' &&
-          currentPage !== 'loss' &&
-          currentPage !== 'gd' &&
-          currentPage !== 'landscape' && (
-            <Animated.View
-              entering={FadeIn.duration(300)}
-              exiting={FadeOut.duration(300)}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.emptyState,
-                { backgroundColor: theme.colors.background },
-              ]}
-            >
-              <Text style={{ color: theme.colors.mutedForeground }}>
-                This module is currently locked or under construction.
-              </Text>
-            </Animated.View>
-          )}
       </View>
     </View>
   );

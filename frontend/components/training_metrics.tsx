@@ -3,7 +3,6 @@ import { View, ScrollView, StyleSheet, Platform, TouchableOpacity } from 'react-
 import { useTheme } from './theme-provider';
 import { Text } from './text';
 import { StatsCard } from './stats-card';
-import { Tooltip } from './tooltip';
 import { Target, Activity, Gauge, Terminal } from 'lucide-react-native';
 
 export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability, trainability, log, isPathLoaded }: any) {
@@ -43,7 +42,6 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
           {/* Secondary Metrics - Right Column */}
           <View style={[styles.secondaryCard, { flex: 1.5, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             
-            <Tooltip tip="A measure of how accurately the visualisation represents the true high-dimensional optimisation path. A low fidelity means the path is heavily distorted by projection." position="bottom">
               <View style={styles.miniMetricRow}>
                 <View style={styles.miniMetricLabelGroup}>
                   <Target size={14} color={theme.colors.mutedForeground} />
@@ -53,9 +51,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
                   {fidelity != null ? `${fidelity.toFixed(1)}%` : '--'}
                 </Text>
               </View>
-            </Tooltip>
 
-            <Tooltip tip="Measures the variance and spikes in the loss surface along the path. High instability indicates a rugged or difficult optimization route." position="bottom">
               <View style={styles.miniMetricRow}>
                 <View style={styles.miniMetricLabelGroup}>
                   <Activity size={14} color={theme.colors.mutedForeground} />
@@ -65,9 +61,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
                   {instability != null ? `${instability.toFixed(1)}%` : '--'}
                 </Text>
               </View>
-            </Tooltip>
 
-            <Tooltip tip="A general score of how easily the model can converge on this loss landscape given its current configuration." position="bottom">
               <View style={styles.miniMetricRow}>
                 <View style={styles.miniMetricLabelGroup}>
                   <Gauge size={14} color={theme.colors.mutedForeground} />
@@ -77,7 +71,6 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
                   {trainability != null ? `${trainability.toFixed(1)}%` : '--'}
                 </Text>
               </View>
-            </Tooltip>
 
           </View>
         </View>

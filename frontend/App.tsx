@@ -13,10 +13,7 @@ export default function App() {
       <NativeRouter>
         <Routes>
           <Route element={<RootLayout />}>
-            <Route path="/" element={<VisualisationPage />} />
-            <Route path="/curriculum" element={<CurriculumPage />} />
-            <Route path="/curriculum/lesson/:lessonId" element={<LearningPage />} />
-            <Route path="/components" element={<ComponentsPage />} />
+            <Route path="/*" element={<VisualisationPage />} />
           </Route>
         </Routes>
       </NativeRouter>

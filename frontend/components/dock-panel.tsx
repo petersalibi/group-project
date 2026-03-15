@@ -8,12 +8,14 @@ import { Text } from '../components/text';
 export function DockPanel({ 
   id, 
   title, 
+  headerRight,
   isMaximized = false,
   isDraggable = true, // Default to true so other lessons don't break
   children 
 }: { 
   id: string, 
-  title: string, 
+  title?: string | React.ReactNode,
+  headerRight?: React.ReactNode,
   isMaximized: boolean,
   isDraggable?: boolean, 
   children: React.ReactNode 
@@ -78,22 +80,37 @@ export function DockPanel({
     };
   });
 
+  const showHeader = typeof title === 'string' ? title.trim().length > 0 : Boolean(title);
+
+  // Helper to render the title and optional right-aligned icon
+  const headerContent = (
+    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {typeof title === 'string' ? (
+          <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>
+            {title.toUpperCase()}
+          </Text>
+        ) : (
+          title
+        )}
+      {headerRight && <View>{headerRight}</View>}
+    </View>
+  );
+
   return (
     <Animated.View style={[
       { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, overflow: 'hidden' }, 
       animatedStyle
     ]}>
-      {/* If not draggable, we don't even wrap it in the detector */}
-      {title?.trim().length > 0 ? (
+      {showHeader ? (
         isDraggable ? (
           <GestureDetector gesture={pan}>
             <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>
+              {headerContent}
             </View>
           </GestureDetector>
         ) : (
           <View style={{ height: 32, backgroundColor: theme.colors.muted, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: 1, borderColor: theme.colors.border }}>
-            <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>{title.toUpperCase()}</Text>
+            {headerContent}
           </View>
         )
       ) : null}
