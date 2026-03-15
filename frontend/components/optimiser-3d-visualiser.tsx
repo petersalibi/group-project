@@ -158,7 +158,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
           // Build Optimiser Elements
           const marker = new THREE.Mesh(
-            new THREE.SphereGeometry(0.04, 16, 16),
+            new THREE.SphereGeometry(0.025, 16, 16),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }),
           );
           scene.add(marker);
@@ -445,7 +445,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       ctx.clearRect(0, 0, w, h);
 
       // Crosshairs
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.strokeStyle = theme.colors.mutedForeground;
       ctx.beginPath();
       ctx.moveTo(0, cy);
       ctx.lineTo(w, cy);
@@ -527,7 +527,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       >
         <div
           ref={containerRef}
-          style={{ width: '100%', height: '100%', background: '#000' }}
+          style={{ width: '100%', height: '100%' }}
         />
 
         {/* GUI OVERLAY */}
@@ -537,7 +537,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
             top: 16,
             left: 16,
             padding: 12,
-            backgroundColor: 'rgba(0,0,0,0.8)',
+            backgroundColor: theme.colors.background,
             borderRadius: 8,
             borderWidth: 1,
             borderColor: theme.colors.border,
@@ -565,7 +565,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
               <Text
                 style={{
                   fontSize: 14,
-                  color: '#fff',
+                  color: theme.colors.foreground,
                   fontFamily: 'monospace',
                   fontWeight: 'bold',
                 }}
@@ -582,7 +582,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
               <Text
                 style={{
                   fontSize: 14,
-                  color: '#fff',
+                  color: theme.colors.foreground,
                   fontFamily: 'monospace',
                   fontWeight: 'bold',
                 }}
@@ -594,7 +594,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           <View
             style={{
               height: 1,
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: theme.colors.border,
               marginVertical: 8,
             }}
           />
@@ -608,7 +608,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
               <Text
                 style={{
                   fontSize: 14,
-                  color: '#ef4444',
+                  color: '#f59e0b',
                   fontFamily: 'monospace',
                   fontWeight: 'bold',
                 }}
@@ -648,7 +648,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
                   backgroundColor: '#ef4444',
                 }}
               />
-              <Text style={{ fontSize: 9, color: '#fff' }}>Gradient</Text>
+              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Gradient</Text>
             </View>
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
@@ -661,7 +661,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
                   backgroundColor: '#3b82f6',
                 }}
               />
-              <Text style={{ fontSize: 9, color: '#fff' }}>Momentum</Text>
+              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Momentum</Text>
             </View>
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
@@ -674,7 +674,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
                   backgroundColor: '#10b981',
                 }}
               />
-              <Text style={{ fontSize: 9, color: '#fff' }}>Step</Text>
+              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Step</Text>
             </View>
           </View>
         </View>
@@ -692,8 +692,8 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
               },
             ]}
           >
-            <ActivityIndicator size='large' color={theme.colors.frenchBlue} />
-            <Text style={{ marginTop: 12, fontWeight: 'bold', color: '#fff' }}>
+            <ActivityIndicator size='large' color={theme.colors.accent} />
+            <Text style={{ marginTop: 12, fontWeight: 'bold', color: theme.colors.foreground }}>
               Generating Topology...
             </Text>
           </View>

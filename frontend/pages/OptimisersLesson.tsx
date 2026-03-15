@@ -80,7 +80,7 @@ export function OptimisersLesson() {
             ]}
           >
             <Compass size={12} color={theme.colors.accent} />
-            <Text style={styles.subTitle}>OPTIMIZATION ALGORITHMS</Text>
+            <Text style={styles.subTitle}>OPTIMISATION ALGORITHMS</Text>
           </View>
 
           <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -204,7 +204,7 @@ export function OptimisersLesson() {
                       { color: theme.colors.mutedForeground },
                     ]}
                   >
-                    LEARNING RATE (α)
+                    LEARNING RATE
                   </Text>
                   <Text
                     style={[
