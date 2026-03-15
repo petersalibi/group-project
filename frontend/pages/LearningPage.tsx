@@ -9,12 +9,8 @@ import {
 import {
   BookOpen,
   CheckCircle2,
-  Circle,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
   Lightbulb,
   Target,
 } from 'lucide-react-native';
@@ -25,41 +21,22 @@ import { ScrollView } from 'react-native-gesture-handler';
 import Svg, { Line } from 'react-native-svg';
 import { NeuralNode } from '../components/neural-node';
 import { useLocation, useNavigate } from 'react-router-native';
-import { InitialSurfaceLesson } from './curriculum/InitialSurfaceLesson1';
 import { LossLesson } from './curriculum/LossLesson';
 import { ArchitectureComplexityLesson } from './curriculum/ArchitectureComplexityLesson';
 import { LandscapeOriginLesson } from './curriculum/LandscapeOriginLesson';
 import { ActivationLesson } from './curriculum/ActivationLesson';
-import { OptimisersLesson } from './OptimisersLesson';
+import { OptimisersLesson } from './curriculum/OptimisersLesson';
 
 const LESSON_REGISTRY = [
+  // --- LAYER 1 ---
   {
     id: 0,
-    slug: 'surface',
-    title: '1. The surface',
-    module: 'BASICS',
-    instruction:
-      "Loss landscapes visualise the 'error' of a model. The 2D landscape gives a 'birds-eye' view of the landscape (toggle the switch to see the 3D landscape).",
-    taskGoal:
-      "Adjust the sliders to find the 'minimum', where the loss is minimised.",
-    hint: 'Observe how the colour on the landscape changes as the loss increases/decreases.',
-    Component: InitialSurfaceLesson,
-  },
-  {
-    id: 1,
-    slug: 'complexity',
-    title: '2. The Complexity',
-    module: 'BASICS',
-    instruction: 'Understanding how model complexity affects the surface.',
-    taskGoal: "Increase the network depth to see the landscape get 'messier'.",
-    hint: 'Adjust the sliders to find a complex-looking landscape.',
-    Component: ArchitectureComplexityLesson,
-  },
-  {
-    id: 2,
     slug: 'loss',
-    title: '3. What is loss?',
+    title: 'What is loss?',
     module: 'BASICS',
+    xPos: '28%' as DimensionValue,
+    yPos: '15%' as DimensionValue,
+    parents: [] as number[],
     instruction:
       "Loss landscapes visualise the 'error' of a model. The 2D landscape gives a 'birds-eye' view of the landscape (toggle the switch to see the 3D landscape).",
     taskGoal:
@@ -68,21 +45,42 @@ const LESSON_REGISTRY = [
     Component: LossLesson,
   },
   {
-    id: 3,
+    id: 1,
     slug: 'landscapes',
-    title: '4. Origin of Landscape',
-    module: 'INTERACTIVE',
+    title: 'Landscapes',
+    module: 'BASICS',
+    xPos: '72%' as DimensionValue,
+    yPos: '15%' as DimensionValue,
+    parents: [] as number[],
     instruction:
       'A landscape is only meaningful if it covers a wide area. Plot varied models across the parameter space to reveal the true topography.',
     taskGoal: 'Achieve an Exploration Coverage of at least 70%.',
     hint: "Don't just plot in the center! Try plotting models with extreme high and low Weights/Biases.",
     Component: LandscapeOriginLesson,
   },
+  
+  // --- LAYER 2 ---
   {
-    id: 4,
+    id: 2,
+    slug: 'complexity',
+    title: 'Complexity',
+    module: 'DYNAMICS',
+    xPos: '15%' as DimensionValue,
+    yPos: '50%' as DimensionValue,
+    parents: [0, 1], // Branches from Layer 1
+    instruction: 'Understanding how model complexity affects the surface.',
+    taskGoal: "Increase the network depth to see the landscape get 'messier'.",
+    hint: 'Adjust the sliders to find a complex-looking landscape.',
+    Component: ArchitectureComplexityLesson,
+  },
+  {
+    id: 3,
     slug: 'activations',
-    title: '5. Activations',
-    module: 'INTERACTIVE',
+    title: 'Activations',
+    module: 'DYNAMICS',
+    xPos: '50%' as DimensionValue,
+    yPos: '50%' as DimensionValue,
+    parents: [0, 1], // Branches from Layer 1
     instruction:
       'Without an activation function, a Neural Network is just doing basic linear math. Observe how adding non-linearity gives the network the power to fold the landscape.',
     taskGoal:
@@ -91,27 +89,40 @@ const LESSON_REGISTRY = [
     Component: ActivationLesson,
   },
   {
-    id: 5,
+    id: 4,
     slug: 'optimisers',
-    title: '6. Optimisers',
-    module: 'INTERACTIVE',
+    title: 'Optimisers',
+    module: 'DYNAMICS',
+    xPos: '85%' as DimensionValue,
+    yPos: '50%' as DimensionValue,
+    parents: [0, 1], // Branches from Layer 1
     instruction:
-      'Without an activation function, a Neural Network is just doing basic linear math. Observe how adding non-linearity gives the network the power to fold the landscape.',
+      'Optimisers act as the "navigators" for the network, deciding how to move down the loss landscape based on the mathematical terrain.',
     taskGoal:
-      'Observe how Linear, ReLU, and Tanh activations affect a deep network.',
-    hint: 'First, make the network deep and wide while using Linear activation. Then switch to ReLU and Tanh to see the landscape transform.',
+      "Select 'SGD' to observe noisy steps, then switch to 'Adam' and run the trajectory.",
+    hint: "Try clicking the 'SGD' optimiser pill first. Then click 'Adam' and press 'Run Trajectory'.",
     Component: OptimisersLesson,
   },
 ];
+
+// --- LAYER 3 (Output Node) ---
+const VISUALISATION_NODE = {
+  title: 'Visualisation Tool',
+  xPos: '50%' as DimensionValue,
+  yPos: '78%' as DimensionValue,
+  parents: [2, 3, 4],
+};
 
 export function LearningPage() {
   const { theme, isDark } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const currentSlug = pathSegments[pathSegments.length - 1];
   const matchedIndex = LESSON_REGISTRY.findIndex(l => l.slug === currentSlug);
   const currentIdx = matchedIndex !== -1 ? matchedIndex : 0;
+  
   const [isTaskComplete, setIsTaskComplete] = useState(false);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
@@ -125,29 +136,18 @@ export function LearningPage() {
   const warningColor = isDark ? '#f59e0b' : '#d97706';
   const inactiveColor = isDark ? '#444444' : '#d4d4d8';
 
-  // Resolve the current status color & background
-  const statusColor = isTaskComplete
-    ? successColor
-    : errorFeedback
-      ? errorColor
-      : warningColor;
+  const statusColor = isTaskComplete ? successColor : errorFeedback ? errorColor : warningColor;
+      
   const statusBgColor = isTaskComplete
-    ? isDark
-      ? 'rgba(198, 243, 130, 0.05)'
-      : 'rgba(22, 163, 74, 0.05)'
+    ? isDark ? 'rgba(198, 243, 130, 0.05)' : 'rgba(22, 163, 74, 0.05)'
     : errorFeedback
-      ? isDark
-        ? 'rgba(255, 77, 77, 0.05)'
-        : 'rgba(220, 38, 38, 0.05)'
-      : isDark
-        ? 'rgba(245, 158, 11, 0.05)'
-        : 'rgba(217, 119, 6, 0.05)';
+      ? isDark ? 'rgba(255, 77, 77, 0.05)' : 'rgba(220, 38, 38, 0.05)'
+      : isDark ? 'rgba(245, 158, 11, 0.05)' : 'rgba(217, 119, 6, 0.05)';
 
   const changeLesson = (idx: number) => {
     navigate(`/curriculum/${LESSON_REGISTRY[idx].slug}`);
   };
 
-  // Reset task statuses when the URL changes
   useEffect(() => {
     setIsTaskComplete(false);
     setErrorFeedback(null);
@@ -167,17 +167,8 @@ export function LearningPage() {
   useEffect(() => {
     if (isTaskComplete) {
       RNAnimated.sequence([
-        RNAnimated.timing(bounceAnim, {
-          toValue: 1.05,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        RNAnimated.spring(bounceAnim, {
-          toValue: 1,
-          friction: 4,
-          tension: 40,
-          useNativeDriver: true,
-        }),
+        RNAnimated.timing(bounceAnim, { toValue: 1.05, duration: 150, useNativeDriver: true }),
+        RNAnimated.spring(bounceAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }),
       ]).start();
     }
   }, [isTaskComplete, bounceAnim]);
@@ -186,66 +177,69 @@ export function LearningPage() {
     <View style={[styles.container]}>
       {/* SIDEBAR */}
       {isSidebarOpen && (
-        <View
-          style={[
-            styles.sidebar,
-            {
-              borderRightColor: theme.colors.border,
-              backgroundColor: theme.colors.card,
-            },
-          ]}
-        >
+        <View style={[styles.sidebar, { borderRightColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
           <View style={styles.sidebarHeader}>
             <BookOpen size={14} color={theme.colors.accent} />
-            <Text style={styles.sidebarTitle}>CURRICULUM</Text>
+            <Text style={[styles.sidebarTitle, {color: theme.colors.foreground}]}>CURRICULUM</Text>
           </View>
 
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <View style={styles.networkContainer}>
-              {/* SVG Connecting Lines (Rendered BEHIND the nodes) */}
+              
+              {/* SVG BRANCHING LINES */}
               <View style={StyleSheet.absoluteFill}>
                 <Svg width='100%' height='100%'>
-                  {LESSON_REGISTRY.map((_, idx) => {
-                    // Don't draw a line after the last node
-                    if (idx === LESSON_REGISTRY.length - 1) return null;
-
-                    const isCompleted = idx < currentIdx;
-                    const spacing = 100 / LESSON_REGISTRY.length;
-
-                    // Creates a straight vertical spine down the middle (50%)
-                    const xPos = '50%';
-                    const y1 = `${(idx + 0.5) * spacing}%`;
-                    const y2 = `${(idx + 1.5) * spacing}%`;
-
-                    return (
-                      <Line
-                        key={`line-${idx}`}
-                        x1={xPos}
-                        y1={y1}
-                        x2={xPos}
-                        y2={y2}
-                        stroke={isCompleted ? successColor : inactiveColor}
-                        strokeWidth='2'
-                        opacity={isCompleted ? '0.8' : '0.3'}
-                      />
-                    );
+                  {LESSON_REGISTRY.map((node, idx) => {
+                    return node.parents.map((parentId) => {
+                      const parent = LESSON_REGISTRY.find(l => l.id === parentId);
+                      if (!parent) return null;
+                      
+                      const isCompleted = idx <= currentIdx;
+                      
+                      return (
+                        <Line
+                          key={`line-${parentId}-${idx}`}
+                          x1={String(parent.xPos)} y1={String(parent.yPos)}
+                          x2={String(node.xPos)} y2={String(node.yPos)}
+                          stroke={isCompleted ? successColor : inactiveColor}
+                          strokeWidth='2'
+                          opacity={isCompleted ? '0.5' : '0.3'}
+                        />
+                      );
+                    });
+                  })}
+                  
+                  {/* Lines mapping down to the final Visualisation Sandbox */}
+                  {VISUALISATION_NODE.parents.map((parentId) => {
+                      const parent = LESSON_REGISTRY.find(l => l.id === parentId);
+                      if (!parent) return null;
+                      
+                      const isCompleted = currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete;
+                      
+                      return (
+                        <Line
+                          key={`line-${parentId}-vis`}
+                          x1={String(parent.xPos)} y1={String(parent.yPos)}
+                          x2={String(VISUALISATION_NODE.xPos)} y2={String(VISUALISATION_NODE.yPos)}
+                          stroke={isCompleted ? successColor : inactiveColor}
+                          strokeWidth='2'
+                          opacity={isCompleted ? '0.8' : '0.3'}
+                        />
+                      );
                   })}
                 </Svg>
               </View>
 
-              {/* INTERACTIVE NEURAL NODES */}
+              {/* DYNAMIC NEURAL NODES */}
               {LESSON_REGISTRY.map((l, idx) => {
                 let status: 'available' | 'completed' | 'locked' = 'locked';
                 if (idx < currentIdx) status = 'completed';
                 else if (idx === currentIdx) status = 'available';
 
-                const spacing = 100 / LESSON_REGISTRY.length;
-                const yPos: DimensionValue = `${(idx + 0.5) * spacing}%`;
-
                 return (
                   <TouchableOpacity
                     key={idx}
-                    style={[styles.absoluteNode, { left: '50%', top: yPos }]}
+                    style={[styles.absoluteNode, { left: l.xPos, top: l.yPos }]}
                     onPress={() => changeLesson(idx)}
                     activeOpacity={0.6}
                   >
@@ -253,6 +247,26 @@ export function LearningPage() {
                   </TouchableOpacity>
                 );
               })}
+
+              {/* FINAL VISUALISATION NODE */}
+              <TouchableOpacity
+                style={[
+                  styles.absoluteNode, 
+                  { 
+                    left: VISUALISATION_NODE.xPos, 
+                    top: VISUALISATION_NODE.yPos,
+                    transform: [{ translateX: -40 }, { translateY: -30 }, { scale: 1.25 }]
+                  }
+                ]}
+                onPress={() => navigate('/')}
+                activeOpacity={0.6}
+              >
+                <NeuralNode 
+                  status={(currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete) ? 'available' : 'locked'} 
+                  label={VISUALISATION_NODE.title} 
+                />
+              </TouchableOpacity>
+
             </View>
           </ScrollView>
         </View>
@@ -260,13 +274,8 @@ export function LearningPage() {
 
       <View style={{ flex: 1 }}>
         {/* HEADER */}
-        <View
-          style={[styles.header, { borderBottomColor: theme.colors.border, paddingRight: 50 }]}
-        >
-          <TouchableOpacity
-            style={styles.collapseBtn}
-            onPress={() => setIsSidebarOpen(!isSidebarOpen)}
-          >
+        <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingRight: 50 }]}>
+          <TouchableOpacity style={styles.collapseBtn} onPress={() => setIsSidebarOpen(!isSidebarOpen)}>
             {isSidebarOpen ? (
               <ChevronLeft size={20} color={theme.colors.foreground} />
             ) : (
@@ -275,17 +284,10 @@ export function LearningPage() {
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <Text
-              style={[styles.breadcrumbText, { color: theme.colors.accent }]}
-            >
+            <Text style={[styles.breadcrumbText, { color: theme.colors.accent }]}>
               {lesson.module} / LESSON {currentIdx + 1}
             </Text>
-            <Text
-              style={[
-                styles.lessonTitleText,
-                { color: theme.colors.foreground },
-              ]}
-            >
+            <Text style={[styles.lessonTitleText, { color: theme.colors.foreground }]}>
               {lesson.title}
             </Text>
           </View>
@@ -294,11 +296,7 @@ export function LearningPage() {
         <View style={styles.lessonSlot}>
           <lesson.Component
             key={lesson.id}
-            onTaskUpdate={(
-              comp: boolean,
-              err: string | null,
-              forceHint?: boolean,
-            ) => {
+            onTaskUpdate={(comp: boolean, err: string | null, forceHint?: boolean) => {
               setIsTaskComplete(comp);
               setErrorFeedback(err);
               if (forceHint) setShowHint(true);
@@ -308,27 +306,12 @@ export function LearningPage() {
         </View>
 
         {/* TASK DRAWER */}
-        <View
-          style={[
-            styles.drawer,
-            {
-              borderTopColor: theme.colors.border,
-              backgroundColor: theme.colors.card,
-            },
-          ]}
-        >
+        <View style={[styles.drawer, { borderTopColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
           <View style={styles.drawerLeft}>
             <Text style={styles.instructionText}>{lesson.instruction}</Text>
 
             <RNAnimated.View
-              style={[
-                styles.taskCard,
-                {
-                  borderColor: statusColor,
-                  backgroundColor: statusBgColor,
-                  transform: [{ scale: bounceAnim }],
-                },
-              ]}
+              style={[styles.taskCard, { borderColor: statusColor, backgroundColor: statusBgColor, transform: [{ scale: bounceAnim }] }]}
             >
               {isTaskComplete ? (
                 <CheckCircle2 size={14} color={statusColor} />
@@ -336,29 +319,16 @@ export function LearningPage() {
                 <Target size={14} color={statusColor} />
               )}
               <Text style={[styles.taskLabel, { color: statusColor }]}>
-                {isTaskComplete
-                  ? 'Task completed successfully!'
-                  : errorFeedback || lesson.taskGoal}
+                {isTaskComplete ? 'Task completed successfully!' : errorFeedback || lesson.taskGoal}
               </Text>
             </RNAnimated.View>
           </View>
 
           <View style={styles.drawerRight}>
             {showHint && !isTaskComplete && (
-              <View
-                style={[
-                  styles.hintBubble,
-                  {
-                    backgroundColor: isDark
-                      ? 'rgba(198, 243, 130, 0.1)'
-                      : 'rgba(22, 163, 74, 0.1)',
-                  },
-                ]}
-              >
+              <View style={[styles.hintBubble, { backgroundColor: isDark ? 'rgba(198, 243, 130, 0.1)' : 'rgba(22, 163, 74, 0.1)' }]}>
                 <Lightbulb size={50} color={successColor} />
-                <Text style={[styles.hintText, { color: successColor }]}>
-                  {lesson.hint}
-                </Text>
+                <Text style={[styles.hintText, { color: successColor }]}>{lesson.hint}</Text>
               </View>
             )}
 
@@ -366,26 +336,18 @@ export function LearningPage() {
               disabled={!isTaskComplete}
               variant={isTaskComplete ? 'default' : 'secondary'}
               style={{
-                width: 140,
-                height: 44,
-                alignContent: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.colors.accent,
+                width: 140, height: 44, alignContent: 'center', justifyContent: 'center', backgroundColor: theme.colors.accent,
               }}
-              onPress={() =>
-                currentIdx < LESSON_REGISTRY.length - 1 &&
-                changeLesson(currentIdx + 1)
-              }
+              onPress={() => {
+                if (currentIdx < LESSON_REGISTRY.length - 1) {
+                  changeLesson(currentIdx + 1);
+                } else {
+                  navigate('/');
+                }
+              }}
             >
-              <Text
-                style={{
-                  fontWeight: 'bold',
-                  color: isTaskComplete
-                    ? theme.colors.background
-                    : theme.colors.popover,
-                }}
-              >
-                Continue &gt;
+              <Text style={{ fontWeight: 'bold', color: isTaskComplete ? theme.colors.background : theme.colors.popover }}>
+                {currentIdx === LESSON_REGISTRY.length - 1 ? "Finish >" : "Continue >"}
               </Text>
             </Button>
           </View>
@@ -410,14 +372,6 @@ const styles = StyleSheet.create({
     color: '#666',
     letterSpacing: 1.5,
   },
-  stepItem: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    alignItems: 'center',
-  },
-  stepText: { fontSize: 12, color: '#888' },
-
   header: {
     height: 60,
     flexDirection: 'row',
@@ -471,11 +425,12 @@ const styles = StyleSheet.create({
   networkContainer: {
     width: '100%',
     height: '100%',
+    minHeight: 550, // Ensures it doesn't get squashed on shorter screens
     position: 'relative',
   },
   absoluteNode: {
     position: 'absolute',
-    transform: [{ translateX: -40 }, { translateY: -30 }],
+    transform: [{ translateX: -40 }, { translateY: -30 }], // Centers the 80x60 node on its xPos/yPos
     alignItems: 'center',
     justifyContent: 'center',
     width: 80,
