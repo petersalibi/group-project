@@ -311,6 +311,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         xDirRef.current = dict.x_direction;
         yDirRef.current = dict.y_direction;
         if (dict.pca_trajectories) regenPathRef.current = dict.pca_trajectories;
+        // TODO: get autoencoder directions
 
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
           logPlot,
@@ -449,8 +450,8 @@ export function useVisualisation(props: UseVisualisationProps) {
     loadAndBuildLandscape();
   }, [loadAndBuildLandscape]);
 
-  const handlePCAPress = useCallback(
-    async (pathId: number) => {
+  const handleRegeneratePress = useCallback(
+    async (pathId: number, method: 'pca' | 'autoencoder') => {
       if (!parametersArrayRef.current || !parametersArrayRef.current[pathId]) {
         alert('No parameter data found for this path.');
         return;
@@ -462,7 +463,8 @@ export function useVisualisation(props: UseVisualisationProps) {
       const savedParams = parametersArrayRef.current[pathId];
       const savedMetrics = metricArrayRef.current[pathId];
 
-      await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
+      if (method === 'pca') await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
+      // TODO: if (method === 'autoencoder') await loadAndBuildLandscape('AEMINIMISER', pathParameters);
 
       if (regenPathRef.current) {
         loadRegenPath(savedParams, savedMetrics, regenPathRef.current);
@@ -506,7 +508,7 @@ export function useVisualisation(props: UseVisualisationProps) {
     instability,
     trainability,
     handleLoadAllPathsButtonClick,
-    handlePCAPress,
+    handleRegeneratePress,
     handleRemovePath,
     handleClearPaths,
     togglePlayPause,

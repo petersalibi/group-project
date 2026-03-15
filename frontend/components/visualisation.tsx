@@ -123,7 +123,7 @@ export function Visualisation({ id }: VisualisationProps) {
     isLandscapeLoading,
     isLandscapeLoaded,
     onGenerateLandscape,
-    onGeneratePCA,
+    onRegenerate,
     logPlot,
     handleLogPlotToggle,
     zValue,
@@ -358,15 +358,15 @@ export function Visualisation({ id }: VisualisationProps) {
     setLocalDims({ width, height });
   };
 
-  const onPcaButtonPress = async (id: number) => {
-    setMethod('PCA Directions');
-    await onGeneratePCA(id);
+  const onRegenButtonPress = async (id: number, method: 'pca' | 'autoencoder') => {
+    if (method === 'pca') setMethod('PCA Directions');
+    if (method === 'autoencoder') setMethod('Autoencoder Directions');
+    await onRegenerate(id, method);
 
-    // Find the config of the path that was used for PCA
+    // Find the config of the path that was used
     const keptConfig = pathConfigs.find((config) => config.id === id);
 
     if (keptConfig) {
-      // Re-index to 0, and assign a flag so you can disable the PCA button
       const updatedConfig = {
         ...keptConfig,
         id: 0,
@@ -466,81 +466,89 @@ export function Visualisation({ id }: VisualisationProps) {
                 </View>
               </View>
 
-              {/* ACTIVATION DROPDOWN */}
+              {/* ACTIVATION & LOSS DROPDOWNS */}
               <View style={styles.controlGroup}>
                 <Text style={styles.label}>NETWORK CONFIGURATION</Text>
-                <Tooltip
-                  tip='The non-linear function applied to each neuron.
-                            This heavily influences the overall geometry and smoothness of the landscape.'
-                >
-                  <Text style={styles.subLabel}>Activation Function</Text>
-                </Tooltip>
-                <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <View
-                      style={[
-                        styles.dropdownTrigger,
-                        { borderColor: theme.colors.border },
-                      ]}
+                
+                <View style={styles.rowGap}>
+                  {/* Left Column: Activation Function */}
+                  <View style={{ flex: 1 }}>
+                    <Tooltip
+                      tip='The non-linear function applied to each neuron. This heavily influences the overall geometry and smoothness of the landscape.'
                     >
-                      <Text style={styles.dropdownValue}>
-                        {activations.find((item) => item.value === activation)
-                          ?.label || activation}
-                      </Text>
-                    </View>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {activations.map((item) => (
-                      <DropdownMenuItem
-                        key={item.id}
-                        disabled={
-                          isLandscapeLoading || isPathLoading || isPathLoaded
-                        }
-                        onSelect={() => {
-                          setActivation(item.value);
-                        }}
-                      >
-                        <Text>{item.label}</Text>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Tooltip
-                  tip="The metric used to calculate the network's error.
-                            The landscape visualises how this error changes as the weights shift."
-                >
-                  <Text style={styles.subLabel}>Loss Function</Text>
-                </Tooltip>
-                <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <View
-                      style={[
-                        styles.dropdownTrigger,
-                        { borderColor: theme.colors.border },
-                      ]}
+                      <Text style={styles.subLabel}>Activation Function</Text>
+                    </Tooltip>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <View
+                          style={[
+                            styles.dropdownTrigger,
+                            { borderColor: theme.colors.border },
+                          ]}
+                        >
+                          <Text style={styles.dropdownValue}>
+                            {activations.find((item) => item.value === activation)
+                              ?.label || activation}
+                          </Text>
+                        </View>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {activations.map((item) => (
+                          <DropdownMenuItem
+                            key={item.id}
+                            disabled={
+                              isLandscapeLoading || isPathLoading || isPathLoaded
+                            }
+                            onSelect={() => {
+                              setActivation(item.value);
+                            }}
+                          >
+                            <Text>{item.label}</Text>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </View>
+
+                  {/* Right Column: Loss Function */}
+                  <View style={{ flex: 1 }}>
+                    <Tooltip
+                      tip="The metric used to calculate the network's error. The landscape visualises how this error changes as the weights shift."
                     >
-                      <Text style={styles.dropdownValue}>
-                        {losses.find((item) => item.value === loss)?.label ||
-                          loss}
-                      </Text>
-                    </View>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {losses.map((item) => (
-                      <DropdownMenuItem
-                        key={item.id}
-                        disabled={
-                          isLandscapeLoading || isPathLoading || isPathLoaded
-                        }
-                        onSelect={() => {
-                          setLoss(item.value);
-                        }}
-                      >
-                        <Text>{item.label}</Text>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <Text style={styles.subLabel}>Loss Function</Text>
+                    </Tooltip>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <View
+                          style={[
+                            styles.dropdownTrigger,
+                            { borderColor: theme.colors.border },
+                          ]}
+                        >
+                          <Text style={styles.dropdownValue}>
+                            {losses.find((item) => item.value === loss)?.label ||
+                              loss}
+                          </Text>
+                        </View>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {losses.map((item) => (
+                          <DropdownMenuItem
+                            key={item.id}
+                            disabled={
+                              isLandscapeLoading || isPathLoading || isPathLoaded
+                            }
+                            onSelect={() => {
+                              setLoss(item.value);
+                            }}
+                          >
+                            <Text>{item.label}</Text>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </View>
+                </View>
                 <Tooltip tip='How the high-dimensional network weights are projected down into a 2D surface.'>
                   <Text style={styles.subLabel}>Visualisation Method</Text>
                 </Tooltip>
@@ -711,7 +719,8 @@ export function Visualisation({ id }: VisualisationProps) {
                   disabled={
                     isLandscapeLoading ||
                     (data === 'CUSTOM' && !csvLoaded) ||
-                    method === 'PCA Directions'
+                    method === 'PCA Directions' ||
+                    method === 'Autoencoder Directions'
                   }
                   onPress={() => {
                     onGenerateLandscape();
@@ -737,7 +746,7 @@ export function Visualisation({ id }: VisualisationProps) {
                     isSceneLoading={isLandscapeLoading}
                     isLandscapeLoaded={isLandscapeLoaded}
                     isWatching={viewId === config.id}
-                    onPCAButtonPress={onPcaButtonPress}
+                    onRegenPathPress={onRegenButtonPress}
                   />
                 ))}
               </View>
