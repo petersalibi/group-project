@@ -70,7 +70,7 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=
     plt.show()
     return ani
 
-params = regression_params_complex
+params = penguin_params_complex
 
 landscape = generate_loss_landscape(params, verbose=True)
 # print(print_landscape(landscape["surface"]))
@@ -114,46 +114,46 @@ print(f"pca_direction_x: {pca_directions[0]}")
 print(f"pca_direction_y: {pca_directions[1]}")
 
 
-# truepath =get_pca_directions(None, paths["parameters_path"], transformed_points= True)
+truepath =get_pca_directions(None, paths["parameters_path"], transformed_points= True)
 
-# animate_landscape([pca_landscape["surface"], 
-#                 pca_landscape["surface_log"]], 
-#                 pca_landscape["x_axis"], 
-#                 pca_landscape["y_axis"], 
-#                 truepath, fidelity)
-
-
+animate_landscape([pca_landscape["surface"], 
+                 pca_landscape["surface_log"]], 
+                 pca_landscape["x_axis"], 
+                 pca_landscape["y_axis"], 
+                 truepath, fidelity)
 
 
-peng_data =  TrainingData(TrainingDataType.PENGUINS)
-
-peng_params = penguin_params_complex
-
-penguin_minim_params = MinimiserParams(
-    network=peng_params.network,
-    data=peng_params.data,
-    x_direction=directions[0],
-    y_direction=directions[1],
-    theta_0=theta_0,
-    init_xy=init_xy,
-    loss=peng_params.loss,
-    lock_to_plane=False
-)
 
 
-new_model = Model(penguin_minim_params.network, peng_data.inputs, peng_data.outputs)
+#peng_data =  TrainingData(TrainingDataType.PENGUINS)
 
-knn = instability_knn(penguin_minim_params, new_model, peng_data.X, peng_data.y )
+#peng_params = penguin_params_complex
 
-instab_data = create_instability_vectors(penguin_minim_params, new_model, peng_data.X, peng_data.y)
+#penguin_minim_params = MinimiserParams(
+#    network=peng_params.network,
+#    data=peng_params.data,
+#    x_direction=directions[0],
+#    y_direction=directions[1],
+#    theta_0=theta_0,
+#    init_xy=init_xy,
+#    loss=peng_params.loss,
+#    lock_to_plane=False
+#)
 
-print(instab_data)
 
-ys = knn.predict(peng_data.X)
-xs = peng_data.X
+#new_model = Model(penguin_minim_params.network, peng_data.inputs, peng_data.outputs)
 
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
+#knn = instability_knn(penguin_minim_params, new_model, peng_data.X, peng_data.y )
+
+#instab_data = create_instability_vectors(penguin_minim_params, new_model, peng_data.X, peng_data.y)
+
+#print(instab_data)
+
+#ys = knn.predict(peng_data.X)
+#xs = peng_data.X
+
+#import matplotlib.pyplot as plt
+#from sklearn.decomposition import PCA
 
 def plot_instability_surface_raw(knn, X_data, pca_k=2):
     # 1. Fit a new PCA specifically for the visualization "lens"
@@ -190,7 +190,7 @@ def plot_instability_surface_raw(knn, X_data, pca_k=2):
     fig.colorbar(surf, shrink=0.5, aspect=5, label='Volatility')
     plt.show()
 
-plot_instability_surface_raw(knn, peng_data.X)
+#plot_instability_surface_raw(knn, peng_data.X)
 
 
 

@@ -83,11 +83,19 @@ def animate_optimiser(params: MinimiserParams):
     print()
     model.load_state_dict(saved_state)
 
+    print("calculating instability...")
+    instab_score = create_instability_vectors(params, model, data.X, data.y, condense=True)
+    print("calculating trainability...")
+    _, trainabilities = trainability_vectors(params, model, data.X, data.y)
+    trainability = np.mean(trainabilities)
+
     return {
         "minimiser_path": minimiser_path,
         "parameters_path": parameters_path,
         "fidelity": fidelity,
-        "loss_path" : loss_path
+        "loss_path" : loss_path,
+        "instability": instab_score,
+        "trainability": trainability
     }
 
 def _prepare_data_and_model(params):
