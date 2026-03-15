@@ -34,6 +34,8 @@ interface Props {
 type PathNode = { x: number; z: number; y: number; loss: number };
 
 const Z_SCALE = 2.5;
+// Ensure the ball sits comfortably above the mesh even on steep slopes
+const BALL_OFFSET = 0.06; 
 
 const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
   ({ optimiser, learningRate, curveRef, forcesRef }, ref) => {
@@ -46,12 +48,11 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({ w1: 0, w2: 0, loss: 0, steps: 0 });
 
-    // Store API Data
     const dictRef = useRef<any>(null);
-
-    // Optimiser Memory & Path State (Coordinates are in Mesh Space [-1, 1])
     const optStateRef = useRef({ m1: 0, m2: 0, v1: 0, v2: 0, t: 0 });
-    const posRef = useRef({ x: 0.8, z: -0.8 }); // Start top-right
+    
+    // Start strictly at 0.0, 0.0
+    const posRef = useRef({ x: 0.0, z: 0.0 }); 
     const pathRef = useRef<PathNode[]>([]);
     const propsRef = useRef({ optimiser, learningRate });
 
@@ -66,15 +67,13 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       const dict = dictRef.current;
       if (!dict || !dict.surface) return 0;
 
-      const M = dict.surface.length; // Rows
-      const N = dict.surface[0].length; // Cols
+      const M = dict.surface.length; 
+      const N = dict.surface[0].length; 
 
-      // Map coordinates [-1, 1] to UV [0, 1]
       const u = Math.max(0, Math.min(1, (x + 1) / 2));
       const v = Math.max(0, Math.min(1, (z + 1) / 2));
 
       const col = u * (N - 1);
-      // Note: Z=1 (bottom of mesh) maps to row=0 in the API array due to how createLandscapeMesh builds
       const row = (1 - v) * (M - 1);
 
       const c0 = Math.floor(col);
@@ -105,7 +104,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       };
     };
 
-    // Maps the API Loss value to the physical Y height in the 3D Scene
     const getWorldY = (lossVal: number) => {
       const dict = dictRef.current;
       if (!dict) return 0;
@@ -114,7 +112,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       const maxZ = Math.max(...zs);
       const range = maxZ - minZ || 1;
       const t = Math.max(0, Math.min(1, (lossVal - minZ) / range));
-      return t * 0.4 * Z_SCALE; // 0.4 is the baseZScale hardcoded in createLandscapeMesh
+      return t * 0.4 * Z_SCALE; 
     };
 
     // --- 1. FETCH API AND BUILD 3D SCENE ---
@@ -123,7 +121,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       const container = containerRef.current;
       const { scene, camera, renderer, controls } = initScene(container);
 
-      camera.position.set(1.5, 1.2, 2.0); // Closer camera for the [-1, 1] mesh
+      camera.position.set(1.5, 1.2, 2.0); 
       controls.target.set(0, 0, 0);
       controls.update();
 
@@ -156,12 +154,12 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           if (mesh.userData.wireframe) mesh.userData.wireframe.visible = false;
           scene.add(mesh);
 
-          // Build Optimiser Elements
           const marker = new THREE.Mesh(
-            new THREE.SphereGeometry(0.04, 16, 16),
+            new THREE.SphereGeometry(0.025, 16, 16),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }),
           );
           scene.add(marker);
+          
           const line = new THREE.Line(
             new THREE.BufferGeometry(),
             new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }),
@@ -169,61 +167,24 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           scene.add(line);
 
           // Force Arrows
-          const gradArrow = new THREE.ArrowHelper(
-            new THREE.Vector3(1, 0, 0),
-            new THREE.Vector3(),
-            0,
-            0xef4444,
-            0.05,
-            0.03,
-          );
-          const momArrow = new THREE.ArrowHelper(
-            new THREE.Vector3(1, 0, 0),
-            new THREE.Vector3(),
-            0,
-            0x3b82f6,
-            0.05,
-            0.03,
-          );
-          const stepArrow = new THREE.ArrowHelper(
-            new THREE.Vector3(1, 0, 0),
-            new THREE.Vector3(),
-            0,
-            0x10b981,
-            0.05,
-            0.03,
-          );
+          const gradArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 0, 0xef4444, 0.05, 0.03);
+          const momArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 0, 0x3b82f6, 0.05, 0.03);
           scene.add(gradArrow);
           scene.add(momArrow);
-          scene.add(stepArrow);
 
-          // Initialize Position
-          const l0 = getInterpolatedLoss(posRef.current.x, posRef.current.z);
+          // Initialize Position at 0,0
+          const l0 = getInterpolatedLoss(0.0, 0.0);
           const y0 = getWorldY(l0);
-          pathRef.current = [
-            { x: posRef.current.x, z: posRef.current.z, y: y0, loss: l0 },
-          ];
-          marker.position.set(posRef.current.x, y0 + 0.04, posRef.current.z);
+          pathRef.current = [{ x: 0.0, z: 0.0, y: y0, loss: l0 }];
+          marker.position.set(0.0, y0 + BALL_OFFSET, 0.0);
 
           sceneRef.current = {
-            scene,
-            camera,
-            renderer,
-            controls,
-            mesh,
-            marker,
-            line,
-            gradArrow,
-            momArrow,
-            stepArrow,
+            scene, camera, renderer, controls, mesh, marker, line, gradArrow, momArrow,
           };
-          setStats({
-            w1: posRef.current.x,
-            w2: posRef.current.z,
-            loss: l0,
-            steps: 0,
-          });
+          setStats({ w1: 0.0, w2: 0.0, loss: l0, steps: 0 });
           drawCurve();
+          drawForces(0, 0, 0, 0);
+          
         } catch (err) {
           console.error('Failed to load landscape:', err);
         } finally {
@@ -254,14 +215,14 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           const l0 = getInterpolatedLoss(pt.x, pt.z);
           pathRef.current = [{ x: pt.x, z: pt.z, y: pt.y, loss: l0 }];
 
-          sceneRef.current.marker.position.set(pt.x, pt.y + 0.04, pt.z);
+          sceneRef.current.marker.position.set(pt.x, pt.y + BALL_OFFSET, pt.z);
           sceneRef.current.line.geometry.setFromPoints([]);
           sceneRef.current.gradArrow.setLength(0.001);
           sceneRef.current.momArrow.setLength(0.001);
-          sceneRef.current.stepArrow.setLength(0.001);
 
           setStats({ w1: pt.x, w2: pt.z, loss: l0, steps: 0 });
           drawCurve();
+          drawForces(0, 0, 0, 0);
         }
       };
       container.addEventListener('pointerdown', onPointerDown);
@@ -288,7 +249,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
     // --- 2. OPTIMISER MATH & ARROW UPDATES ---
     const stepOptimiser = () => {
       if (!sceneRef.current || !dictRef.current) return;
-      const { marker, line, gradArrow, momArrow, stepArrow } = sceneRef.current;
+      const { marker, line, gradArrow, momArrow } = sceneRef.current;
       const { optimiser: opt, learningRate: lr } = propsRef.current;
       let { x, z } = posRef.current;
 
@@ -296,12 +257,9 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       const state = optStateRef.current;
       const eps = 1e-8;
 
-      let rawStepX = dx,
-        rawStepZ = dz;
-      let momX = 0,
-        momZ = 0;
-      let stepX = 0,
-        stepZ = 0;
+      let rawStepX = dx, rawStepZ = dz;
+      let momX = 0, momZ = 0;
+      let stepX = 0, stepZ = 0;
 
       if (opt === 'GD') {
         stepX = dx;
@@ -333,7 +291,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
         stepZ = m2_hat / (Math.sqrt(v2_hat) + eps);
       }
 
-      // Update Position (Clamped to mesh bounds [-1, 1])
+      // Update Position
       x = Math.max(-1, Math.min(1, x - lr * stepX));
       z = Math.max(-1, Math.min(1, z - lr * stepZ));
       posRef.current = { x, z };
@@ -343,48 +301,43 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       pathRef.current.push({ x, z, y: newY, loss: newLoss });
       if (pathRef.current.length > 500) pathRef.current.shift();
 
-      // Map path to Three Vector3 array for rendering
-      const vecPath = pathRef.current.map(
-        (p) => new THREE.Vector3(p.x, p.y + 0.02, p.z),
-      );
+      const currentVec = new THREE.Vector3(x, newY + BALL_OFFSET, z);
+      const vecPath = pathRef.current.map((p) => new THREE.Vector3(p.x, p.y + (BALL_OFFSET / 2), p.z));
 
       // Update 3D Visuals
-      const currentVec = new THREE.Vector3(x, newY + 0.04, z);
       marker.position.copy(currentVec);
       line.geometry.setFromPoints(vecPath);
 
-      // Update 3D Arrows (Scaled down visually so they don't clip through the camera)
-      const updateArrow = (
-        arrow: any,
-        ax: number,
-        az: number,
-        scale: number,
-      ) => {
-        const len = Math.sqrt(ax * ax + az * az);
-        if (len > 0.001) {
-          arrow.setDirection(new THREE.Vector3(-ax, 0, -az).normalize());
-          arrow.setLength(Math.min(0.4, len * scale));
+      // --- 3D ARROW PITCHING ---
+      // We calculate where the arrow intends to point in X/Z, find the height of that target, 
+      // and use it to form a proper 3D vector so the arrow tilts perfectly along the slope.
+      const updateArrow = (arrow: any, ax: number, az: number, visualScale: number) => {
+        const len2D = Math.sqrt(ax * ax + az * az);
+        if (len2D > 0.001) {
+          const targetX = currentVec.x - (ax * visualScale);
+          const targetZ = currentVec.z - (az * visualScale);
+          const targetY = getWorldY(getInterpolatedLoss(targetX, targetZ)) + BALL_OFFSET;
+          
+          const dir3D = new THREE.Vector3(targetX - currentVec.x, targetY - currentVec.y, targetZ - currentVec.z);
+          
+          arrow.setDirection(dir3D.normalize());
+          arrow.setLength(Math.min(0.5, len2D * visualScale * 2.5)); // Cap length
           arrow.position.copy(currentVec);
           arrow.visible = true;
         } else {
           arrow.visible = false;
         }
       };
-      updateArrow(gradArrow, rawStepX, rawStepZ, 0.05);
-      updateArrow(momArrow, momX, momZ, 0.05);
-      updateArrow(stepArrow, stepX, stepZ, 0.05);
+      
+      updateArrow(gradArrow, rawStepX, rawStepZ, 0.08);
+      updateArrow(momArrow, momX, momZ, 0.08);
 
-      setStats({
-        w1: x,
-        w2: z,
-        loss: newLoss,
-        steps: pathRef.current.length - 1,
-      });
+      setStats({ w1: x, w2: z, loss: newLoss, steps: pathRef.current.length - 1 });
       drawCurve();
-      drawForces(rawStepX, rawStepZ, momX, momZ, stepX, stepZ);
+      drawForces(rawStepX, rawStepZ, momX, momZ);
     };
 
-    // --- 3. 2D CANVAS DRAWING (Delegated to Left Panel) ---
+    // --- 3. 2D CANVAS DRAWING ---
     const drawCurve = () => {
       if (!curveRef.current || !dictRef.current) return;
       const ctx = curveRef.current.getContext('2d');
@@ -397,28 +350,22 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       const path = pathRef.current;
       if (path.length === 0) return;
 
-      // Y Axis represents Loss (From 0 to the Max Loss of the landscape)
       const zs = dictRef.current.surface.flat();
       const maxLoss = Math.max(...zs);
       const minLoss = Math.min(...zs);
 
       const mapX = (index: number) => (index / Math.max(100, path.length)) * w;
-      const mapY = (loss: number) =>
-        h - 10 - ((loss - minLoss) / (maxLoss - minLoss || 1)) * (h - 20);
+      const mapY = (loss: number) => h - 10 - ((loss - minLoss) / (maxLoss - minLoss || 1)) * (h - 20);
 
       ctx.lineWidth = 2;
       ctx.strokeStyle = theme.colors.frenchBlue || '#3b82f6';
       ctx.beginPath();
       path.forEach((p, i) => {
-        if (i === 0) {
-          ctx.moveTo(mapX(i), mapY(p.loss));
-        } else {
-          ctx.lineTo(mapX(i), mapY(p.loss));
-        }
+        if (i === 0) ctx.moveTo(mapX(i), mapY(p.loss));
+        else ctx.lineTo(mapX(i), mapY(p.loss));
       });
       ctx.stroke();
 
-      // Draw Current Dot
       const lastP = path[path.length - 1];
       ctx.fillStyle = '#fff';
       ctx.beginPath();
@@ -426,14 +373,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       ctx.fill();
     };
 
-    const drawForces = (
-      g1: number,
-      g2: number,
-      m1: number,
-      m2: number,
-      s1: number,
-      s2: number,
-    ) => {
+    const drawForces = (g1: number, g2: number, m1: number, m2: number) => {
       if (!forcesRef.current) return;
       const ctx = forcesRef.current.getContext('2d');
       if (!ctx) return;
@@ -445,7 +385,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       ctx.clearRect(0, 0, w, h);
 
       // Crosshairs
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.strokeStyle = theme.colors.mutedForeground;
       ctx.beginPath();
       ctx.moveTo(0, cy);
       ctx.lineTo(w, cy);
@@ -453,19 +393,27 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       ctx.lineTo(cx, h);
       ctx.stroke();
 
+      // Draw White Dot in Middle
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fill();
+
       const drawArrow = (dx: number, dy: number, color: string) => {
         if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return;
-        const scale = 5;
+        const scale = 12; // Increased scale so arrows don't look tiny in the box
         const ex = cx - dx * scale;
         const ey = cy - dy * scale;
 
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
         ctx.lineWidth = 2;
+        
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(ex, ey);
         ctx.stroke();
+        
         ctx.beginPath();
         ctx.arc(ex, ey, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -473,7 +421,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
       drawArrow(g1, g2, '#ef4444'); // Grad
       drawArrow(m1, m2, '#3b82f6'); // Mom
-      drawArrow(s1, s2, '#10b981'); // Step
     };
 
     // --- PLAY/PAUSE LOOP ---
@@ -497,38 +444,27 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       reset: () => {
         setIsRunning(false);
         optStateRef.current = { m1: 0, m2: 0, v1: 0, v2: 0, t: 0 };
-        posRef.current = { x: 0.8, z: -0.8 };
+        posRef.current = { x: 0.0, z: 0.0 }; 
 
-        const l0 = getInterpolatedLoss(0.8, -0.8);
+        const l0 = getInterpolatedLoss(0.0, 0.0);
         const y0 = getWorldY(l0);
-        pathRef.current = [{ x: 0.8, z: -0.8, y: y0, loss: l0 }];
+        pathRef.current = [{ x: 0.0, z: 0.0, y: y0, loss: l0 }];
 
         if (sceneRef.current) {
-          sceneRef.current.marker.position.set(0.8, y0 + 0.04, -0.8);
+          sceneRef.current.marker.position.set(0.0, y0 + BALL_OFFSET, 0.0);
           sceneRef.current.line.geometry.setFromPoints([]);
           sceneRef.current.gradArrow.setLength(0.001);
           sceneRef.current.momArrow.setLength(0.001);
-          sceneRef.current.stepArrow.setLength(0.001);
         }
-        setStats({ w1: 0.8, w2: -0.8, loss: l0, steps: 0 });
+        setStats({ w1: 0.0, w2: 0.0, loss: l0, steps: 0 });
         drawCurve();
-        drawForces(0, 0, 0, 0, 0, 0);
+        drawForces(0, 0, 0, 0);
       },
     }));
 
     return (
-      <View
-        style={{
-          flex: 1,
-          width: '100%',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          ref={containerRef}
-          style={{ width: '100%', height: '100%', background: '#000' }}
-        />
+      <View style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden' }}>
+        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
         {/* GUI OVERLAY */}
         <View
@@ -537,7 +473,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
             top: 16,
             left: 16,
             padding: 12,
-            backgroundColor: 'rgba(0,0,0,0.8)',
+            backgroundColor: theme.colors.background,
             borderRadius: 8,
             borderWidth: 1,
             borderColor: theme.colors.border,
@@ -555,60 +491,36 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           >
             Click landscape to teleport
           </Text>
+          
           <View style={{ flexDirection: 'row', gap: 16 }}>
             <View>
-              <Text
-                style={{ fontSize: 9, color: theme.colors.mutedForeground }}
-              >
-                PROJECTION X
+              <Text style={{ fontSize: 9, color: theme.colors.mutedForeground }}>
+                CURRENT POSITION
               </Text>
               <Text
                 style={{
                   fontSize: 14,
-                  color: '#fff',
+                  color: theme.colors.foreground,
                   fontFamily: 'monospace',
                   fontWeight: 'bold',
                 }}
               >
-                {stats.w1.toFixed(3)}
-              </Text>
-            </View>
-            <View>
-              <Text
-                style={{ fontSize: 9, color: theme.colors.mutedForeground }}
-              >
-                PROJECTION Y
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: '#fff',
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold',
-                }}
-              >
-                {stats.w2.toFixed(3)}
+                [{stats.w1.toFixed(3)}, {stats.w2.toFixed(3)}]
               </Text>
             </View>
           </View>
-          <View
-            style={{
-              height: 1,
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              marginVertical: 8,
-            }}
-          />
+          
+          <View style={{ height: 1, backgroundColor: theme.colors.border, marginVertical: 8 }} />
+          
           <View style={{ flexDirection: 'row', gap: 16 }}>
             <View>
-              <Text
-                style={{ fontSize: 9, color: theme.colors.mutedForeground }}
-              >
+              <Text style={{ fontSize: 9, color: theme.colors.mutedForeground }}>
                 MSE LOSS
               </Text>
               <Text
                 style={{
                   fontSize: 14,
-                  color: '#ef4444',
+                  color: '#f59e0b',
                   fontFamily: 'monospace',
                   fontWeight: 'bold',
                 }}
@@ -617,9 +529,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
               </Text>
             </View>
             <View>
-              <Text
-                style={{ fontSize: 9, color: theme.colors.mutedForeground }}
-              >
+              <Text style={{ fontSize: 9, color: theme.colors.mutedForeground }}>
                 STEPS
               </Text>
               <Text
@@ -637,44 +547,13 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
           {/* LEGEND */}
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            >
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#ef4444',
-                }}
-              />
-              <Text style={{ fontSize: 9, color: '#fff' }}>Gradient</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
+              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Gradient</Text>
             </View>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            >
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#3b82f6',
-                }}
-              />
-              <Text style={{ fontSize: 9, color: '#fff' }}>Momentum</Text>
-            </View>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            >
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#10b981',
-                }}
-              />
-              <Text style={{ fontSize: 9, color: '#fff' }}>Step</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#3b82f6' }} />
+              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Momentum</Text>
             </View>
           </View>
         </View>
@@ -684,16 +563,11 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           <View
             style={[
               StyleSheet.absoluteFill,
-              {
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 20,
-              },
+              { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 20 },
             ]}
           >
-            <ActivityIndicator size='large' color={theme.colors.frenchBlue} />
-            <Text style={{ marginTop: 12, fontWeight: 'bold', color: '#fff' }}>
+            <ActivityIndicator size='large' color={theme.colors.powderBlue} />
+            <Text style={{ marginTop: 12, fontWeight: 'bold', color: theme.colors.background }}>
               Generating Topology...
             </Text>
           </View>

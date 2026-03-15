@@ -124,6 +124,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const [currentLoss, setCurrentLoss] = useState<number | null>(null);
   const [lossChange, setLossChange] = useState(0);
   const [fidelity, setFidelity] = useState<number | null>(null);
+  const [instability, setInstability] = useState<number | null>(null);
+  const [trainability, setTrainability] = useState<number | null>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [totalFrames, setTotalFrames] = useState(100);
   const [isPlacingMode, setIsPlacingMode] = useState<boolean>(false);
@@ -154,7 +156,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const path2DArrayRef = useRef<THREE.Vector2[][]>([]);
   const animationDurationsRef = useRef<number[]>([]);
   const parametersArrayRef = useRef<number[][][]>([]);
-  const fidelityArrayRef = useRef<number[]>([]);
+  const metricArrayRef = useRef<number[][]>([]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -191,7 +193,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       path2DArrayRef.current.splice(id, 1);
       parametersArrayRef.current.splice(id, 1);
       animationDurationsRef.current.splice(id, 1);
-      fidelityArrayRef.current.splice(id, 1);
+      metricArrayRef.current.splice(id, 1);
 
       // Re-index markersRef
       const newMarkers: {
@@ -242,6 +244,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         setCurrentLoss(null);
         setLossChange(0);
         setFidelity(null);
+        setInstability(null);
+        setTrainability(null);
       } else if (viewIdRef.current !== null && viewIdRef.current > id) {
         // If the user was viewing a path that comes AFTER the deleted one, decrement its ID
         setViewId(viewIdRef.current - 1);
@@ -271,7 +275,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     totalPathPointsArrayRef.current = [];
     path2DArrayRef.current = [];
     parametersArrayRef.current = [];
-    fidelityArrayRef.current = [];
+    metricArrayRef.current = [];
     Object.values(markersRef.current).forEach(({ ball, line }) => {
       disposeObject(ball);
       disposeObject(line);
@@ -291,6 +295,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     setCurrentLoss(null);
     setLossChange(0);
     setFidelity(null);
+    setInstability(null);
+    setTrainability(null);
   }, [handleRemoveAllPaths]);
 
   /**
@@ -382,7 +388,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       if (config.regen) {
         cachedRegenData[index] = {
           params: parametersArrayRef.current[index],
-          fidelity: fidelityArrayRef.current[index],
+          metrics: metricArrayRef.current[index],
           path2D: path2DArrayRef.current[index],
         };
       }
@@ -398,7 +404,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     Object.keys(cachedRegenData).forEach((key) => {
       const index = parseInt(key);
       parametersArrayRef.current[index] = cachedRegenData[index].params;
-      fidelityArrayRef.current[index] = cachedRegenData[index].fidelity;
+      metricArrayRef.current[index] = cachedRegenData[index].metrics;
       path2DArrayRef.current[index] = cachedRegenData[index].path2D;
     });
 
@@ -446,7 +452,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
           pathData.minimiser_path?.data ?? pathData.minimiser_path;
         const parameters_arr =
           pathData.parameters_path?.data ?? pathData.parameters_path;
-        fidelityArrayRef.current[index] = pathData.fidelity;
+        metricArrayRef.current[index] = [pathData.fidelity, pathData.instability, pathData.trainability];
 
         if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
@@ -475,9 +481,11 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
 
       if (
         viewIdRef.current !== null &&
-        fidelityArrayRef.current[viewIdRef.current] !== undefined
+        metricArrayRef.current[viewIdRef.current] !== undefined
       ) {
-        setFidelity(fidelityArrayRef.current[viewIdRef.current] * 100);
+        setFidelity(metricArrayRef.current[viewIdRef.current][0] * 100);
+        setInstability(metricArrayRef.current[viewIdRef.current][1] * 100);
+        setTrainability(metricArrayRef.current[viewIdRef.current][2] * 100);
       }
 
       pathConfigs.forEach((config) => {
@@ -524,7 +532,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   ]);
 
   const loadRegenPath = useCallback(
-    (savedParams: number[][], savedFidelity: number, newPath2D: number[][]) => {
+    (savedParams: number[][], savedMetrics: number[], newPath2D: number[][]) => {
       const mesh = meshRef.current;
       if (!mesh) return;
 
@@ -534,18 +542,12 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
 
       // Inject the data into index 0
       parametersArrayRef.current[0] = savedParams;
-      fidelityArrayRef.current[0] = savedFidelity;
+      metricArrayRef.current[0] = savedMetrics;
 
       const twoDPoints = newPath2D.map((p) => new THREE.Vector2(p[0], p[1]));
       const curve2D = new THREE.SplineCurve(twoDPoints);
 
       path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
-        return p;
-      });
-
-      path2DArrayRef.current[0] = curve2D.getSpacedPoints(500).map((p) => {
-        p.x = Math.max(-1, Math.min(1, p.x));
-        p.y = Math.max(-1, Math.min(1, p.y));
         return p;
       });
 
@@ -772,12 +774,14 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const onViewPath = useCallback((id: number) => {
     setViewId(id);
     viewIdRef.current = id;
-    setFidelity(fidelityArrayRef.current[id] * 100);
+    setFidelity(metricArrayRef.current[id][0] * 100);
+    setInstability(metricArrayRef.current[id][1] * 100);
+    setTrainability(metricArrayRef.current[id][2] * 100);
     console.log(
       'Viewing path',
       id,
       'with fidelity',
-      fidelityArrayRef.current[id],
+      metricArrayRef.current[id][0],
     );
   }, []);
 
@@ -1061,9 +1065,11 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     currentLoss,
     lossChange,
     fidelity,
+    instability,
+    trainability,
     markersRef,
     parametersArrayRef,
-    fidelityArrayRef,
+    metricArrayRef,
     handleLoadAllPathsButtonClick,
     loadRegenPath,
     handleRemovePath,

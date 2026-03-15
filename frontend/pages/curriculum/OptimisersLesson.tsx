@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../components/theme-provider';
 import { Text } from '../../components/text';
@@ -6,9 +6,9 @@ import { Slider } from '../../components/slider';
 import {
   Target,
   Layers,
-  Zap,
+  Database,
   Compass,
-  Activity,
+  Pause,
   Play,
   StepForward,
   RotateCcw,
@@ -42,12 +42,17 @@ const OPTIMISERS = {
 
 type OptimiserType = keyof typeof OPTIMISERS;
 
-export function OptimisersLesson() {
+export function OptimisersLesson({ onTaskUpdate }: any) {
   const { theme, isDark } = useTheme();
 
   const [optimiser, setOptimiser] = useState<OptimiserType>('GD');
   const [learningRate, setLearningRate] = useState(0.01);
   const [isRunning, setIsRunning] = useState(false);
+
+  // Task Progression States
+  const [hasSelectedSGD, setHasSelectedSGD] = useState(false);
+  const [hasSelectedAdam, setHasSelectedAdam] = useState(false);
+  const [hasRunAdam, setHasRunAdam] = useState(false);
 
   // Refs to connect the Left Panel canvases to the Right Panel 3D Engine
   const curveRef = useRef<HTMLCanvasElement>(null);
@@ -58,6 +63,11 @@ export function OptimisersLesson() {
     if (visRef.current) {
       const running = visRef.current.toggleRun();
       setIsRunning(running);
+      
+      // Check if they are fulfilling the final step of the task!
+      if (running && optimiser === 'Adam') {
+          setHasRunAdam(true);
+      }
     }
   };
 
@@ -67,6 +77,21 @@ export function OptimisersLesson() {
       setIsRunning(false);
     }
   };
+
+  // --- DYNAMIC TASK VALIDATION ---
+  useEffect(() => {
+    if (onTaskUpdate) {
+      if (hasSelectedSGD && hasRunAdam) {
+        onTaskUpdate(true, null); // Task Complete!
+      } else if (!hasSelectedSGD) {
+        onTaskUpdate(false, "Step 1: Select 'SGD' to see how noisy, random batches affect the trajectory.");
+      } else if (!hasSelectedAdam) {
+        onTaskUpdate(false, "Step 2: Now select 'Adam', the gold standard for modern networks.");
+      } else if (!hasRunAdam) {
+        onTaskUpdate(false, "Step 3: Click 'Run Trajectory' to watch Adam smoothly navigate the terrain!");
+      }
+    }
+  }, [hasSelectedSGD, hasSelectedAdam, hasRunAdam, onTaskUpdate]);
 
   return (
     <View style={styles.mainContainer}>
@@ -80,7 +105,7 @@ export function OptimisersLesson() {
             ]}
           >
             <Compass size={12} color={theme.colors.accent} />
-            <Text style={styles.subTitle}>OPTIMIZATION ALGORITHMS</Text>
+            <Text style={styles.subTitle}>OPTIMISATION ALGORITHMS</Text>
           </View>
 
           <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -102,7 +127,7 @@ export function OptimisersLesson() {
                   marginBottom: 6,
                 }}
               >
-                <Target size={12} color={theme.colors.mutedForeground} />
+                <Database size={12} color={theme.colors.mutedForeground} />
                 <Text
                   style={{
                     fontSize: 9,
@@ -110,11 +135,11 @@ export function OptimisersLesson() {
                     color: theme.colors.mutedForeground,
                   }}
                 >
-                  SINE REGRESSION (4x4 NETWORK)
+                  CURRENT DATASET
                 </Text>
               </View>
               <Text style={{ fontSize: 13, fontWeight: 'bold' }}>
-                Finding the Valley Floor
+                Sine Regression
               </Text>
               <Text
                 style={{
@@ -123,10 +148,10 @@ export function OptimisersLesson() {
                   marginTop: 4,
                 }}
               >
-                This 3D landscape is generated from a real 4&times;4 Tanh
-                network using Random Direction Projection. The goal is to reach
+                This 3D landscape is generated from a 4&times;4 Tanh
+                network trained on the Sine Regression dataset, using Random Direction Projection. The goal is to reach
                 the lowest MSE loss. Watch how different algorithms use Gradient
-                (Red) and Momentum (Blue) to decide their next Step (Green).
+                (Red) and Momentum (Blue) to decide their next step.
               </Text>
             </View>
 
@@ -159,6 +184,9 @@ export function OptimisersLesson() {
                       ]}
                       onPress={() => {
                         setOptimiser(opt);
+                        // Track task progression!
+                        if (opt === 'SGD') setHasSelectedSGD(true);
+                        if (opt === 'Adam') setHasSelectedAdam(true);
                         handleReset();
                       }}
                     >
@@ -204,7 +232,7 @@ export function OptimisersLesson() {
                       { color: theme.colors.mutedForeground },
                     ]}
                   >
-                    LEARNING RATE (α)
+                    LEARNING RATE
                   </Text>
                   <Text
                     style={[
@@ -241,7 +269,7 @@ export function OptimisersLesson() {
               <View
                 style={{
                   flex: 1,
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: 'rgba(0,0,0,0.05)',
                   borderRadius: 8,
                   borderWidth: 1,
                   borderColor: theme.colors.border,
@@ -316,7 +344,7 @@ export function OptimisersLesson() {
                 ]}
               >
                 {isRunning ? (
-                  <RotateCcw size={16} color={theme.colors.foreground} />
+                  <Pause size={16} color={theme.colors.foreground} />
                 ) : (
                   <Play size={16} color={theme.colors.primaryForeground} />
                 )}
@@ -336,7 +364,7 @@ export function OptimisersLesson() {
                 onPress={() => visRef.current?.step()}
                 style={[
                   styles.actionBtn,
-                  { flex: 1, backgroundColor: 'transparent' },
+                  { flex: 1, backgroundColor: 'transparent', borderColor: theme.colors.border },
                 ]}
               >
                 <StepForward size={16} color={theme.colors.foreground} />
@@ -429,7 +457,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1
   },
 });

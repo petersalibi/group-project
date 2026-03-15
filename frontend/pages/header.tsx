@@ -11,7 +11,12 @@ export function Header() {
   const { isDark, toggleTheme, theme } = useTheme();
 
   // Helper to check if a route is active
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
+  };
 
   // DYNAMIC COLOR LOGIC: Lime in Dark (#C6F382), Blue in Light (#353F91)
   const activeAccent = isDark ? '#C6F382' : '#353F91';
