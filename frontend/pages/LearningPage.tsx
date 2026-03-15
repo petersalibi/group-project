@@ -67,7 +67,7 @@ const LESSON_REGISTRY = [
     title: 'Complexity',
     module: 'DYNAMICS',
     xPos: '15%' as DimensionValue,
-    yPos: '50%' as DimensionValue,
+    yPos: '35%' as DimensionValue,
     parents: [0, 1], // Branches from Layer 1
     instruction: 'Understanding how model complexity affects the surface.',
     taskGoal: "Increase the network depth to see the landscape get 'messier'.",
@@ -80,7 +80,7 @@ const LESSON_REGISTRY = [
     title: 'Activations',
     module: 'DYNAMICS',
     xPos: '50%' as DimensionValue,
-    yPos: '50%' as DimensionValue,
+    yPos: '35%' as DimensionValue,
     parents: [0, 1], // Branches from Layer 1
     instruction:
       'Without an activation function, a Neural Network is just doing basic linear math. Observe how adding non-linearity gives the network the power to fold the landscape.',
@@ -95,7 +95,7 @@ const LESSON_REGISTRY = [
     title: 'Optimisers',
     module: 'DYNAMICS',
     xPos: '85%' as DimensionValue,
-    yPos: '50%' as DimensionValue,
+    yPos: '35%' as DimensionValue,
     parents: [0, 1], // Branches from Layer 1
     instruction:
       'Optimisers act as the "navigators" for the network, deciding how to move down the loss landscape based on the mathematical terrain.',
@@ -105,9 +105,13 @@ const LESSON_REGISTRY = [
     Component: OptimisersLesson,
   },
   {
-    id: 6,
-    title: '7. Projections',
+    id: 5,
+    slug: 'projections',
+    title: 'Projections',
     module: 'INTERACTIVE',
+    xPos: '50%' as DimensionValue,
+    yPos: '55%' as DimensionValue,
+    parents: [2, 3, 4], // Branches from Layer 2
     instruction:
       'High-dimensional landscapes are hard to visualise. Projections are like shadows, giving us a glimpse of the landscape from different angles.',
     taskGoal:
@@ -122,7 +126,7 @@ const VISUALISATION_NODE = {
   title: 'Visualisation Tool',
   xPos: '50%' as DimensionValue,
   yPos: '78%' as DimensionValue,
-  parents: [2, 3, 4],
+  parents: [5],
 };
 
 export function LearningPage() {
