@@ -26,6 +26,7 @@ import { ArchitectureComplexityLesson } from './curriculum/ArchitectureComplexit
 import { LandscapeOriginLesson } from './curriculum/LandscapeOriginLesson';
 import { ActivationLesson } from './curriculum/ActivationLesson';
 import { OptimisersLesson } from './curriculum/OptimisersLesson';
+import { ProjectionsLesson } from './curriculum/ProjectionsLesson';
 
 const LESSON_REGISTRY = [
   // --- LAYER 1 ---
@@ -58,7 +59,7 @@ const LESSON_REGISTRY = [
     hint: "Don't just plot in the center! Try plotting models with extreme high and low Weights/Biases.",
     Component: LandscapeOriginLesson,
   },
-  
+
   // --- LAYER 2 ---
   {
     id: 2,
@@ -103,6 +104,17 @@ const LESSON_REGISTRY = [
     hint: "Try clicking the 'SGD' optimiser pill first. Then click 'Adam' and press 'Run Trajectory'.",
     Component: OptimisersLesson,
   },
+  {
+    id: 6,
+    title: '7. Projections',
+    module: 'INTERACTIVE',
+    instruction:
+      'High-dimensional landscapes are hard to visualise. Projections are like shadows, giving us a glimpse of the landscape from different angles.',
+    taskGoal:
+      'Adjust the projection vectors and move the plane to slice through the landscape.',
+    hint: 'Experiment with different projection configurations to produce a convex intersection curve.',
+    Component: ProjectionsLesson,
+  },
 ];
 
 // --- LAYER 3 (Output Node) ---
@@ -117,12 +129,12 @@ export function LearningPage() {
   const { theme, isDark } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const currentSlug = pathSegments[pathSegments.length - 1];
-  const matchedIndex = LESSON_REGISTRY.findIndex(l => l.slug === currentSlug);
+  const matchedIndex = LESSON_REGISTRY.findIndex((l) => l.slug === currentSlug);
   const currentIdx = matchedIndex !== -1 ? matchedIndex : 0;
-  
+
   const [isTaskComplete, setIsTaskComplete] = useState(false);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
@@ -136,13 +148,23 @@ export function LearningPage() {
   const warningColor = isDark ? '#f59e0b' : '#d97706';
   const inactiveColor = isDark ? '#444444' : '#d4d4d8';
 
-  const statusColor = isTaskComplete ? successColor : errorFeedback ? errorColor : warningColor;
-      
-  const statusBgColor = isTaskComplete
-    ? isDark ? 'rgba(198, 243, 130, 0.05)' : 'rgba(22, 163, 74, 0.05)'
+  const statusColor = isTaskComplete
+    ? successColor
     : errorFeedback
-      ? isDark ? 'rgba(255, 77, 77, 0.05)' : 'rgba(220, 38, 38, 0.05)'
-      : isDark ? 'rgba(245, 158, 11, 0.05)' : 'rgba(217, 119, 6, 0.05)';
+      ? errorColor
+      : warningColor;
+
+  const statusBgColor = isTaskComplete
+    ? isDark
+      ? 'rgba(198, 243, 130, 0.05)'
+      : 'rgba(22, 163, 74, 0.05)'
+    : errorFeedback
+      ? isDark
+        ? 'rgba(255, 77, 77, 0.05)'
+        : 'rgba(220, 38, 38, 0.05)'
+      : isDark
+        ? 'rgba(245, 158, 11, 0.05)'
+        : 'rgba(217, 119, 6, 0.05)';
 
   const changeLesson = (idx: number) => {
     navigate(`/curriculum/${LESSON_REGISTRY[idx].slug}`);
@@ -167,8 +189,17 @@ export function LearningPage() {
   useEffect(() => {
     if (isTaskComplete) {
       RNAnimated.sequence([
-        RNAnimated.timing(bounceAnim, { toValue: 1.05, duration: 150, useNativeDriver: true }),
-        RNAnimated.spring(bounceAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }),
+        RNAnimated.timing(bounceAnim, {
+          toValue: 1.05,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        RNAnimated.spring(bounceAnim, {
+          toValue: 1,
+          friction: 4,
+          tension: 40,
+          useNativeDriver: true,
+        }),
       ]).start();
     }
   }, [isTaskComplete, bounceAnim]);
@@ -177,30 +208,45 @@ export function LearningPage() {
     <View style={[styles.container]}>
       {/* SIDEBAR */}
       {isSidebarOpen && (
-        <View style={[styles.sidebar, { borderRightColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+        <View
+          style={[
+            styles.sidebar,
+            {
+              borderRightColor: theme.colors.border,
+              backgroundColor: theme.colors.card,
+            },
+          ]}
+        >
           <View style={styles.sidebarHeader}>
             <BookOpen size={14} color={theme.colors.accent} />
-            <Text style={[styles.sidebarTitle, {color: theme.colors.foreground}]}>CURRICULUM</Text>
+            <Text
+              style={[styles.sidebarTitle, { color: theme.colors.foreground }]}
+            >
+              CURRICULUM
+            </Text>
           </View>
 
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <View style={styles.networkContainer}>
-              
               {/* SVG BRANCHING LINES */}
               <View style={StyleSheet.absoluteFill}>
                 <Svg width='100%' height='100%'>
                   {LESSON_REGISTRY.map((node, idx) => {
                     return node.parents.map((parentId) => {
-                      const parent = LESSON_REGISTRY.find(l => l.id === parentId);
+                      const parent = LESSON_REGISTRY.find(
+                        (l) => l.id === parentId,
+                      );
                       if (!parent) return null;
-                      
+
                       const isCompleted = idx <= currentIdx;
-                      
+
                       return (
                         <Line
                           key={`line-${parentId}-${idx}`}
-                          x1={String(parent.xPos)} y1={String(parent.yPos)}
-                          x2={String(node.xPos)} y2={String(node.yPos)}
+                          x1={String(parent.xPos)}
+                          y1={String(parent.yPos)}
+                          x2={String(node.xPos)}
+                          y2={String(node.yPos)}
                           stroke={isCompleted ? successColor : inactiveColor}
                           strokeWidth='2'
                           opacity={isCompleted ? '0.5' : '0.3'}
@@ -208,24 +254,30 @@ export function LearningPage() {
                       );
                     });
                   })}
-                  
+
                   {/* Lines mapping down to the final Visualisation Sandbox */}
                   {VISUALISATION_NODE.parents.map((parentId) => {
-                      const parent = LESSON_REGISTRY.find(l => l.id === parentId);
-                      if (!parent) return null;
-                      
-                      const isCompleted = currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete;
-                      
-                      return (
-                        <Line
-                          key={`line-${parentId}-vis`}
-                          x1={String(parent.xPos)} y1={String(parent.yPos)}
-                          x2={String(VISUALISATION_NODE.xPos)} y2={String(VISUALISATION_NODE.yPos)}
-                          stroke={isCompleted ? successColor : inactiveColor}
-                          strokeWidth='2'
-                          opacity={isCompleted ? '0.8' : '0.3'}
-                        />
-                      );
+                    const parent = LESSON_REGISTRY.find(
+                      (l) => l.id === parentId,
+                    );
+                    if (!parent) return null;
+
+                    const isCompleted =
+                      currentIdx === LESSON_REGISTRY.length - 1 &&
+                      isTaskComplete;
+
+                    return (
+                      <Line
+                        key={`line-${parentId}-vis`}
+                        x1={String(parent.xPos)}
+                        y1={String(parent.yPos)}
+                        x2={String(VISUALISATION_NODE.xPos)}
+                        y2={String(VISUALISATION_NODE.yPos)}
+                        stroke={isCompleted ? successColor : inactiveColor}
+                        strokeWidth='2'
+                        opacity={isCompleted ? '0.8' : '0.3'}
+                      />
+                    );
                   })}
                 </Svg>
               </View>
@@ -251,22 +303,29 @@ export function LearningPage() {
               {/* FINAL VISUALISATION NODE */}
               <TouchableOpacity
                 style={[
-                  styles.absoluteNode, 
-                  { 
-                    left: VISUALISATION_NODE.xPos, 
+                  styles.absoluteNode,
+                  {
+                    left: VISUALISATION_NODE.xPos,
                     top: VISUALISATION_NODE.yPos,
-                    transform: [{ translateX: -40 }, { translateY: -30 }, { scale: 1.25 }]
-                  }
+                    transform: [
+                      { translateX: -40 },
+                      { translateY: -30 },
+                      { scale: 1.25 },
+                    ],
+                  },
                 ]}
                 onPress={() => navigate('/')}
                 activeOpacity={0.6}
               >
-                <NeuralNode 
-                  status={(currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete) ? 'available' : 'locked'} 
-                  label={VISUALISATION_NODE.title} 
+                <NeuralNode
+                  status={
+                    currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete
+                      ? 'available'
+                      : 'locked'
+                  }
+                  label={VISUALISATION_NODE.title}
                 />
               </TouchableOpacity>
-
             </View>
           </ScrollView>
         </View>
@@ -274,8 +333,16 @@ export function LearningPage() {
 
       <View style={{ flex: 1 }}>
         {/* HEADER */}
-        <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingRight: 50 }]}>
-          <TouchableOpacity style={styles.collapseBtn} onPress={() => setIsSidebarOpen(!isSidebarOpen)}>
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: theme.colors.border, paddingRight: 50 },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.collapseBtn}
+            onPress={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
             {isSidebarOpen ? (
               <ChevronLeft size={20} color={theme.colors.foreground} />
             ) : (
@@ -284,10 +351,17 @@ export function LearningPage() {
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <Text style={[styles.breadcrumbText, { color: theme.colors.accent }]}>
+            <Text
+              style={[styles.breadcrumbText, { color: theme.colors.accent }]}
+            >
               {lesson.module} / LESSON {currentIdx + 1}
             </Text>
-            <Text style={[styles.lessonTitleText, { color: theme.colors.foreground }]}>
+            <Text
+              style={[
+                styles.lessonTitleText,
+                { color: theme.colors.foreground },
+              ]}
+            >
               {lesson.title}
             </Text>
           </View>
@@ -296,7 +370,11 @@ export function LearningPage() {
         <View style={styles.lessonSlot}>
           <lesson.Component
             key={lesson.id}
-            onTaskUpdate={(comp: boolean, err: string | null, forceHint?: boolean) => {
+            onTaskUpdate={(
+              comp: boolean,
+              err: string | null,
+              forceHint?: boolean,
+            ) => {
               setIsTaskComplete(comp);
               setErrorFeedback(err);
               if (forceHint) setShowHint(true);
@@ -306,12 +384,27 @@ export function LearningPage() {
         </View>
 
         {/* TASK DRAWER */}
-        <View style={[styles.drawer, { borderTopColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+        <View
+          style={[
+            styles.drawer,
+            {
+              borderTopColor: theme.colors.border,
+              backgroundColor: theme.colors.card,
+            },
+          ]}
+        >
           <View style={styles.drawerLeft}>
             <Text style={styles.instructionText}>{lesson.instruction}</Text>
 
             <RNAnimated.View
-              style={[styles.taskCard, { borderColor: statusColor, backgroundColor: statusBgColor, transform: [{ scale: bounceAnim }] }]}
+              style={[
+                styles.taskCard,
+                {
+                  borderColor: statusColor,
+                  backgroundColor: statusBgColor,
+                  transform: [{ scale: bounceAnim }],
+                },
+              ]}
             >
               {isTaskComplete ? (
                 <CheckCircle2 size={14} color={statusColor} />
@@ -319,16 +412,29 @@ export function LearningPage() {
                 <Target size={14} color={statusColor} />
               )}
               <Text style={[styles.taskLabel, { color: statusColor }]}>
-                {isTaskComplete ? 'Task completed successfully!' : errorFeedback || lesson.taskGoal}
+                {isTaskComplete
+                  ? 'Task completed successfully!'
+                  : errorFeedback || lesson.taskGoal}
               </Text>
             </RNAnimated.View>
           </View>
 
           <View style={styles.drawerRight}>
             {showHint && !isTaskComplete && (
-              <View style={[styles.hintBubble, { backgroundColor: isDark ? 'rgba(198, 243, 130, 0.1)' : 'rgba(22, 163, 74, 0.1)' }]}>
+              <View
+                style={[
+                  styles.hintBubble,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(198, 243, 130, 0.1)'
+                      : 'rgba(22, 163, 74, 0.1)',
+                  },
+                ]}
+              >
                 <Lightbulb size={50} color={successColor} />
-                <Text style={[styles.hintText, { color: successColor }]}>{lesson.hint}</Text>
+                <Text style={[styles.hintText, { color: successColor }]}>
+                  {lesson.hint}
+                </Text>
               </View>
             )}
 
@@ -336,7 +442,11 @@ export function LearningPage() {
               disabled={!isTaskComplete}
               variant={isTaskComplete ? 'default' : 'secondary'}
               style={{
-                width: 140, height: 44, alignContent: 'center', justifyContent: 'center', backgroundColor: theme.colors.accent,
+                width: 140,
+                height: 44,
+                alignContent: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.colors.accent,
               }}
               onPress={() => {
                 if (currentIdx < LESSON_REGISTRY.length - 1) {
@@ -346,8 +456,17 @@ export function LearningPage() {
                 }
               }}
             >
-              <Text style={{ fontWeight: 'bold', color: isTaskComplete ? theme.colors.background : theme.colors.popover }}>
-                {currentIdx === LESSON_REGISTRY.length - 1 ? "Finish >" : "Continue >"}
+              <Text
+                style={{
+                  fontWeight: 'bold',
+                  color: isTaskComplete
+                    ? theme.colors.background
+                    : theme.colors.popover,
+                }}
+              >
+                {currentIdx === LESSON_REGISTRY.length - 1
+                  ? 'Finish >'
+                  : 'Continue >'}
               </Text>
             </Button>
           </View>
