@@ -1,8 +1,14 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from utils import print_progress_bar, flatten_params
+from utils import print_progress_bar, flatten_params, jump_count, generate_random_points, get_model_parameters, trainability_score_exp
 from network import NetworkParams, TrainingDataType, TrainingData, Model
+from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import FunctionTransformer
+
+
+from typing import Callable as callable_type
 
 class MinimiserParams:
     def __init__(self,
@@ -85,11 +91,19 @@ def animate_optimiser(params: MinimiserParams):
     print()
     model.load_state_dict(saved_state)
 
+    print("calculating instability...")
+    instab_score = create_instability_vectors(params, model, data.X, data.y, condense=True)
+    print("calculating trainability...")
+    _, trainabilities = trainability_vectors(params, model, data.X, data.y)
+    trainability = np.mean(trainabilities)
+
     return {
         "minimiser_path": minimiser_path,
         "parameters_path": parameters_path,
         "fidelity": fidelity,
-        "loss_path" : loss_path
+        "loss_path" : loss_path,
+        "instability": instab_score,
+        "trainability": trainability
     }
 
 def _prepare_data_and_model(params):
@@ -188,7 +202,172 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
     fidelity = plane_path_length / (full_path_length + 1e-12) # avoid div by zero
     return fidelity, loss_path
 
+import numpy as np
+from sklearn.model_selection import train_test_split
 
+def create_instability_vectors(params, model : callable_type, Xtrain : np.ndarray, Ytrain : np.ndarray, Xtest : np.ndarray = None,
+                               change_func : callable_type = jump_count, n_iterations : int = 10, 
+                               condense : bool = False) -> np.ndarray :
+  
+    # If no argument for testing points assume entire dataset is training and we train on random points within the range
+    if Xtest is None :
+        Xtest = torch.Tensor( generate_random_points(Xtrain, n = len(Xtrain)) ).to(next(model.parameters()).device)
+                                                                            # Need on same device to prevent hardware bugs
+
+  
+    # Stores expected instability across all iterations
+    expected_instability_table = np.zeros((n_iterations, len(Xtest)))
+    
+    for global_iter in range(n_iterations) : 
+        
+        optimiser = params.optimiser(model.parameters(), lr=params.learning_rate) 
+        
+        # Reset the model weights without needing a new variable
+        model.apply(lambda m: m.reset_parameters() if hasattr(m, 'reset_parameters') else None)
+        
+        # Storing all the function valuations to calculate jumps
+        instability_table = np.zeros(( params.epochs + 1, len(Xtest) ))
+        
+        for training_iter in range(params.epochs + 1) :
+            
+            # Evaluation mode to avoid accidentally training here
+            model.eval()
+            with torch.no_grad() :
+                raw_predictions = model(Xtest).cpu().numpy()
+                
+                predictions = np.argmax(raw_predictions, axis = 1)
+                
+                instability_table[training_iter] = predictions.ravel()
+                
+            model.train()
+            if training_iter != params.epochs : # Avoid wasting time
+                optimiser.zero_grad()
+                
+
+                
+                loss = params.loss(model(Xtrain), Ytrain)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                optimiser.step()
+                
+        # Apply the function to determine how volatile each point is
+        instabilities = change_func(instability_table, axis = 0)
+        
+        expected_instability_table[global_iter] = instabilities
+    
+    # Determine if we just want the expected instability across points 
+    if condense : 
+        # Expected instability across all the iterations
+        expected_instability_table = np.mean(expected_instability_table, axis = (0,1))
+
+    return expected_instability_table
+
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.preprocessing import StandardScaler
+
+def instability_knn(params, model : callable_type, X : np.ndarray, Y : np.ndarray, change_func : callable_type = jump_count,
+                    k : int = 5, test_size : float = 0.5, type_leniency : bool = True,
+                    uses_pca : bool = False, pca_k : int = 2) -> None :
+    
+    Xtrain, Xtest, Ytrain, _ = train_test_split(X, Y, test_size = test_size)
+    
+    instabilities = create_instability_vectors(params, model, Xtrain, Ytrain, Xtest, change_func, 10, False).mean(axis=0)
+    
+    # Define the transformer: PCA if requested, otherwise pass through (Identity)
+    preprocessor = PCA(n_components=pca_k) if uses_pca else FunctionTransformer(lambda x: x)
+    
+
+    pipeline = Pipeline([
+        ("zscaler", StandardScaler()),
+        ("pca_preprocessing", preprocessor),
+        ("knn", KNeighborsRegressor(n_neighbors=k))
+    ])
+    pipeline.fit(Xtest, instabilities)
+    return pipeline
+            
+
+def trainability_knn(params, model : callable_type, Xtrain : np.ndarray, Ytrain : np.ndarray,
+                         trainability_score : callable_type = trainability_score_exp,
+                         tol : float = 1e-6, n_iters : int = 10, uses_pca : bool = True, k : int = 5,
+                         pca_k : int = 2 ) :
+    
+    P, Q = trainability_vectors(params, model, Xtrain, Ytrain, trainability_score, tol, n_iters)
+    
+    # Define the transformer: PCA if requested, otherwise pass through (Identity)
+    preprocessor = PCA(n_components=pca_k) if uses_pca else FunctionTransformer(lambda x: x)
+    pipeline = Pipeline([
+        ("zscaler", StandardScaler()),
+        ("pca_preprocessing", preprocessor),
+        ("knn", KNeighborsRegressor(n_neighbors=k))
+    ])
+    pipeline.fit(P, Q)
+    return pipeline
+
+    
+
+
+def trainability_vectors(params, model : callable_type, Xtrain : np.ndarray, Ytrain : np.ndarray,
+                         trainability_score : callable_type = trainability_score_exp,
+                         tol : float = 1e-6, n_iters : int = 10) -> tuple[np.ndarray, np.ndarray] :
+    
+      
+    total_data_X = []
+    total_data_Y = []
+        
+    for _ in range(n_iters) : 
+        
+        # Reset the model weights without needing a new variable
+        model.apply(lambda m: m.reset_parameters() if hasattr(m, 'reset_parameters') else None)
+
+        optimiser = params.optimiser(model.parameters(), lr=params.learning_rate) 
+    
+    
+        data_X = []
+        data_Y : list = []
+        converged : bool = False
+
+        loss = torch.Tensor(0)
+        for training_iter in range(params.epochs + 1) :
+            
+            model.train()
+            
+            optimiser.zero_grad()
+
+            loss = params.loss(model(Xtrain), Ytrain)
+            loss.backward()
+            
+            param_vector = get_model_parameters(model).detach().cpu().numpy()
+            
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            grad_mag = grad_norm.item()
+            
+            optimiser.step()           
+
+            data_X.append( param_vector)
+            
+            # Check for convergence
+            if grad_mag < tol :
+                converged = True
+                # Subtract i in each case because it's dynamic programming
+                # According to configuration number i, the previous i-1 configurations weren't needed to hit the minimum
+                data_Y = [[training_iter + 1 - i, loss.item()] for i in range(len(data_X))]
+                break
+        
+        if not converged :
+            data_Y = [[params.epochs + 1 - i, loss.item()] for i in range(len(data_X))]
+        
+        total_data_X.extend(data_X)
+        total_data_Y.extend(data_Y)
+    
+    total_data_X = np.array(total_data_X)
+    total_data_Y = np.array(total_data_Y)
+    
+    trainability_Y = trainability_score(total_data_Y)
+    
+    return total_data_X, trainability_Y
+    
+    
+        
 
 def _params_from_plane(model, theta0, dir1, dir2, a, b):
     pos = theta0 + a * dir1 + b * dir2
@@ -212,3 +391,5 @@ def _load_flat_params(model, flat_params):
 
 def _clamp(x, lo=-1.0, hi=1.0):
     return max(lo, min(hi, float(x)))
+
+

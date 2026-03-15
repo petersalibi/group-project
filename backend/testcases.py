@@ -35,6 +35,13 @@ regression_params_complex = LandscapeParams(
         loss=nn.MSELoss(), scale=1
     )
 
+penguin_params_complex = LandscapeParams(
+    NetworkParams(depth = 6, activation=nn.ReLU(), width=50),
+                  VisualisationMethod.FILTERNORM,
+                  TrainingDataType.PENGUINS,
+                  loss = nn.CrossEntropyLoss(), scale = 1
+    )
+
 # Purple Colours Classification, 1 Layer, Sigmoid Activation
 purple_classification_params = LandscapeParams(
         NetworkParams(depth=1, activation=nn.Sigmoid(), width=1),
