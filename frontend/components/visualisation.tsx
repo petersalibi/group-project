@@ -153,6 +153,8 @@ export function Visualisation({ id }: VisualisationProps) {
     currentLoss,
     lossChange,
     fidelity,
+    instability,
+    trainability,
     handleLoadAllPathsButtonClick,
     handleRemovePath,
     handleClearPaths,
@@ -988,6 +990,8 @@ export function Visualisation({ id }: VisualisationProps) {
                 currentLoss={currentLoss}
                 lossChange={lossChange}
                 fidelity={fidelity}
+                instability={instability}
+                trainability={trainability}
                 log={log}
                 isPathLoaded={isPathLoaded}
               />

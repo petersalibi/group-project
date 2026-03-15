@@ -251,20 +251,19 @@ export function project2DPathTo3D(
 
   NORMAL_MATRIX.getNormalMatrix(mesh.matrixWorld);
 
+  // Get the true size and position of the mesh in the 3D world
+  const boundingBox = new THREE.Box3().setFromObject(mesh);
+
   for (const p of path2D) {
-    // Find the percentage (0.0 to 1.0) of where the point sits on the original axes
     const xPercent = (p.x - bounds.xMin) / (bounds.xMax - bounds.xMin);
     const yPercent = (p.y - bounds.yMin) / (bounds.yMax - bounds.yMin);
 
-    // Map that percentage to our 3D mesh's [-1, 1] coordinate space
-    let targetX = (xPercent * 2) - 1;
-    let targetY = (yPercent * 2) - 1;
+    // Map to the actual physical boundaries of the mesh
+    const targetX = boundingBox.min.x + (xPercent * (boundingBox.max.x - boundingBox.min.x));
+    
+    const targetZ = boundingBox.min.z + ((1 - yPercent) * (boundingBox.max.z - boundingBox.min.z)); 
 
-    // Strict Clamp: Just in case the path temporarily overshoots the landscape bounds
-    targetX = Math.max(-1, Math.min(1, targetX));
-    targetY = Math.max(-1, Math.min(1, targetY));
-
-    RAY_ORIGIN.set(targetX, 100, -targetY); // Y-up in 3D, Z-down
+    RAY_ORIGIN.set(targetX, 100, targetZ);
     raycaster.set(RAY_ORIGIN, RAY_DIRECTION);
     const hit = raycaster.intersectObject(mesh)[0];
 
