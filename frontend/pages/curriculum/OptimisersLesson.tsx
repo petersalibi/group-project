@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useTheme } from '../components/theme-provider';
-import { Text } from '../components/text';
-import { Slider } from '../components/slider';
+import { useTheme } from '../../components/theme-provider';
+import { Text } from '../../components/text';
+import { Slider } from '../../components/slider';
 import {
   Target,
   Layers,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react-native';
 import Optimiser3DVisualiser, {
   OptimiserVisualiserHandle,
-} from '../components/optimiser-3d-visualiser';
+} from '../../components/optimiser-3d-visualiser';
 
 const OPTIMISERS = {
   GD: {
