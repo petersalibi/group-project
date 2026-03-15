@@ -269,7 +269,7 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
               <View
                 style={{
                   flex: 1,
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: 'rgba(0,0,0,0.05)',
                   borderRadius: 8,
                   borderWidth: 1,
                   borderColor: theme.colors.border,
@@ -291,7 +291,7 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
                   ref={curveRef}
                   width={250}
                   height={120}
-                  style={{ width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.05)' }}
+                  style={{ width: '100%', height: '100%' }}
                 />
               </View>
 
