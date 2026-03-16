@@ -34,7 +34,6 @@ interface Props {
 type PathNode = { x: number; z: number; y: number; loss: number };
 
 const Z_SCALE = 2.5;
-// Ensure the ball sits comfortably above the mesh even on steep slopes
 const BALL_OFFSET = 0.06; 
 
 const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
@@ -51,7 +50,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
     const dictRef = useRef<any>(null);
     const optStateRef = useRef({ m1: 0, m2: 0, v1: 0, v2: 0, t: 0 });
     
-    // Start strictly at 0.0, 0.0
     const posRef = useRef({ x: 0.0, z: 0.0 }); 
     const pathRef = useRef<PathNode[]>([]);
     const propsRef = useRef({ optimiser, learningRate });
@@ -115,7 +113,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       return t * 0.4 * Z_SCALE; 
     };
 
-    // --- 1. FETCH API AND BUILD 3D SCENE ---
+    // FETCH API AND BUILD 3D SCENE
     useEffect(() => {
       if (!containerRef.current) return;
       const container = containerRef.current;
@@ -159,12 +157,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
             new THREE.MeshBasicMaterial({ color: '#ffffff' }),
           );
           scene.add(marker);
-          
-          const line = new THREE.Line(
-            new THREE.BufferGeometry(),
-            new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }),
-          );
-          scene.add(line);
 
           // Force Arrows
           const gradArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 0, 0xef4444, 0.05, 0.03);
@@ -172,14 +164,13 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           scene.add(gradArrow);
           scene.add(momArrow);
 
-          // Initialize Position at 0,0
           const l0 = getInterpolatedLoss(0.0, 0.0);
           const y0 = getWorldY(l0);
           pathRef.current = [{ x: 0.0, z: 0.0, y: y0, loss: l0 }];
           marker.position.set(0.0, y0 + BALL_OFFSET, 0.0);
 
           sceneRef.current = {
-            scene, camera, renderer, controls, mesh, marker, line, gradArrow, momArrow,
+            scene, camera, renderer, controls, mesh, marker, gradArrow, momArrow,
           };
           setStats({ w1: 0.0, w2: 0.0, loss: l0, steps: 0 });
           drawCurve();
@@ -194,7 +185,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
       loadLandscape();
 
-      // --- RAYCASTER INTERACTION ---
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
 
@@ -216,7 +206,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           pathRef.current = [{ x: pt.x, z: pt.z, y: pt.y, loss: l0 }];
 
           sceneRef.current.marker.position.set(pt.x, pt.y + BALL_OFFSET, pt.z);
-          sceneRef.current.line.geometry.setFromPoints([]);
           sceneRef.current.gradArrow.setLength(0.001);
           sceneRef.current.momArrow.setLength(0.001);
 
@@ -246,10 +235,10 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       };
     }, []);
 
-    // --- 2. OPTIMISER MATH & ARROW UPDATES ---
+    // OPTIMISER MATH & ARROW UPDATES
     const stepOptimiser = () => {
       if (!sceneRef.current || !dictRef.current) return;
-      const { marker, line, gradArrow, momArrow } = sceneRef.current;
+      const { marker, gradArrow, momArrow } = sceneRef.current;
       const { optimiser: opt, learningRate: lr } = propsRef.current;
       let { x, z } = posRef.current;
 
@@ -306,11 +295,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
       // Update 3D Visuals
       marker.position.copy(currentVec);
-      line.geometry.setFromPoints(vecPath);
 
-      // --- 3D ARROW PITCHING ---
-      // We calculate where the arrow intends to point in X/Z, find the height of that target, 
-      // and use it to form a proper 3D vector so the arrow tilts perfectly along the slope.
       const updateArrow = (arrow: any, ax: number, az: number, visualScale: number) => {
         const len2D = Math.sqrt(ax * ax + az * az);
         if (len2D > 0.001) {
@@ -337,7 +322,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       drawForces(rawStepX, rawStepZ, momX, momZ);
     };
 
-    // --- 3. 2D CANVAS DRAWING ---
+    // 2D CANVAS DRAWING
     const drawCurve = () => {
       if (!curveRef.current || !dictRef.current) return;
       const ctx = curveRef.current.getContext('2d');
@@ -434,7 +419,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       return () => cancelAnimationFrame(raf);
     }, [isRunning]);
 
-    // --- EXPOSE CONTROLS TO PARENT ---
+    // EXPOSE CONTROLS TO PARENT
     useImperativeHandle(ref, () => ({
       step: () => stepOptimiser(),
       toggleRun: () => {
@@ -452,7 +437,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
         if (sceneRef.current) {
           sceneRef.current.marker.position.set(0.0, y0 + BALL_OFFSET, 0.0);
-          sceneRef.current.line.geometry.setFromPoints([]);
           sceneRef.current.gradArrow.setLength(0.001);
           sceneRef.current.momArrow.setLength(0.001);
         }
@@ -470,90 +454,92 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
         <View
           style={{
             position: 'absolute',
-            top: 16,
-            left: 16,
-            padding: 12,
-            backgroundColor: theme.colors.background,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
+            top: 20,
+            left: 24,
             zIndex: 1,
+            backgroundColor: theme.colors.card,
+            borderWidth: 2,
+            borderRadius: 8,
+            borderColor: theme.colors.border,
+            padding: 8
           }}
         >
           <Text
             style={{
               fontSize: 10,
               color: theme.colors.mutedForeground,
-              marginBottom: 8,
+              marginBottom: 16,
               textTransform: 'uppercase',
-              letterSpacing: 0.5,
+              letterSpacing: 1,
+              fontWeight: '600',
             }}
           >
-            Click landscape to teleport
+            Click landscape to move ball
           </Text>
           
-          <View style={{ flexDirection: 'row', gap: 16 }}>
+          <View style={{ gap: 12 }}>
             <View>
-              <Text style={{ fontSize: 9, color: theme.colors.mutedForeground }}>
+              <Text style={{ fontSize: 10, color: theme.colors.mutedForeground, letterSpacing: 0.5, fontWeight: '600' }}>
                 CURRENT POSITION
               </Text>
               <Text
                 style={{
-                  fontSize: 14,
+                  fontSize: 16,
                   color: theme.colors.foreground,
                   fontFamily: 'monospace',
-                  fontWeight: 'bold',
+                  fontWeight: '700',
+                  marginTop: 2,
                 }}
               >
                 [{stats.w1.toFixed(3)}, {stats.w2.toFixed(3)}]
               </Text>
             </View>
-          </View>
-          
-          <View style={{ height: 1, backgroundColor: theme.colors.border, marginVertical: 8 }} />
-          
-          <View style={{ flexDirection: 'row', gap: 16 }}>
-            <View>
-              <Text style={{ fontSize: 9, color: theme.colors.mutedForeground }}>
-                MSE LOSS
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: '#f59e0b',
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold',
-                }}
-              >
-                {stats.loss.toFixed(4)}
-              </Text>
+            
+            <View style={{ flexDirection: 'row', gap: 24 }}>
+              <View>
+                <Text style={{ fontSize: 10, color: theme.colors.mutedForeground, letterSpacing: 0.5, fontWeight: '600' }}>
+                  MSE LOSS
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: '#f59e0b', // Keep your orange for loss
+                    fontFamily: 'monospace',
+                    fontWeight: '700',
+                    marginTop: 2,
+                  }}
+                >
+                  {stats.loss.toFixed(4)}
+                </Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 10, color: theme.colors.mutedForeground, letterSpacing: 0.5, fontWeight: '600' }}>
+                  STEPS
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: theme.colors.frenchBlue || '#3b82f6',
+                    fontFamily: 'monospace',
+                    fontWeight: '700',
+                    marginTop: 2,
+                  }}
+                >
+                  {stats.steps}
+                </Text>
+              </View>
             </View>
-            <View>
-              <Text style={{ fontSize: 9, color: theme.colors.mutedForeground }}>
-                STEPS
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: theme.colors.frenchBlue,
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold',
-                }}
-              >
-                {stats.steps}
-              </Text>
-            </View>
-          </View>
 
-          {/* LEGEND */}
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
-              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Gradient</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#3b82f6' }} />
-              <Text style={{ fontSize: 9, color: theme.colors.foreground }}>Momentum</Text>
+            {/* LEGEND */}
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
+                <Text style={{ fontSize: 10, color: theme.colors.foreground, fontWeight: '500' }}>Gradient</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#3b82f6' }} />
+                <Text style={{ fontSize: 10, color: theme.colors.foreground, fontWeight: '500' }}>Momentum</Text>
+              </View>
             </View>
           </View>
         </View>

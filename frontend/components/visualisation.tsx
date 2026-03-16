@@ -1169,6 +1169,19 @@ export function Visualisation({ id }: VisualisationProps) {
             journey. To use these, you must first generate a path, then use the
             regeneration buttons (click the <Info size={10}></Info> icon on PATH
             CONFIGURATIONS for more details).
+          {"\n\n"}
+          To find out more about how projections work,{' '}
+          <Text
+            onPress={() => navigate('/curriculum/projections')}
+            style={{
+              color: theme.colors.accent,
+              textDecorationLine: 'underline',
+              fontWeight: 'bold',
+            }}
+          >
+            click here
+          </Text>
+          .
           </Text>
         </View>
 

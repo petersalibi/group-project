@@ -6,6 +6,12 @@ import {
   Animated as RNAnimated,
   DimensionValue,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import {
   BookOpen,
   CheckCircle2,
@@ -145,6 +151,20 @@ export function LearningPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const bounceAnim = useState(new RNAnimated.Value(1))[0];
 
+  // SIDEBAR ANIMATION LOGIC
+  const sidebarWidth = useSharedValue(300);
+
+  useEffect(() => {
+    sidebarWidth.value = withTiming(isSidebarOpen ? 300 : 0, {
+      duration: 300,
+      easing: Easing.inOut(Easing.ease),
+    });
+  }, [isSidebarOpen]);
+
+  const animatedSidebarStyle = useAnimatedStyle(() => ({
+    width: sidebarWidth.value,
+  }));
+
   const lesson = LESSON_REGISTRY[currentIdx];
 
   const successColor = isDark ? '#C6F382' : '#16a34a';
@@ -210,130 +230,132 @@ export function LearningPage() {
 
   return (
     <View style={[styles.container]}>
-      {/* SIDEBAR */}
-      {isSidebarOpen && (
-        <View
-          style={[
-            styles.sidebar,
-            {
-              borderRightColor: theme.colors.border,
-              backgroundColor: theme.colors.card,
-            },
-          ]}
-        >
-          <View style={styles.sidebarHeader}>
-            <BookOpen size={14} color={theme.colors.accent} />
-            <Text
-              style={[styles.sidebarTitle, { color: theme.colors.foreground }]}
-            >
-              CURRICULUM
-            </Text>
-          </View>
+      {/* ANIMATED SIDEBAR */}
+      <Animated.View
+        style={[
+          styles.sidebar,
+          animatedSidebarStyle,
+          {
+            borderRightColor: theme.colors.border,
+            backgroundColor: theme.colors.card,
+          },
+        ]}
+      >
+        {/* We use a fixed internal width wrapper so the SVGs don't crush during animation */}
+        <View style={{ width: 300, flex: 1 }}>
+            <View style={styles.sidebarHeader}>
+              <BookOpen size={14} color={theme.colors.accent} />
+              <Text
+                style={[styles.sidebarTitle, { color: theme.colors.foreground }]}
+              >
+                CURRICULUM
+              </Text>
+            </View>
 
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={styles.networkContainer}>
-              {/* SVG BRANCHING LINES */}
-              <View style={StyleSheet.absoluteFill}>
-                <Svg width='100%' height='100%'>
-                  {LESSON_REGISTRY.map((node, idx) => {
-                    return node.parents.map((parentId) => {
+            <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+              <View style={styles.networkContainer}>
+                {/* SVG BRANCHING LINES */}
+                <View style={StyleSheet.absoluteFill}>
+                  <Svg width='100%' height='100%'>
+                    {LESSON_REGISTRY.map((node, idx) => {
+                      return node.parents.map((parentId) => {
+                        const parent = LESSON_REGISTRY.find(
+                          (l) => l.id === parentId,
+                        );
+                        if (!parent) return null;
+
+                        const isCompleted = idx <= currentIdx;
+
+                        return (
+                          <Line
+                            key={`line-${parentId}-${idx}`}
+                            x1={String(parent.xPos)}
+                            y1={String(parent.yPos)}
+                            x2={String(node.xPos)}
+                            y2={String(node.yPos)}
+                            stroke={isCompleted ? successColor : inactiveColor}
+                            strokeWidth='2'
+                            opacity={isCompleted ? '0.5' : '0.3'}
+                          />
+                        );
+                      });
+                    })}
+
+                    {/* Lines mapping down to the final Visualisation Sandbox */}
+                    {VISUALISATION_NODE.parents.map((parentId) => {
                       const parent = LESSON_REGISTRY.find(
                         (l) => l.id === parentId,
                       );
                       if (!parent) return null;
 
-                      const isCompleted = idx <= currentIdx;
+                      const isCompleted =
+                        currentIdx === LESSON_REGISTRY.length - 1 &&
+                        isTaskComplete;
 
                       return (
                         <Line
-                          key={`line-${parentId}-${idx}`}
+                          key={`line-${parentId}-vis`}
                           x1={String(parent.xPos)}
                           y1={String(parent.yPos)}
-                          x2={String(node.xPos)}
-                          y2={String(node.yPos)}
+                          x2={String(VISUALISATION_NODE.xPos)}
+                          y2={String(VISUALISATION_NODE.yPos)}
                           stroke={isCompleted ? successColor : inactiveColor}
                           strokeWidth='2'
-                          opacity={isCompleted ? '0.5' : '0.3'}
+                          opacity={isCompleted ? '0.8' : '0.3'}
                         />
                       );
-                    });
-                  })}
+                    })}
+                  </Svg>
+                </View>
 
-                  {/* Lines mapping down to the final Visualisation Sandbox */}
-                  {VISUALISATION_NODE.parents.map((parentId) => {
-                    const parent = LESSON_REGISTRY.find(
-                      (l) => l.id === parentId,
-                    );
-                    if (!parent) return null;
+                {/* DYNAMIC NEURAL NODES */}
+                {LESSON_REGISTRY.map((l, idx) => {
+                  let status: 'available' | 'completed' | 'locked' = 'locked';
+                  if (idx < currentIdx) status = 'completed';
+                  else if (idx === currentIdx) status = 'available';
 
-                    const isCompleted =
-                      currentIdx === LESSON_REGISTRY.length - 1 &&
-                      isTaskComplete;
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.absoluteNode, { left: l.xPos, top: l.yPos }]}
+                      onPress={() => changeLesson(idx)}
+                      activeOpacity={0.6}
+                    >
+                      <NeuralNode status={status} label={l.title} />
+                    </TouchableOpacity>
+                  );
+                })}
 
-                    return (
-                      <Line
-                        key={`line-${parentId}-vis`}
-                        x1={String(parent.xPos)}
-                        y1={String(parent.yPos)}
-                        x2={String(VISUALISATION_NODE.xPos)}
-                        y2={String(VISUALISATION_NODE.yPos)}
-                        stroke={isCompleted ? successColor : inactiveColor}
-                        strokeWidth='2'
-                        opacity={isCompleted ? '0.8' : '0.3'}
-                      />
-                    );
-                  })}
-                </Svg>
+                {/* FINAL VISUALISATION NODE */}
+                <TouchableOpacity
+                  style={[
+                    styles.absoluteNode,
+                    {
+                      left: VISUALISATION_NODE.xPos,
+                      top: VISUALISATION_NODE.yPos,
+                      transform: [
+                        { translateX: -40 },
+                        { translateY: -30 },
+                        { scale: 1.25 },
+                      ],
+                    },
+                  ]}
+                  onPress={() => navigate('/')}
+                  activeOpacity={0.6}
+                >
+                  <NeuralNode
+                    status={
+                      currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete
+                        ? 'available'
+                        : 'locked'
+                    }
+                    label={VISUALISATION_NODE.title}
+                  />
+                </TouchableOpacity>
               </View>
-
-              {/* DYNAMIC NEURAL NODES */}
-              {LESSON_REGISTRY.map((l, idx) => {
-                let status: 'available' | 'completed' | 'locked' = 'locked';
-                if (idx < currentIdx) status = 'completed';
-                else if (idx === currentIdx) status = 'available';
-
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[styles.absoluteNode, { left: l.xPos, top: l.yPos }]}
-                    onPress={() => changeLesson(idx)}
-                    activeOpacity={0.6}
-                  >
-                    <NeuralNode status={status} label={l.title} />
-                  </TouchableOpacity>
-                );
-              })}
-
-              {/* FINAL VISUALISATION NODE */}
-              <TouchableOpacity
-                style={[
-                  styles.absoluteNode,
-                  {
-                    left: VISUALISATION_NODE.xPos,
-                    top: VISUALISATION_NODE.yPos,
-                    transform: [
-                      { translateX: -40 },
-                      { translateY: -30 },
-                      { scale: 1.25 },
-                    ],
-                  },
-                ]}
-                onPress={() => navigate('/')}
-                activeOpacity={0.6}
-              >
-                <NeuralNode
-                  status={
-                    currentIdx === LESSON_REGISTRY.length - 1 && isTaskComplete
-                      ? 'available'
-                      : 'locked'
-                  }
-                  label={VISUALISATION_NODE.title}
-                />
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
         </View>
-      )}
+      </Animated.View>
 
       <View style={{ flex: 1 }}>
         {/* HEADER */}
@@ -481,7 +503,10 @@ export function LearningPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row' },
-  sidebar: { width: 240, borderRightWidth: 1 },
+  sidebar: { 
+    borderRightWidth: 1, 
+    overflow: 'hidden' // Vital for smooth slide animation
+  },
   sidebarHeader: {
     padding: 24,
     flexDirection: 'row',
@@ -547,12 +572,12 @@ const styles = StyleSheet.create({
   networkContainer: {
     width: '100%',
     height: '100%',
-    minHeight: 550, // Ensures it doesn't get squashed on shorter screens
+    minHeight: 550, 
     position: 'relative',
   },
   absoluteNode: {
     position: 'absolute',
-    transform: [{ translateX: -40 }, { translateY: -30 }], // Centers the 80x60 node on its xPos/yPos
+    transform: [{ translateX: -40 }, { translateY: -30 }], 
     alignItems: 'center',
     justifyContent: 'center',
     width: 80,
