@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
 import {
   View,
   StyleSheet,
@@ -18,6 +24,12 @@ import {
   ScanLine,
 } from 'lucide-react-native';
 import * as THREE from 'three';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { NetworkArchitecture } from '../../components/network-architecture';
 import api from '../../src/api';
@@ -27,6 +39,7 @@ import {
   handleResize,
   createLandscapeMesh,
 } from '../../utils/threejs-utils';
+import { Tooltip } from '../../components/tooltip';
 
 type LandscapeDict = {
   surface: number[][];
@@ -211,6 +224,26 @@ function bilinearInterpolate(
 export function ProjectionsLesson({ onTaskUpdate }: any) {
   const { theme, isDark } = useTheme();
 
+  const isFlatPlaneSelection = (selection: number[]) => {
+    return (
+      (selection.includes(0) && selection.includes(4)) ||
+      (selection.includes(0) && selection.includes(5)) ||
+      (selection.includes(1) && selection.includes(4)) ||
+      (selection.includes(1) && selection.includes(5))
+    );
+  };
+
+  const successColor = isDark ? '#C6F382' : '#16a34a';
+  const successBgColor = isDark
+    ? 'rgba(198, 243, 130, 0.05)'
+    : 'rgba(22, 163, 74, 0.05)';
+
+  // Task progression states
+  const [hasSelectedDirections, setHasSelectedDirections] = useState(false);
+  const [hasExploredLandscape, setHasExploredLandscape] = useState(false);
+  const [hasCompletedTask, setHasCompletedTask] = useState(false);
+  const [flatPlane, setFlatPlane] = useState(false);
+
   const [depth, setDepth] = useState(1);
   const [width, setWidth] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -219,8 +252,9 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     null,
   );
   const [selectedDirections, setSelectedDirections] = useState<number[]>([]);
-  const [planeOffset, setPlaneOffset] = useState(0);
+  const [planeOffset, setPlaneOffset] = useState(-2);
 
+  const leftPanelScrollRef = useRef<ScrollView | null>(null);
   const landscapeContainerRef = useRef<any>(null);
   const vectorBallContainerRef = useRef<any>(null);
   const intersectionContainerRef = useRef<any>(null);
@@ -238,6 +272,90 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
   const sliceLine3DRef = useRef<THREE.Line | null>(null);
   const isLandscapeDraggingRef = useRef(false);
   const isVectorDraggingRef = useRef(false);
+  const pendingCompletionCheckRef = useRef(false);
+
+  const scale = useSharedValue(0);
+  const successAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: scale.value,
+  }));
+
+  // Handle reset
+  const handleReset = useCallback(() => {
+    setHasSelectedDirections(false);
+    setHasExploredLandscape(false);
+    setHasCompletedTask(false);
+    setFlatPlane(false);
+    setSelectedDirections([]);
+    setPlaneOffset(-2);
+    scale.value = withTiming(0);
+    if (sceneRef.current) {
+      sceneRef.current.camera.position.set(0, 6, 3);
+      sceneRef.current.controls.target.set(0, 0, 0);
+    }
+  }, [scale]);
+
+  const handleSuccessBoxLayout = useCallback(
+    (e: any) => {
+      if (!hasCompletedTask) return;
+      const y = e?.nativeEvent?.layout?.y;
+      if (typeof y !== 'number') return;
+
+      requestAnimationFrame(() => {
+        leftPanelScrollRef.current?.scrollTo({
+          y: Math.max(0, y - 12),
+          animated: true,
+        });
+      });
+    },
+    [hasCompletedTask],
+  );
+
+  // Reset when depth or width changes
+  useEffect(() => {
+    handleReset();
+  }, [depth, width, handleReset]);
+
+  // Task update effects
+  useEffect(() => {
+    if (onTaskUpdate) {
+      if (hasSelectedDirections && hasExploredLandscape) {
+        scale.value = withSpring(1, { damping: 20, stiffness: 500 });
+        onTaskUpdate(true, null);
+        setHasCompletedTask(true);
+      } else if (!hasSelectedDirections) {
+        onTaskUpdate(
+          false,
+          'Step 1: Select two projection directions on the vector ball to proceed.',
+        );
+      } else if (flatPlane) {
+        onTaskUpdate(
+          false,
+          'Flat plane selected. This will not produce a loss cross-section.',
+        );
+      } else if (!hasExploredLandscape) {
+        onTaskUpdate(
+          false,
+          'Step 2: Move the projection plane by changing its offset to produce a convex loss curve.',
+        );
+      }
+    }
+  }, [
+    hasSelectedDirections,
+    hasExploredLandscape,
+    flatPlane,
+    scale,
+    onTaskUpdate,
+  ]);
+
+  useEffect(() => {
+    if (hasCompletedTask) return;
+    setHasSelectedDirections(selectedDirections.length === 2);
+  }, [selectedDirections, hasCompletedTask]);
+
+  useEffect(() => {
+    setFlatPlane(isFlatPlaneSelection(selectedDirections));
+  }, [selectedDirections]);
 
   // Calculate the normal vector of the projection plane based on the two selected directions
   const projectionPlaneNormal = useMemo(() => {
@@ -275,12 +393,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     ).addScaledVector(projectionPlaneNormal, planeOffset);
   }, [projectionPlaneNormal, landscapeTransform, planeOffset]);
 
-  useEffect(() => {
-    //if (selectedDirections.includes(9)) {
-    //  setPlaneOffset((prev) => -prev);
-    //}
-  }, [selectedDirections]);
-
   const crossSection = useMemo(() => {
     if (!landscapeData || !projectionPlaneNormal || !landscapeTransform)
       return [];
@@ -292,14 +404,14 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       projectionPlaneNormal.x,
       projectionPlaneNormal.z, // Z in world space corresponds to Y in landscape data
     );
-    console.log('Normal2D:', normal2D);
+    //console.log('Normal2D:', normal2D);
 
     if (normal2D.lengthSq() < 1e-6) return [];
     normal2D.normalize();
 
     // Perpendicular vector for the direction of the line
     const dir = new THREE.Vector2(-normal2D.y, normal2D.x);
-    console.log('Dir:', dir);
+    //console.log('Dir:', dir);
     const span = Math.max(landscapeTransform.xRange, landscapeTransform.yRange);
     const tMax = span * 1.8;
     const samples = 260;
@@ -328,7 +440,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       landscapeTransform.centerX,
       landscapeTransform.centerY,
     ).addScaledVector(normal2D, planeOffset);
-    console.log('Line Center:', lineCenter);
+    //console.log('Line Center:', lineCenter);
     const points: { x: number; y: number; z: number; t: number }[] = [];
     for (let i = 0; i < samples; i++) {
       const t = -tMax + (i / (samples - 1)) * tMax * 2;
@@ -350,12 +462,89 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     selectedDirections,
   ]);
 
+  const convexityMetrics = useMemo(() => {
+    const targetLoss = landscapeTransform
+      ? landscapeTransform.zMin +
+        Math.max(1e-6, landscapeTransform.zRange * 0.005)
+      : null;
+
+    if (!landscapeTransform || crossSection.length < 5) {
+      return {
+        score: 0,
+        currentMin: null as number | null,
+        targetLoss,
+        reachesMinimumLoss: false,
+        meetsConvexity: false,
+      };
+    }
+
+    const zValues = crossSection.map((p) => p.z);
+    const sectionMin = Math.min(...zValues);
+
+    const secondDiffs: number[] = [];
+    for (let i = 1; i < zValues.length - 1; i++) {
+      secondDiffs.push(zValues[i + 1] - 2 * zValues[i] + zValues[i - 1]);
+    }
+
+    if (!secondDiffs.length) {
+      return {
+        score: 0,
+        currentMin: sectionMin,
+        targetLoss,
+        reachesMinimumLoss: false,
+        meetsConvexity: false,
+      };
+    }
+
+    // Robust convexity measure: most second differences should be non-negative.
+    const nonNegativeCurvatureCount = secondDiffs.filter(
+      (d2) => d2 >= 0 - 1e-4, // allow small negative values due to noise
+    ).length;
+
+    const score = nonNegativeCurvatureCount / secondDiffs.length;
+
+    const reachesMinimumLoss = targetLoss != null && sectionMin <= targetLoss;
+
+    return {
+      score,
+      currentMin: sectionMin,
+      targetLoss,
+      reachesMinimumLoss,
+      meetsConvexity: score >= 0.8,
+    };
+  }, [crossSection, landscapeTransform]);
+
+  const meetsConvexAndMinLoss =
+    convexityMetrics.meetsConvexity && convexityMetrics.reachesMinimumLoss;
+
+  useEffect(() => {
+    pendingCompletionCheckRef.current = true;
+  }, [planeOffset, selectedDirections]);
+
+  useEffect(() => {
+    const onMouseRelease = () => {
+      if (!pendingCompletionCheckRef.current) return;
+      pendingCompletionCheckRef.current = false;
+      if (meetsConvexAndMinLoss) {
+        setHasExploredLandscape(true);
+      }
+    };
+
+    window.addEventListener('pointerup', onMouseRelease);
+    window.addEventListener('mouseup', onMouseRelease);
+
+    return () => {
+      window.removeEventListener('pointerup', onMouseRelease);
+      window.removeEventListener('mouseup', onMouseRelease);
+    };
+  }, [meetsConvexAndMinLoss]);
+
   useEffect(() => {
     if (!landscapeContainerRef.current) return;
     const container = landscapeContainerRef.current as HTMLElement;
     const { scene, camera, renderer, controls } = initScene(container);
 
-    camera.position.set(0, 4, 2);
+    camera.position.set(0, 6, 3);
     controls.target.set(0, 0, 0);
     controls.update();
 
@@ -510,7 +699,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
 
       setSelectedDirections((prev) => {
         if (prev.includes(idx)) return prev.filter((v) => v !== idx);
-        if (prev.length >= 2) return [prev[1], idx];
+        if (prev.length >= 2) return prev;
         return [...prev, idx];
       });
     };
@@ -849,7 +1038,10 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
             <Text style={styles.subTitle}>NETWORK + PROJECTION VECTORS</Text>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            ref={leftPanelScrollRef}
+            contentContainerStyle={styles.scrollContent}
+          >
             <View
               style={[
                 styles.wideGraphBox,
@@ -918,6 +1110,31 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
                 />
               </View>
             </View>
+
+            {hasCompletedTask && (
+              <Animated.View
+                onLayout={handleSuccessBoxLayout}
+                style={[
+                  styles.successBox,
+                  successAnimatedStyle,
+                  {
+                    borderColor: successColor,
+                    backgroundColor: successBgColor,
+                  },
+                ]}
+              >
+                <Text style={[styles.successText, { color: successColor }]}>
+                  Well done! Try selecting different depths and widths of the
+                  network for a harder challenge!{'\n'}
+                  {'\n'} What we have performed here is not necessarily a
+                  &quot;projection&quot; in the strict mathematical sense, but
+                  rather a slicing of the loss landscape along a plane defined
+                  by two directions in the input space. However, the intuition
+                  of reducing the dimensionality of the landscape to visualise
+                  it will be helpful for understanding deeper concepts like PCA.
+                </Text>
+              </Animated.View>
+            )}
 
             <View
               style={[styles.vectorBox, { borderColor: theme.colors.border }]}
@@ -1000,14 +1217,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
-                  setDepth(1);
-                  setWidth(1);
-                  setSelectedDirections([]);
-                  setPlaneOffset(0);
-                  if (sceneRef.current) {
-                    sceneRef.current.camera.position.set(0, 4, 2);
-                    sceneRef.current.controls.target.set(0, 0, 0);
-                  }
+                  handleReset();
                 }}
               >
                 <RefreshCw size={16} color={theme.colors.foreground} />
@@ -1045,7 +1255,65 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
             ]}
           >
             <ScanLine size={12} color={theme.colors.accent} />
-            <Text style={styles.subTitle}>INTERSECTION PROFILE</Text>
+            <Text style={styles.subTitle}>LOSS INTERSECTION CURVE</Text>
+          </View>
+          <View
+            style={[
+              styles.intersectionMetricsBar,
+              { borderBottomColor: theme.colors.border },
+            ]}
+          >
+            <Tooltip
+              position='bottom'
+              tip='The percentage of points along the slice line that have non-negative curvature (positive second derivatives). A higher percentage indicates a more convex shape.'
+            >
+              {
+                <Text
+                  style={[
+                    styles.metricText,
+                    { color: theme.colors.foreground },
+                  ]}
+                >
+                  CONVEXITY:&nbsp;
+                  <Text
+                    style={{
+                      color:
+                        convexityMetrics.score < 0.8
+                          ? theme.colors.mutedForeground
+                          : theme.colors.accent,
+                    }}
+                  >
+                    {(convexityMetrics.score * 100).toFixed(2)}%
+                  </Text>
+                  &nbsp;/&nbsp;
+                  <Text style={{ color: theme.colors.accent }}>80%</Text>
+                </Text>
+              }
+            </Tooltip>
+            <Text
+              style={[styles.metricText, { color: theme.colors.foreground }]}
+            >
+              TARGET LOSS:&nbsp;
+              <Text style={{ color: theme.colors.accent }}>
+                {convexityMetrics.targetLoss?.toFixed(4) ?? 'N/A'}
+              </Text>
+            </Text>
+            <Text
+              style={[styles.metricText, { color: theme.colors.foreground }]}
+            >
+              CURRENT MIN:&nbsp;
+              <Text
+                style={{
+                  color:
+                    convexityMetrics.currentMin &&
+                    convexityMetrics.currentMin <= convexityMetrics.targetLoss
+                      ? theme.colors.accent
+                      : theme.colors.mutedForeground,
+                }}
+              >
+                {convexityMetrics.currentMin?.toFixed(4) ?? 'N/A'}
+              </Text>
+            </Text>
           </View>
           <View style={styles.squareViewportWrap}>
             <View
@@ -1078,6 +1346,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   subTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  intersectionMetricsBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    gap: 4,
+  },
+  metricText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   scrollContent: { paddingHorizontal: 24, paddingVertical: 24 },
   wideGraphBox: { width: '100%', minHeight: 120, justifyContent: 'center' },
   controlGroup: { width: '100%', gap: 16 },
@@ -1094,6 +1373,18 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     maxHeight: '100%',
+  },
+  successBox: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  successText: {
+    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 18,
   },
   vectorBox: {
     marginTop: 8,
