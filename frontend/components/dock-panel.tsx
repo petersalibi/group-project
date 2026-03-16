@@ -98,8 +98,7 @@ export function DockPanel({
   const showHeader = typeof title === 'string' ? title.trim().length > 0 : Boolean(title);
 
   const headerContent = (
-    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+    <View style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
         {typeof title === 'string' ? (
           <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.colors.mutedForeground }}>
             {title.toUpperCase()}
@@ -107,7 +106,6 @@ export function DockPanel({
         ) : (
           title
         )}
-      </View>
       {headerRight && <View>{headerRight}</View>}
     </View>
   );
