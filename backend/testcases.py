@@ -37,7 +37,7 @@ regression_params_complex = LandscapeParams(
 
 penguin_params_complex = LandscapeParams(
     NetworkParams(depth = 6, activation=nn.ReLU(), width=50),
-                  VisualisationMethod.PCAMINIMISER,
+                  VisualisationMethod.FILTERNORM,
                   TrainingDataType.PENGUINS,
                   loss = nn.CrossEntropyLoss(), scale = 1
     )
