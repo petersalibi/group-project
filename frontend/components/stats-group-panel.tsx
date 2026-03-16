@@ -10,7 +10,7 @@ export function StatsGroupPanel({ archContent, metricsContent }: any) {
   const [isSwapped, setIsSwapped] = React.useState(false);
 
   // Get current dimensions to determine orientation
-  const slot = getSlotDims(registry['STATS_GROUP']);
+  const slot = getSlotDims(registry['STATS_GROUP'], registry);
   // Automatic Orientation: If width is small, go vertical.
   const isVertical = slot.w < 400;
 
