@@ -39,6 +39,7 @@ export interface ButtonProps {
       }) => React.ReactNode);
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  customBg?: string; // Optional custom background color for the button
 }
 
 const sizeStyles = {
@@ -61,6 +62,7 @@ export function Button({
   children,
   leftIcon,
   rightIcon,
+  customBg,
 }: ButtonProps) {
   const { theme } = useTheme(); //  Hook added inside
   const [hovered, setHovered] = React.useState(false);
@@ -132,7 +134,9 @@ export function Button({
           width: size === 'icon' ? sz.width : undefined,
           paddingHorizontal: size === 'icon' || variant === 'link' ? 0 : sz.px,
           borderRadius: theme.radius.md,
-          backgroundColor: isCurrentlyActive ? colors.hoverBg : colors.bg,
+          backgroundColor: isCurrentlyActive
+            ? colors.hoverBg
+            : customBg || colors.bg,
           borderWidth: variant === 'outline' ? 1 : 0,
           borderColor: (colors as any).border || 'transparent',
           flexDirection: 'row',

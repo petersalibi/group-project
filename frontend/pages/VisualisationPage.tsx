@@ -280,7 +280,8 @@ export function VisualisationPage() {
               );
             })}
 
-            <TouchableOpacity
+            <Button
+              variant='ghost'
               onPress={handleAddView}
               disabled={views.length >= 4}
               style={styles.addTabBtn}
@@ -293,7 +294,7 @@ export function VisualisationPage() {
                     : theme.colors.foreground
                 }
               />
-            </TouchableOpacity>
+            </Button>
           </ScrollView>
         </Animated.View>
       )}
