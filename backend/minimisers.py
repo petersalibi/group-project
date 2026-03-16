@@ -281,9 +281,6 @@ def trainability_knn(params, model : callable_type, Xtrain : np.ndarray, Ytrain 
     pipeline.fit(P, Q)
     return pipeline
 
-    
-
-
 def trainability_vectors(params, model : callable_type, Xtrain : np.ndarray, Ytrain : np.ndarray,
                          trainability_score : callable_type = trainability_score_exp,
                          tol : float = 1e-6, n_iters : int = 10) -> tuple[np.ndarray, np.ndarray] :
@@ -304,17 +301,16 @@ def trainability_vectors(params, model : callable_type, Xtrain : np.ndarray, Ytr
         data_Y : list = []
         converged : bool = False
 
+        # Initialise to avoid linter anger 
         loss = torch.Tensor(0)
         for training_iter in range(params.epochs + 1) :
             
-            model.train()
+            param_vector = get_model_parameters(model).detach().cpu().numpy()
             
+            model.train()
             optimiser.zero_grad()
-
             loss = params.loss(model(Xtrain), Ytrain)
             loss.backward()
-            
-            param_vector = get_model_parameters(model).detach().cpu().numpy()
             
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             grad_mag = grad_norm.item()
