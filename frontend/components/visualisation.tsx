@@ -44,7 +44,7 @@ import {
   Lock,
   Gauge,
   TrendingDown,
-  ArrowUpDown
+  ArrowUpDown,
 } from 'lucide-react-native';
 import { TrainingMetrics } from '../components/training_metrics';
 import { NetworkArchitecture } from './network-architecture';
@@ -153,9 +153,7 @@ export function Visualisation({ id }: VisualisationProps) {
     loadingCsv,
     csvLoaded,
     datasetParameters,
-    setDatasetParameters,
     datasetOutputs,
-    setDatasetOutputs,
     containerRef,
     isPathLoading,
     isPathLoaded,
@@ -276,37 +274,46 @@ export function Visualisation({ id }: VisualisationProps) {
 
   // Adjust inputs/outputs/parameters when dataset changes
   useEffect(() => {
+    let nextInputs: string[] = [];
+
     switch (data) {
       case 'SINREGRESSION':
-        setInputs(['x']);
+        nextInputs = ['x'];
+        setInputs(nextInputs);
         setOutputs(1);
         break;
       case 'PENGUINS':
-        setInputs([
+        nextInputs = [
           'bill_length_mm',
           'bill_depth_mm',
           'flipper_length_mm',
           'body_mass_g',
-        ]);
+        ];
+        setInputs(nextInputs);
         setOutputs(3);
         break;
       case 'PURPLECOLOURS':
-        setInputs(['R', 'G', 'B']);
+        nextInputs = ['R', 'G', 'B'];
+        setInputs(nextInputs);
         setOutputs(1);
         break;
       case 'CUSTOM':
         if (csvLoaded) {
-          setInputs(datasetParameters);
+          nextInputs = datasetParameters;
+          setInputs(nextInputs);
           setOutputs(datasetOutputs);
         } else {
+          nextInputs = [];
           setInputs([]);
           setOutputs(null);
         }
+        break;
     }
-    if (inputs && inputs.length < 2) {
+
+    if (nextInputs.length < 2) {
       setMethod(methods[0].value);
     }
-  }, [data, datasetParameters, datasetOutputs]);
+  }, [data, datasetParameters, datasetOutputs, csvLoaded]);
 
   // Adjust losses when dataset changes
   useEffect(() => {
@@ -375,7 +382,10 @@ export function Visualisation({ id }: VisualisationProps) {
     setLocalDims({ width, height });
   };
 
-  const onRegenButtonPress = async (id: number, method: 'pca' | 'autoencoder') => {
+  const onRegenButtonPress = async (
+    id: number,
+    method: 'pca' | 'autoencoder',
+  ) => {
     if (method === 'pca') setMethod('PCA Directions');
     if (method === 'autoencoder') setMethod('Autoencoder Directions');
     await onRegenerate(id, method);
@@ -485,13 +495,20 @@ export function Visualisation({ id }: VisualisationProps) {
 
               {/* ACTIVATION & LOSS DROPDOWNS */}
               <View style={styles.controlGroup}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginBottom: 4,
+                  }}
+                >
                   <Text style={styles.label}>NETWORK CONFIGURATION</Text>
                   <TouchableOpacity onPress={() => setShowNetworkInfo(true)}>
                     <Info size={14} color={theme.colors.mutedForeground} />
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.rowGap}>
                   {/* Left Column: Activation Function */}
                   <View style={{ flex: 1 }}>
@@ -505,8 +522,9 @@ export function Visualisation({ id }: VisualisationProps) {
                           ]}
                         >
                           <Text style={styles.dropdownValue}>
-                            {activations.find((item) => item.value === activation)
-                              ?.label || activation}
+                            {activations.find(
+                              (item) => item.value === activation,
+                            )?.label || activation}
                           </Text>
                         </View>
                       </DropdownMenuTrigger>
@@ -515,7 +533,9 @@ export function Visualisation({ id }: VisualisationProps) {
                           <DropdownMenuItem
                             key={item.id}
                             disabled={
-                              isLandscapeLoading || isPathLoading || isPathLoaded
+                              isLandscapeLoading ||
+                              isPathLoading ||
+                              isPathLoaded
                             }
                             onSelect={() => {
                               setActivation(item.value);
@@ -540,8 +560,8 @@ export function Visualisation({ id }: VisualisationProps) {
                           ]}
                         >
                           <Text style={styles.dropdownValue}>
-                            {losses.find((item) => item.value === loss)?.label ||
-                              loss}
+                            {losses.find((item) => item.value === loss)
+                              ?.label || loss}
                           </Text>
                         </View>
                       </DropdownMenuTrigger>
@@ -550,7 +570,9 @@ export function Visualisation({ id }: VisualisationProps) {
                           <DropdownMenuItem
                             key={item.id}
                             disabled={
-                              isLandscapeLoading || isPathLoading || isPathLoaded
+                              isLandscapeLoading ||
+                              isPathLoading ||
+                              isPathLoaded
                             }
                             onSelect={() => {
                               setLoss(item.value);
@@ -708,14 +730,14 @@ export function Visualisation({ id }: VisualisationProps) {
 
               {isPathLoading || isPathLoaded ? (
                 <Button
-                    variant='secondary'
-                    disabled={true} // Always disabled if paths are active
-                    onPress={() => {
-                      onGenerateLandscape();
-                    }}
-                  >
-                    {isLandscapeLoading ? 'LOADING...' : 'GENERATE LANDSCAPE'}
-                  </Button>
+                  variant='secondary'
+                  disabled={true} // Always disabled if paths are active
+                  onPress={() => {
+                    onGenerateLandscape();
+                  }}
+                >
+                  {isLandscapeLoading ? 'LOADING...' : 'GENERATE LANDSCAPE'}
+                </Button>
               ) : (
                 <Button
                   variant='secondary'
@@ -735,7 +757,14 @@ export function Visualisation({ id }: VisualisationProps) {
 
               {/* PATH DETAILS CARD */}
               <View style={styles.controlGroup}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginBottom: 4,
+                  }}
+                >
                   <Text style={styles.label}>PATH CONFIGURATIONS</Text>
                   <TouchableOpacity onPress={() => setShowPathInfo(true)}>
                     <Info size={14} color={theme.colors.mutedForeground} />
@@ -781,7 +810,7 @@ export function Visualisation({ id }: VisualisationProps) {
                       hasUnsetStartPoints
                     }
                     onPress={handleLoadAllPathsButtonClick}
-                    style={[styles.exportBtn, {flex:1.5}]}
+                    style={[styles.exportBtn, { flex: 1.5 }]}
                   >
                     {isPathLoading ? 'LOADING...' : 'GENERATE PATHS'}
                   </Button>
@@ -824,9 +853,7 @@ export function Visualisation({ id }: VisualisationProps) {
                 {isLandscapeLoaded &&
                   !isLandscapeLoading &&
                   !isPathLoading &&
-                  !isPathLoaded && (
-                    <Text style={styles.label}>LOG PLOT</Text>
-                  )}
+                  !isPathLoaded && <Text style={styles.label}>LOG PLOT</Text>}
                 {isLandscapeLoaded &&
                   !isLandscapeLoading &&
                   !isPathLoaded &&
@@ -918,7 +945,9 @@ export function Visualisation({ id }: VisualisationProps) {
                           style={styles.gradientSwatchContainer}
                         >
                           <LinearGradient
-                            colors={preset.colors}
+                            colors={
+                              preset.colors as [string, string, ...string[]]
+                            }
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.gradientSwatch}
@@ -1015,30 +1044,48 @@ export function Visualisation({ id }: VisualisationProps) {
         </LayoutManager>
       )}
       {/* --- NETWORK CONFIGURATION MODAL --- */}
-      <InfoModal 
-        visible={showNetworkInfo} 
+      <InfoModal
+        visible={showNetworkInfo}
         onClose={() => setShowNetworkInfo(false)}
-        title="Network Configuration"
+        title='Network Configuration'
       >
-        <Text style={{ color: theme.colors.foreground, fontSize: 13, lineHeight: 20, marginBottom: 8 }}>
-          Design the architecture of your neural network and determine how its high-dimensional loss surface is projected into 3D space.
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 13,
+            lineHeight: 20,
+            marginBottom: 8,
+          }}
+        >
+          Design the architecture of your neural network and determine how its
+          high-dimensional loss surface is projected into 3D space.
         </Text>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Activity size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Activation Function</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Activation Function
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            The non-linear function applied to neurons. Tanh creates smooth, rolling hills, while ReLU creates sharp, angular ridges.
-            {"\n\n"}
-            To find out more about how activation functions affect loss landscapes,{' '}
-            <Text 
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            The non-linear function applied to neurons. Tanh creates smooth,
+            rolling hills, while ReLU creates sharp, angular ridges.
+            {'\n\n'}
+            To find out more about how activation functions affect loss
+            landscapes,{' '}
+            <Text
               onPress={() => navigate('/curriculum/activations')}
-              style={{ 
+              style={{
                 color: theme.colors.accent,
                 textDecorationLine: 'underline',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               click here
@@ -1047,21 +1094,31 @@ export function Visualisation({ id }: VisualisationProps) {
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <TrendingDown size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Loss Function</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Loss Function
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            The mathematical metric used to calculate the network's error (e.g. MSE). This forms the actual "height" (Z-axis) of the landscape.
-            {"\n\n"}
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            The mathematical metric used to calculate the network&apos;s error
+            (e.g. MSE). This forms the actual &quot;height&quot; (Z-axis) of the
+            landscape.
+            {'\n\n'}
             To find out more about how a landscape is formed,{' '}
-            <Text 
+            <Text
               onPress={() => navigate('/curriculum/landscapes')}
-              style={{ 
+              style={{
                 color: theme.colors.accent,
                 textDecorationLine: 'underline',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               click here
@@ -1070,42 +1127,80 @@ export function Visualisation({ id }: VisualisationProps) {
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Layers size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Visualisation Method</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Visualisation Method
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Because networks have hundreds to millions of weights, we must project them into a 2D plane to visualise them.
-            {"\n\n"}
-            <Text style={{ fontWeight: 'bold', color: theme.colors.foreground }}>Random Directions </Text>
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Because networks have hundreds to millions of weights, we must
+            project them into a 2D plane to visualise them.
+            {'\n\n'}
+            <Text
+              style={{ fontWeight: 'bold', color: theme.colors.foreground }}
+            >
+              Random Directions{' '}
+            </Text>
             slices a purely random 2D plane through the high-dimensional space.
-            {"\n\n"}
-            <Text style={{ fontWeight: 'bold', color: theme.colors.foreground }}>Filter-wise Normalised </Text>
-            also takes a random slice, but intelligently scales the directions based on the network's actual weights to prevent visual scale distortions.
-            {"\n\n"}
-            <Text style={{ fontWeight: 'bold', color: theme.colors.foreground }}>PCA & Autoencoders </Text>
-            find a plane that perfectly frames a specific optimiser's journey. To use these, you must first generate a path, then use the regeneration buttons (click the <Info size={10}></Info> icon on PATH CONFIGURATIONS for more details).
+            {'\n\n'}
+            <Text
+              style={{ fontWeight: 'bold', color: theme.colors.foreground }}
+            >
+              Filter-wise Normalised{' '}
+            </Text>
+            also takes a random slice, but intelligently scales the directions
+            based on the network&apos;s actual weights to prevent visual scale
+            distortions.
+            {'\n\n'}
+            <Text
+              style={{ fontWeight: 'bold', color: theme.colors.foreground }}
+            >
+              PCA & Autoencoders{' '}
+            </Text>
+            find a plane that perfectly frames a specific optimiser&apos;s
+            journey. To use these, you must first generate a path, then use the
+            regeneration buttons (click the <Info size={10}></Info> icon on PATH
+            CONFIGURATIONS for more details).
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Network size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Architecture (Depth & Width)</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Architecture (Depth & Width)
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Depth adds more layers, Width adds more neurons. Larger networks create exponentially more complex and difficult-to-navigate landscapes.
-            {"\n"}
-            You can view the network configuration in the NETWORK ARCHITECTURE panel below.
-            {"\n\n"}
-            To find out more about how network configurations affect a loss landscape,{' '}
-            <Text 
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Depth adds more layers, Width adds more neurons. Larger networks
+            create exponentially more complex and difficult-to-navigate
+            landscapes.
+            {'\n'}
+            You can view the network configuration in the NETWORK ARCHITECTURE
+            panel below.
+            {'\n\n'}
+            To find out more about how network configurations affect a loss
+            landscape,{' '}
+            <Text
               onPress={() => navigate('/curriculum/complexity')}
-              style={{ 
+              style={{
                 color: theme.colors.accent,
                 textDecorationLine: 'underline',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               click here
@@ -1113,73 +1208,117 @@ export function Visualisation({ id }: VisualisationProps) {
             .
           </Text>
         </View>
-        
+
         <View style={{ marginBottom: 8 }}>
-          <Text style={{ color: theme.colors.foreground, fontSize: 13, lineHeight: 22 }}>
-            <Text 
-              style={{ 
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontSize: 13,
+              lineHeight: 22,
+            }}
+          >
+            <Text
+              style={{
                 fontWeight: '500',
-                fontSize: 10, 
+                fontSize: 10,
                 backgroundColor: theme.colors.secondary,
-                color: theme.colors.primaryForeground, 
+                color: theme.colors.primaryForeground,
                 letterSpacing: 0.5,
                 padding: 2,
-                borderRadius: 2
+                borderRadius: 2,
               }}
             >
-              {' GENERATE LANDSCAPE '} 
+              {' GENERATE LANDSCAPE '}
             </Text>
-            
-            {'  '}locks in your configuration and computes the 3D surface. 
-            {"\n\n"}
-            
-            <Text style={{ fontStyle: 'italic', color: theme.colors.mutedForeground }}>
-              NOTE: Please ensure that after changing the settings, you generate the landscape again, otherwise the landscape you are viewing will not match your configuration.
+            {'  '}locks in your configuration and computes the 3D surface.
+            {'\n\n'}
+            <Text
+              style={{
+                fontStyle: 'italic',
+                color: theme.colors.mutedForeground,
+              }}
+            >
+              NOTE: Please ensure that after changing the settings, you generate
+              the landscape again, otherwise the landscape you are viewing will
+              not match your configuration.
             </Text>
-            
           </Text>
         </View>
       </InfoModal>
 
       {/* --- PATH CONFIGURATIONS MODAL --- */}
-      <InfoModal 
-        visible={showPathInfo} 
+      <InfoModal
+        visible={showPathInfo}
         onClose={() => setShowPathInfo(false)}
-        title="Path Configurations"
+        title='Path Configurations'
       >
-        <Text style={{ color: theme.colors.foreground, fontSize: 13, lineHeight: 20, marginBottom: 8 }}>
-          Observe up to 5 different optimisers to see how they navigate the terrain.
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 13,
+            lineHeight: 20,
+            marginBottom: 8,
+          }}
+        >
+          Observe up to 5 different optimisers to see how they navigate the
+          terrain.
         </Text>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Lock size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Lock to Plane</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Lock to Plane
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            When locked, the optimiser is forced to only update weights within the visible 2D plane. Unlocking lets it optimise all weights in the true high-dimensional space.
-            {"\n"}
-            <Text style={{ fontStyle: 'italic', color: theme.colors.mutedForeground }}>
-              WARNING: Unlocking may cause very short trajectories due to orthogonality. Re-generate the path to get a better visualisation (details below).
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            When locked, the optimiser is forced to only update weights within
+            the visible 2D plane. Unlocking lets it optimise all weights in the
+            true high-dimensional space.
+            {'\n'}
+            <Text
+              style={{
+                fontStyle: 'italic',
+                color: theme.colors.mutedForeground,
+              }}
+            >
+              WARNING: Unlocking may cause very short trajectories due to
+              orthogonality. Re-generate the path to get a better visualisation
+              (details below).
             </Text>
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Route size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Optimiser & Learning Rate</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Optimiser & Learning Rate
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Choose the optimisation algorithm and its step size. A high learning rate might jump out of valleys, while a low one might get stuck.
-            {"\n\n"}
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Choose the optimisation algorithm and its step size. A high learning
+            rate might jump out of valleys, while a low one might get stuck.
+            {'\n\n'}
             To find out more about how optimisers move across a loss landscape,{' '}
-            <Text 
+            <Text
               onPress={() => navigate('/curriculum/optimisers')}
-              style={{ 
+              style={{
                 color: theme.colors.accent,
                 textDecorationLine: 'underline',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               click here
@@ -1188,188 +1327,444 @@ export function Visualisation({ id }: VisualisationProps) {
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <MapPin size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Start Point</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Start Point
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
             After pressing {'  '}
-            <Text 
-              style={{ 
+            <Text
+              style={{
                 fontWeight: '500',
-                fontSize: 10, 
+                fontSize: 10,
                 backgroundColor: theme.colors.secondary,
-                color: theme.colors.primaryForeground, 
+                color: theme.colors.primaryForeground,
                 letterSpacing: 0.5,
                 padding: 2,
-                borderRadius: 2
+                borderRadius: 2,
               }}
             >
-              {' PLACE POINT '} 
+              {' PLACE POINT '}
             </Text>
-            
-            {'  '} you can click on the landscape to drop a starting pin. This is where the optimiser will begin its journey.
+            {'  '} you can click on the landscape to drop a starting pin. This
+            is where the optimiser will begin its journey.
           </Text>
         </View>
-          
-          <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-               <Eye size={14} color={theme.colors.primary} style={{ marginTop: 2 }}/>
-               <View style={{ flex: 1 }}>
-                <View style={styles.modalRow}>
-                  <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Watch</Text>
+
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
+          <View
+            style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}
+          >
+            <Eye
+              size={14}
+              color={theme.colors.primary}
+              style={{ marginTop: 2 }}
+            />
+            <View style={{ flex: 1 }}>
+              <View style={styles.modalRow}>
+                <Text
+                  style={[
+                    styles.modalTitle,
+                    { color: theme.colors.foreground },
+                  ]}
+                >
+                  Watch
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.modalDesc,
+                  { color: theme.colors.mutedForeground, marginBottom: 8 },
+                ]}
+              >
+                If pressed, you can view multiple metrics on this optimiser in
+                the TRAINING METRICS panel:
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: theme.colors.muted,
+                    paddingVertical: 4,
+                    paddingHorizontal: 8,
+                    borderRadius: 6,
+                  }}
+                >
+                  <TrendingDown size={12} color={theme.colors.foreground} />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: theme.colors.foreground,
+                    }}
+                  >
+                    Loss
+                  </Text>
                 </View>
-                 <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground, marginBottom: 8 }]}>
-                   If pressed, you can view multiple metrics on this optimiser in the TRAINING METRICS panel:
-                 </Text>
-                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                   
-                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.muted, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 }}>
-                     <TrendingDown size={12} color={theme.colors.foreground} />
-                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.foreground }}>Loss</Text>
-                   </View>
 
-                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.muted, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 }}>
-                     <Target size={12} color={theme.colors.foreground} />
-                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.foreground }}>Fidelity</Text>
-                   </View>
-
-                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.muted, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 }}>
-                     <Activity size={12} color={theme.colors.foreground} />
-                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.foreground }}>Instability</Text>
-                   </View>
-
-                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.muted, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 }}>
-                     <Gauge size={12} color={theme.colors.foreground} />
-                     <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.foreground }}>Trainability</Text>
-                   </View>
-
-                 </View>
-
-                 <View style={{ flexDirection: 'row', gap: 8, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                   <Network size={14} color={theme.colors.mutedForeground} style={{ marginTop: 2 }} />
-                   <Text style={[styles.modalDesc, { flex: 1, color: theme.colors.mutedForeground, fontSize: 11, lineHeight: 16 }]}>
-                     If the network is small enough (depth × width ≤ 25), you can also see the <Text style={{ color: theme.colors.foreground, fontWeight: 'bold' }}>weights</Text> of the network at the current position of the optimiser.
-                   </Text>
-                 </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: theme.colors.muted,
+                    paddingVertical: 4,
+                    paddingHorizontal: 8,
+                    borderRadius: 6,
+                  }}
+                >
+                  <Target size={12} color={theme.colors.foreground} />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: theme.colors.foreground,
+                    }}
+                  >
+                    Fidelity
+                  </Text>
                 </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: theme.colors.muted,
+                    paddingVertical: 4,
+                    paddingHorizontal: 8,
+                    borderRadius: 6,
+                  }}
+                >
+                  <Activity size={12} color={theme.colors.foreground} />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: theme.colors.foreground,
+                    }}
+                  >
+                    Instability
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: theme.colors.muted,
+                    paddingVertical: 4,
+                    paddingHorizontal: 8,
+                    borderRadius: 6,
+                  }}
+                >
+                  <Gauge size={12} color={theme.colors.foreground} />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: theme.colors.foreground,
+                    }}
+                  >
+                    Trainability
+                  </Text>
+                </View>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  padding: 10,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                }}
+              >
+                <Network
+                  size={14}
+                  color={theme.colors.mutedForeground}
+                  style={{ marginTop: 2 }}
+                />
+                <Text
+                  style={[
+                    styles.modalDesc,
+                    {
+                      flex: 1,
+                      color: theme.colors.mutedForeground,
+                      fontSize: 11,
+                      lineHeight: 16,
+                    },
+                  ]}
+                >
+                  If the network is small enough (depth × width ≤ 25), you can
+                  also see the{' '}
+                  <Text
+                    style={{
+                      color: theme.colors.foreground,
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    weights
+                  </Text>{' '}
+                  of the network at the current position of the optimiser.
+                </Text>
+              </View>
             </View>
           </View>
+        </View>
 
-          <Text style={{ color: theme.colors.foreground, fontSize: 13, lineHeight: 22 }}>
-            <Text 
-              style={{ 
-                fontWeight: '500',
-                fontSize: 10, 
-                backgroundColor: theme.colors.secondary,
-                color: theme.colors.primaryForeground, 
-                letterSpacing: 0.5,
-                padding: 2,
-                borderRadius: 2
-              }}
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 13,
+            lineHeight: 22,
+          }}
+        >
+          <Text
+            style={{
+              fontWeight: '500',
+              fontSize: 10,
+              backgroundColor: theme.colors.secondary,
+              color: theme.colors.primaryForeground,
+              letterSpacing: 0.5,
+              padding: 2,
+              borderRadius: 2,
+            }}
+          >
+            {' GENERATE PATHS '}
+          </Text>
+          {'  '}generates every path from the configurations.
+          {'\n'}
+          <Text
+            style={{ fontStyle: 'italic', color: theme.colors.mutedForeground }}
+          >
+            NOTE: Please ensure you have generated a landscape and set the start
+            point of each optimiser before generating.
+          </Text>
+        </Text>
+
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 13,
+            lineHeight: 20,
+          }}
+        >
+          Once an optimiser&apos;s path is calculated, you can regenerate the
+          entire landscape around it to get a much more accurate visualisation
+          of its high-dimensional trajectory. Choose one of the following
+          projection methods:
+        </Text>
+
+        <View
+          style={[
+            styles.modalSection,
+            {
+              flexDirection: 'column',
+              gap: 12,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View
+            style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}
+          >
+            <Text
+              style={[
+                styles.modalDesc,
+                { flex: 1, color: theme.colors.mutedForeground },
+              ]}
             >
-              {' GENERATE PATHS '} 
-            </Text>
-            
-            {'  '}generates every path from the configurations.
-            {"\n"}
-            
-            <Text style={{ fontStyle: 'italic', color: theme.colors.mutedForeground }}>
-              NOTE: Please ensure you have generated a landscape and set the start point of each optimiser before generating.
-            </Text>
-            
-          </Text>
-
-          <Text style={{ color: theme.colors.foreground, fontSize: 13, lineHeight: 20 }}>
-            Once an optimiser's path is calculated, you can regenerate the entire landscape around it to get a much more accurate visualisation of its high-dimensional trajectory. 
-            Choose one of the following projection methods:
-          </Text>
-
-          <View style={[styles.modalSection, { flexDirection: 'column', gap: 12, borderColor: theme.colors.border }]}>
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-              <Text style={[styles.modalDesc, { flex: 1, color: theme.colors.mutedForeground }]}>
-                <Text style={{ fontWeight: 'bold', color: theme.colors.foreground }}>PCA (Principal Component Analysis): </Text>
-                Rebuilds the landscape using a linear projection. It calculates the flat 2D plane that best captures the path's overall variance.
+              <Text
+                style={{ fontWeight: 'bold', color: theme.colors.foreground }}
+              >
+                PCA (Principal Component Analysis):{' '}
               </Text>
-            </View>
-            
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-              <Text style={[styles.modalDesc, { flex: 1, color: theme.colors.mutedForeground }]}>
-                <Text style={{ fontWeight: 'bold', color: theme.colors.foreground }}>AutoEnc (Autoencoder): </Text>
-                Rebuilds the landscape using a secondary neural network. This non-linear projection can capture complex, curved manifolds that PCA might miss.
-              </Text>
-            </View>
+              Rebuilds the landscape using a linear projection. It calculates
+              the flat 2D plane that best captures the path&apos;s overall
+              variance.
+            </Text>
           </View>
+
+          <View
+            style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}
+          >
+            <Text
+              style={[
+                styles.modalDesc,
+                { flex: 1, color: theme.colors.mutedForeground },
+              ]}
+            >
+              <Text
+                style={{ fontWeight: 'bold', color: theme.colors.foreground }}
+              >
+                AutoEnc (Autoencoder):{' '}
+              </Text>
+              Rebuilds the landscape using a secondary neural network. This
+              non-linear projection can capture complex, curved manifolds that
+              PCA might miss.
+            </Text>
+          </View>
+        </View>
       </InfoModal>
 
       {/* --- VISUALISATION MODAL --- */}
-      <InfoModal 
-        visible={showVisualisationInfo} 
+      <InfoModal
+        visible={showVisualisationInfo}
         onClose={() => setShowVisualisationInfo(false)}
-        title="Loss Landscape Visualisation"
+        title='Loss Landscape Visualisation'
       >
-        <Text style={{ color: theme.colors.foreground, fontSize: 13, lineHeight: 20, marginBottom: 8 }}>
-          Interact with the generated 3D loss landscape. Use these controls to adjust your view, scale the terrain, and analyse the surface geometry.
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 13,
+            lineHeight: 20,
+            marginBottom: 8,
+          }}
+        >
+          Interact with the generated 3D loss landscape. Use these controls to
+          adjust your view, scale the terrain, and analyse the surface geometry.
         </Text>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Activity size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Log Plot</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Log Plot
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Applies a logarithmic scale to the vertical (loss) axis. This flattens out massive error spikes, making it much easier to see the subtle valleys and minimums where optimisers actually converge.
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Applies a logarithmic scale to the vertical (loss) axis. This
+            flattens out massive error spikes, making it much easier to see the
+            subtle valleys and minimums where optimisers actually converge.
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Maximize2 size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Maximise / Minimise</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Maximise / Minimise
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Expands the 3D viewport to fill your entire workspace, removing the configuration sidebars so you can focus purely on navigating the terrain.
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Expands the 3D viewport to fill your entire workspace, removing the
+            configuration sidebars so you can focus purely on navigating the
+            terrain.
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <RotateCcw size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Auto-Rotate</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Auto-Rotate
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Toggles a slow, continuous rotation of the 3D model, giving you a smooth 360-degree overview of the landscape without having to drag it manually.
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Toggles a slow, continuous rotation of the 3D model, giving you a
+            smooth 360-degree overview of the landscape without having to drag
+            it manually.
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <RefreshCw size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Reset Camera</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Reset Camera
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Snaps the camera back to its default starting position and angle. Perfect for when you've zoomed or panned too far and lost the terrain!
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Snaps the camera back to its default starting position and angle.
+            Perfect for when you&apos;ve zoomed or panned too far and lost the
+            terrain!
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <ArrowUpDown size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Z Scale Slider</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Z Scale Slider
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Stretches or flattens the vertical height of the landscape. Use this slider to exaggerate shallow dips or compress impossibly steep cliffs.
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Stretches or flattens the vertical height of the landscape. Use this
+            slider to exaggerate shallow dips or compress impossibly steep
+            cliffs.
           </Text>
         </View>
 
-        <View style={[styles.modalSection, { borderColor: theme.colors.border }]}>
+        <View
+          style={[styles.modalSection, { borderColor: theme.colors.border }]}
+        >
           <View style={styles.modalRow}>
             <Palette size={16} color={theme.colors.primary} />
-            <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Colour Palette</Text>
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.foreground }]}
+            >
+              Colour Palette
+            </Text>
           </View>
-          <Text style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}>
-            Changes the gradient map of the surface. Different colour schemes can highlight varying elevations and make terrain contours easier to read.
+          <Text
+            style={[styles.modalDesc, { color: theme.colors.mutedForeground }]}
+          >
+            Changes the gradient map of the surface. Different colour schemes
+            can highlight varying elevations and make terrain contours easier to
+            read.
           </Text>
         </View>
       </InfoModal>

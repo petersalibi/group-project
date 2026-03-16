@@ -20,13 +20,7 @@ import { Visualisation } from '../components/visualisation';
 import { Text } from '../components/text';
 import { Button } from '../components/button';
 import { LearningPage } from './LearningPage';
-import {
-  Plus,
-  X,
-  ChevronRight,
-  ChevronDown,
-  GraduationCap,
-} from 'lucide-react-native';
+import { Plus, X, GraduationCap } from 'lucide-react-native';
 
 // A distinct set of colors to map to the workspaces
 const WORKSPACE_COLORS = [
@@ -51,14 +45,13 @@ export function VisualisationPage() {
   const [isHoveringTop, setIsHoveringTop] = useState(false);
 
   const isMaximized = maximizedId !== null;
-  const shouldHideTab =
-    Platform.OS === 'web' && isMaximized && !isHoveringTop;
+  const shouldHideTab = Platform.OS === 'web' && isMaximized && !isHoveringTop;
 
   const tabMarginTop = useSharedValue(0);
 
   useEffect(() => {
     tabMarginTop.value = withTiming(shouldHideTab ? -42 : 0, { duration: 300 });
-  }, [shouldHideTab]);
+  }, [shouldHideTab, tabMarginTop]);
 
   const animatedTabStyle = useAnimatedStyle(() => ({
     marginTop: tabMarginTop.value,
@@ -70,7 +63,7 @@ export function VisualisationPage() {
     visOpacity.value = withTiming(isLearningMode ? 0 : 1, {
       duration: 300,
     });
-  }, [isLearningMode]);
+  }, [isLearningMode, visOpacity]);
 
   const visAnimatedStyle = useAnimatedStyle(() => ({
     opacity: visOpacity.value,
@@ -214,7 +207,6 @@ export function VisualisationPage() {
             animatedTabStyle,
           ]}
         >
-
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

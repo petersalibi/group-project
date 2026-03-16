@@ -341,7 +341,7 @@ export function ActivationLesson({ onTaskUpdate }: any) {
                 ]}
               >
                 <Text style={[styles.successText, { color: successColor }]}>
-                  You've mastered the shape of networks!
+                  You&apos;ve mastered the shape of networks!
                   {'\n\n'}• <Text style={{ fontWeight: 'bold' }}>Linear:</Text>{' '}
                   Stays a smooth bowl, regardless of depth.
                   {'\n'}• <Text style={{ fontWeight: 'bold' }}>ReLU:</Text>{' '}

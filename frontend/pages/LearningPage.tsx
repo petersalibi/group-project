@@ -383,7 +383,6 @@ export function LearningPage() {
               setErrorFeedback(err);
               if (forceHint) setShowHint(true);
             }}
-            theme={theme}
           />
         </View>
 
