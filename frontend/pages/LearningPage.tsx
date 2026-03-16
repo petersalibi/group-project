@@ -114,7 +114,7 @@ const LESSON_REGISTRY = [
     id: 5,
     slug: 'projections',
     title: 'Projections',
-    module: 'INTERACTIVE',
+    module: 'ADVANCED',
     xPos: '50%' as DimensionValue,
     yPos: '55%' as DimensionValue,
     parents: [2, 3, 4], // Branches from Layer 2
