@@ -23,7 +23,7 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
 
   const ValueNode = (
     <Text style={{ 
-      fontSize: 20, 
+      fontSize: 25, 
       fontWeight: "700", 
       color: statusColor,
       marginVertical: 2,
@@ -34,7 +34,7 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
 
   const SubTextNode = subText ? (
     <Text style={{ 
-      fontSize: 10, 
+      fontSize: 15, 
       fontWeight: "600", 
       color: secondaryColor,
     }}>
@@ -49,8 +49,7 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
       borderRadius: theme.radius.md,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: 12, // Fixed padding for consistency in small slots
-      justifyContent: "space-between", // Pushes label to top and subtext to bottom
+      padding: 12, 
       minHeight: 80,
       zIndex: 1,
       overflow: 'visible',
@@ -62,30 +61,31 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
         color: theme.colors.mutedForeground, 
         textTransform: "uppercase",
         letterSpacing: 0.5,
+        marginBottom: 8,
       }}>
         {label}
       </Text>
 
-      {/* Main Metric Value */}
-      <View style={{ width: '100%' }}>
-        {valueTooltip ? (
-          <Tooltip tip={valueTooltip}>
-            {ValueNode}
-          </Tooltip>
-        ) : (
-          ValueNode
-        )}
-      </View>
+      {/* Values Container */}
+      <View style={{
+        flex: 1, 
+        flexDirection: 'row', 
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        alignContent: 'center',
+        columnGap: 12,
+        rowGap: 4,
+      }}>
+        {/* Main Metric Value */}
+        <View style={{ flexShrink: 0 }}>
+          {ValueNode}
+        </View>
 
-      {/* Bottom Subtext (Trend/Status) */}
-      <View style={{ width: '100%' }}>
-        {subTextTooltip && subText ? (
-          <Tooltip tip={subTextTooltip}>
-            {SubTextNode}
-          </Tooltip>
-        ) : (
-          SubTextNode
-        )}
+        {/* Bottom Subtext (Trend/Status) */}
+        <View style={{ flexShrink: 0 }}>
+          {SubTextNode}
+        </View>
       </View>
     </View>
   );

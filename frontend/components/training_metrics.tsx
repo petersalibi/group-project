@@ -16,7 +16,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
   const logTextColor = isDark ? '#cbd5e1' : '#334155';
 
   const hasMetrics = isPathLoaded && (currentLoss != null || fidelity != null || instability != null || trainability != null);
-
+  
   return (
     <View style={{ flex: 1, padding: 12 }}>
 
@@ -31,8 +31,8 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
                   label="Current Loss" 
                   value={currentLoss !== null ? currentLoss.toFixed(2) : "0.00"} 
                   color={theme.colors.accent}
-                  subText={!lossChange || lossChange === 0 ? "" : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
-                  subColor={lossChange > 0 ? "#e80c0c" : "#22c55e"}
+                  subText={!lossChange || lossChange === 0 ? `- %` : lossChange > 0 ? `↑ ${lossChange} %` : `↓ ${Math.abs(lossChange)} %`}
+                  subColor={!lossChange || lossChange === 0 ? theme.colors.mutedForeground : lossChange > 0 ? "#e80c0c" : "#22c55e"}
                   valueTooltip='The loss of the neural network at the current position of the optimiser.'
                   subTextTooltip='The change in loss over the last 10 epochs.'
                 />
@@ -57,7 +57,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
                   <Activity size={14} color={theme.colors.mutedForeground} />
                   <Text style={[styles.miniMetricLabel, { color: theme.colors.mutedForeground }]}>Instability</Text>
                 </View>
-                <Text style={[styles.miniMetricValue, { color: theme.colors.accent }]}>
+                <Text style={[styles.miniMetricValue, { color: instability != null ? theme.colors.accent : theme.colors.mutedForeground }]}>
                   {instability != null ? `${instability.toFixed(1)}%` : '--'}
                 </Text>
               </View>

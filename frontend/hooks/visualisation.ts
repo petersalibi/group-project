@@ -244,6 +244,7 @@ export function useVisualisation(props: UseVisualisationProps) {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      renderer.render(scene, camera);
     };
 
     const resizeObserver = new ResizeObserver(onResize);

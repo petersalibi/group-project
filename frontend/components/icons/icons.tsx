@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Animated, Easing, View, StyleSheet } from 'react-native';
+import { Animated, Easing, View, StyleSheet, Text } from 'react-native';
 import Svg, {
   Circle,
   Path,
@@ -10,6 +10,7 @@ import Svg, {
   LinearGradient,
   Stop,
 } from 'react-native-svg';
+import { ActivityIndicator } from 'react-native';
 import { useTheme } from '../theme-provider';
 
 type IconProps = {
@@ -395,196 +396,24 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
   );
 }
 
-const AnimatedPath = makeAnimated(Path);
-
-export function PathLoadingIcon({ numPathsLoading = 0, size = 160 }) {
-  const progressAnim = React.useRef(new Animated.Value(0)).current;
-  const iconColor = useIconColor();
-
-  const pathData = React.useMemo(() => {
-    if (numPathsLoading === 0) return [];
-
-    const count = Math.min(numPathsLoading, 5);
-    const data = [];
-
-    const centerX = 100;
-    const centerY = 150;
-
-    for (let i = 0; i < count; i++) {
-      const rand1 = Math.random() * 2 - 1;
-      const rand2 = Math.random() * 2 - 1;
-
-      // Perspective End Points
-      const endAngle = (i * 2 * Math.PI) / count + Math.PI / 4 + rand1 * 0.5;
-      const endRadiusX = count === 1 ? 0 : 20 + rand2 * 5;
-      const endRadiusY = count === 1 ? 0 : 6 + rand1 * 2;
-
-      const end = {
-        x: centerX + endRadiusX * Math.cos(endAngle),
-        y: centerY + endRadiusY * Math.sin(endAngle),
-      };
-
-      // Horizon Start Points
-      const startAngle =
-        count === 1
-          ? 1.25 * Math.PI
-          : Math.PI + (Math.PI / (count + 1)) * (i + 1);
-
-      const startRadius = 90;
-      const start = {
-        x: centerX + startRadius * Math.cos(startAngle),
-        y: centerY - 40 + startRadius * Math.sin(startAngle),
-      };
-
-      // Control point for Quadratic Bezier
-      const cp = {
-        x: start.x * 0.4 + end.x * 0.6 + rand1 * 30,
-        y: centerY + 20 + rand2 * 20,
-      };
-
-      const numSteps = 50;
-      const inputRange = [];
-      const outputX = [];
-      const outputY = [];
-      const accumulatedLengths = []; // Track exact length at each step
-      let pathString = '';
-      let pathLen = 0;
-      let lastPt = start;
-
-      const waveFreq = 6 + rand1 * 3;
-      const waveAmp = 8 + rand2 * 3;
-
-      for (let step = 0; step <= numSteps; step++) {
-        const t = step / numSteps;
-        inputRange.push(t);
-
-        const invT = 1 - t;
-        const baseX =
-          invT * invT * start.x + 2 * invT * t * cp.x + t * t * end.x;
-        const baseY =
-          invT * invT * start.y + 2 * invT * t * cp.y + t * t * end.y;
-
-        const dX = 2 * invT * (cp.x - start.x) + 2 * t * (end.x - cp.x);
-        const dY = 2 * invT * (cp.y - start.y) + 2 * t * (end.y - cp.y);
-        const length = Math.hypot(dX, dY);
-
-        const nx = -dY / length;
-        const ny = dX / length;
-
-        const rawWave = Math.sin(t * Math.PI * waveFreq);
-        const perspectiveScale = waveAmp * (1 - t * 0.8);
-        const wave = rawWave * perspectiveScale;
-
-        const ptX = baseX + nx * wave;
-        const ptY = baseY + ny * wave;
-
-        outputX.push(ptX);
-        outputY.push(ptY);
-
-        if (step === 0) {
-          pathString += `M ${ptX} ${ptY} `;
-          accumulatedLengths.push(0);
-        } else {
-          pathString += `L ${ptX} ${ptY} `;
-          const dist = Math.hypot(ptX - lastPt.x, ptY - lastPt.y);
-          pathLen += dist;
-          accumulatedLengths.push(pathLen);
-        }
-        lastPt = { x: ptX, y: ptY };
-      }
-
-      // Convert accumulated lengths to exact dash offsets (Total Length - Distance Traveled)
-      const outputDash = accumulatedLengths.map((len) => pathLen - len);
-
-      data.push({
-        inputRange,
-        outputX,
-        outputY,
-        outputDash,
-        pathString,
-        pathLen,
-      });
-    }
-    return data;
-  }, [numPathsLoading]);
-
-  React.useEffect(() => {
-    if (numPathsLoading > 0) {
-      progressAnim.setValue(0);
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(progressAnim, {
-            toValue: 1,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.delay(400),
-        ]),
-      ).start();
-    } else {
-      progressAnim.stopAnimation();
-    }
-  }, [numPathsLoading, progressAnim]);
-
-  if (numPathsLoading === 0) return null;
-
+export function PathLoadingIcon({ isLoading, numPathsLoading, size = 160 }) {
+  const { theme } = useTheme();
   return (
-    <View
-      style={[
-        {
-          width: size,
-          height: size,
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
-      ]}
-    >
-      <Svg width='100%' height='100%' viewBox='0 0 200 200' fill='none'>
-        {pathData.map((path, index) => {
-          const dashOffset = progressAnim.interpolate({
-            inputRange: path.inputRange,
-            outputRange: path.outputDash,
-          });
-
-          const dotX = progressAnim.interpolate({
-            inputRange: path.inputRange,
-            outputRange: path.outputX,
-          });
-          const dotY = progressAnim.interpolate({
-            inputRange: path.inputRange,
-            outputRange: path.outputY,
-          });
-
-          const opacity = progressAnim.interpolate({
-            inputRange: [0, 0.8, 1],
-            outputRange: [1, 1, 0.2],
-          });
-
-          return (
-            <React.Fragment key={`pathGroup-${index}`}>
-              <AnimatedPath
-                d={path.pathString}
-                stroke={iconColor}
-                strokeWidth='2.5'
-                strokeDasharray={`${path.pathLen} ${path.pathLen}`}
-                strokeDashoffset={dashOffset}
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                opacity={opacity}
-              />
-              <AnimatedCircle
-                cx={dotX}
-                cy={dotY}
-                r='5'
-                fill={iconColor}
-                opacity={opacity}
-              />
-            </React.Fragment>
-          );
-        })}
-      </Svg>
-    </View>
+    <>
+    {isLoading && (
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 20 },
+        ]}
+      >
+        <ActivityIndicator size='large' color={theme.colors.powderBlue} />
+        <Text style={{ marginTop: 12, fontWeight: 'bold', color: theme.colors.primaryForeground }}>
+          {numPathsLoading > 1 ? "Generating Trajectories..." : "Generating Trajectory..."}
+        </Text>
+      </View>
+    )}
+    </>
   );
 }
 

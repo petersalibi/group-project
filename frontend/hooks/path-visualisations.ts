@@ -452,7 +452,10 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
           pathData.minimiser_path?.data ?? pathData.minimiser_path;
         const parameters_arr =
           pathData.parameters_path?.data ?? pathData.parameters_path;
-        metricArrayRef.current[index] = [pathData.fidelity, pathData.instability, pathData.trainability];
+
+        let rawInstability = null;
+        if (loss === 'CrossEntropyLoss' || loss === 'BCELoss') rawInstability = pathData.instability;
+        metricArrayRef.current[index] = [pathData.fidelity, rawInstability, pathData.trainability];
 
         if (!Array.isArray(path_arr) || path_arr.length < 2) {
           throw new Error(`Invalid path data for path ${index + 1}`);
@@ -483,9 +486,9 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         viewIdRef.current !== null &&
         metricArrayRef.current[viewIdRef.current] !== undefined
       ) {
-        setFidelity(metricArrayRef.current[viewIdRef.current][0] * 100);
-        setInstability(metricArrayRef.current[viewIdRef.current][1] * 100);
-        setTrainability(metricArrayRef.current[viewIdRef.current][2] * 100);
+        setFidelity(metricArrayRef.current[viewIdRef.current][0] * 100 || null);
+        setInstability(metricArrayRef.current[viewIdRef.current][1] * 100 || null);
+        setTrainability(metricArrayRef.current[viewIdRef.current][2] * 100 || null);
       }
 
       pathConfigs.forEach((config) => {
@@ -774,15 +777,12 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const onViewPath = useCallback((id: number) => {
     setViewId(id);
     viewIdRef.current = id;
-    setFidelity(metricArrayRef.current[id][0] * 100);
-    setInstability(metricArrayRef.current[id][1] * 100);
-    setTrainability(metricArrayRef.current[id][2] * 100);
-    console.log(
-      'Viewing path',
-      id,
-      'with fidelity',
-      metricArrayRef.current[id][0],
-    );
+
+    if (metricArrayRef.current[id]) {
+      setFidelity(metricArrayRef.current[id][0] * 100 || null);
+      setInstability(metricArrayRef.current[id][1] * 100 || null);
+      setTrainability(metricArrayRef.current[id][2] * 100 || null);
+    }
   }, []);
 
   const togglePlacingMode = useCallback(
@@ -869,7 +869,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       const clock = clockRef.current;
       if (!clock) return;
 
-      const delta = clock.getDelta() / 1000; // Convert to ms
+      const delta = clock.getDelta();
 
       if (!isPathLoadedRef.current) return;
 
@@ -878,6 +878,8 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       }
 
       const elapsedTime = animationTimeRef.current;
+      const now = performance.now();
+      const shouldUpdateUI = now - lastUiUpdateRef.current > 100;
 
       for (let i = 0; i < pathLinesRef.current.length; i++) {
         const pathLine = pathLinesRef.current[i];
@@ -901,7 +903,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         if (lineProgress > 1.0) {
           // Check if this was the longest path to stop global playing
           if (animationDuration >= Math.max(...animationDurationsRef.current)) {
-            setIsPlaying(false);
+            if (isPlayingRef.current) setIsPlaying(false);
           }
           continue;
         }
@@ -959,7 +961,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         }
 
         // Update network weights and loss
-        if (viewIdRef.current !== null && viewIdRef.current === i) {
+        if (viewIdRef.current !== null && viewIdRef.current === i && shouldUpdateUI) {
           const timeStep = Math.floor(
             ballProgress * (parametersArrayRef.current[i].length - 1),
           );
@@ -1002,7 +1004,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         }
       }
 
-      if (isPlayingRef.current && isPathLoadedRef.current) {
+      if (isPlayingRef.current && isPathLoadedRef.current && shouldUpdateUI) {
         const delta = clock.getDelta();
         animationTimeRef.current += delta;
         const elapsedTime = animationTimeRef.current;
@@ -1044,6 +1046,12 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
 
     // Start everything
     animate();
+
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
   }, [clockRef, getMaxDuration, getMaxSteps, rafRef]);
 
   const handleLoadAllPathsButtonClick = useCallback(

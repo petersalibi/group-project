@@ -969,7 +969,7 @@ export function Visualisation({ id }: VisualisationProps) {
 
               {isPathLoading && (
                 <View style={styles.hudOverlay}>
-                  <PathLoadingIcon numPathsLoading={numPaths} />
+                  <PathLoadingIcon isLoading={isPathLoading} numPathsLoading={numPaths} />
                 </View>
               )}
 
