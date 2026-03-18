@@ -174,6 +174,29 @@ def jump_count(X : np.ndarray, axis : int = 0, epsilon : float = 1e-7) -> np.nda
     
     return np.sum( np.abs(diff) > epsilon, axis = axis)
     
+def sum_powered_diff(X : np.ndarray, axis : int = 0, p : float = 2) -> np.ndarray :
+    """Returns the sum of differences in a NumPy array taken to a power, according to a given axis.
+
+    Parameters:
+        X : The array to be counted.
+        axis : the axis (rows, columns, ...) to count differences along
+        p: power to use on differences. Defaults to p = 2 (squaring).
+
+
+    Raises:
+        ValueError: X is a scalar
+
+    Returns:
+        Sum of powered differences along the given axis.
+    """
+
+    if not X.ndim :
+        raise ValueError("Expected a 1D or 2D NumPy array")
+
+    diff = np.diff(X, axis = axis)
+
+    return np.sum(np.abs(diff)**p, axis = axis) 
+    
 
 def generate_random_points(X : np.ndarray, n : float = 1) -> np.ndarray :
 
@@ -202,11 +225,11 @@ def generate_random_points(X : np.ndarray, n : float = 1) -> np.ndarray :
      
     return rand_points
 
-def trainability_score_exp(Y : np.ndarray, beta : float = 0.0001) -> np.ndarray :
+def trainability_score_exp(Y : np.ndarray, alpha : float = 0.1, beta : float = 0.1) -> np.ndarray :
     
     N, m = Y[:, 0], Y[:, 1]
     
-    vals = np.exp( - beta * N * m)
+    vals = np.exp( - (alpha * N + beta * m))
 
     return vals
     

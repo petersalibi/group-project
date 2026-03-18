@@ -219,7 +219,13 @@ def create_instability_vectors(params, model : callable_type, Xtrain : np.ndarra
             # Evaluation mode to avoid accidentally training here
             model.eval()
             with torch.no_grad() :
-                raw_predictions = model(Xtest).cpu().numpy()
+                raw_predictions : np.ndarray = model(Xtest).cpu().numpy()
+                
+                # If it's a 2-class problem then due to laziness will only produce a single probability array
+                # We stop that from happening here
+                if raw_predictions.ndim == 1 or raw_predictions.shape[1] == 1 :
+                    raw_predictions = raw_predictions.reshape(-1,1)
+                    raw_predictions = np.hstack((1-raw_predictions, raw_predictions  ))
                 
                 predictions = np.argmax(raw_predictions, axis = 1)
                 
