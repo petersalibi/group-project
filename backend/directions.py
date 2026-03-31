@@ -4,6 +4,7 @@ from pandas.api.types import is_numeric_dtype
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
+from minimisers import calculate_fidelity
 import pandas as pd
 import math
 import numpy as np
@@ -114,14 +115,6 @@ def get_pca_directions(model, minimiser_trajectories,
     pc1 = torch.tensor(pca.components_[0], dtype=torch.float32)
     pc2 = torch.tensor(pca.components_[1], dtype=torch.float32)
 
-
-    # # Scale by sqrt of explained variance
-    # scale1 = pca.explained_variance_[0] ** 0.5
-    # scale2 = pca.explained_variance_[1] ** 0.5
-
-    # pc1 = pc1 * scale1
-    # pc2 = pc2 * scale2
-
     # Unflatten into parameter-shaped tensors
     dir1, dir2 = [], []
     idx = 0
@@ -131,8 +124,13 @@ def get_pca_directions(model, minimiser_trajectories,
         dir1.append(pc1[idx:idx + n].view_as(p))
         dir2.append(pc2[idx:idx + n].view_as(p))
         idx += n
+    
+    X_pca = pca.transform(X)
+    X_recon = pca.inverse_transform(X_pca)
+    
+    fidelity = calculate_fidelity(torch.tensor(X), torch.tensor(X_recon))
 
-    return dir1, dir2, pca.transform(X) # PCA-transformed points; these correspond directly to the loss points on the loss path!
+    return dir1, dir2, (X_pca, fidelity) # PCA-transformed points; these correspond directly to the loss points on the loss path!
 
 
 def ztransform(train : pd.DataFrame, test : pd.DataFrame, 

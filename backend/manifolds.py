@@ -3,6 +3,7 @@ import torch.nn as nn
 from network import *
 from utils import *
 from sklearn.metrics import mean_squared_error
+from minimisers import calculate_fidelity
 
 # This is where we'll put our autoencoder-based loss manifold code.
 # It will be called by `generate_loss_landscape` if the method is set to AUTOENCODER.
@@ -18,9 +19,9 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
 
     # Stack into a single tensor of shape (num_points, param_size)
     X = torch.stack(trajectory_tensors).cpu()
-    print(f"Projected trajectories in parameter space: {X}\n\n")
+    #print(f"Projected trajectories in parameter space: {X}\n\n")
 
-    epochs = 5
+    epochs = 5000
     loss_function = nn.MSELoss()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,7 +31,9 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     # print(auto_encoder)
 
     auto_encoder.train()
-    for _ in range(epochs):
+    loss_values = []
+    for i in range(epochs):
+        
         # for point in trajectory_tensors:
         reconstructed, _ = auto_encoder(X)
         # print(type(reconstructed), reconstructed)
@@ -39,23 +42,31 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        loss_values.append(loss.item())
 
+        if i % 100 == 0 or i == epochs - 1:
+            print_progress_bar(i, epochs, prefix=f'Progress (loss={loss.item():.2e}):', suffix='Complete', length=50)
+
+    import matplotlib.pyplot as plt
+    plt.plot(loss_values)
+    plt.yscale('log')
+    plt.ylabel('Loss (Log Scale)')
+    plt.show()
+    
     auto_encoder.eval()
     projected_trajectories = auto_encoder.encoder(X)
     projected_trajectories_list = projected_trajectories.detach().cpu().numpy().tolist()
-    print(f"Projected trajectories in latent space: {projected_trajectories_list}")
+    #print(f"Projected trajectories in latent space: {projected_trajectories_list}")
 
-    reconstructed_traj = auto_encoder.decoder(projected_trajectories).detach().cpu().numpy()
+    reconstructed_traj = auto_encoder.decoder(projected_trajectories).detach().cpu()
 
-    minimiser_trajectories = np.array(minimiser_trajectories)
+    #minimiser_distance = np.sum(minimiser_trajectories[0] - minimiser_trajectories[-1])
+    #projected_distance = np.sum(reconstructed_traj[0] - reconstructed_traj[-1])
 
-    minimiser_distance = np.sum(minimiser_trajectories[0] - minimiser_trajectories[-1])
-    projected_distance = np.sum(reconstructed_traj[0] - reconstructed_traj[-1])
-
-    fidelity = abs(projected_distance / minimiser_distance)
+    fidelity = calculate_fidelity(trajectory_tensors, reconstructed_traj)
     print("Autoencoder fidelity: ", fidelity)
 
-    mse_fidelity = mean_squared_error(minimiser_trajectories, reconstructed_traj)
+    mse_fidelity = mean_squared_error(minimiser_trajectories, reconstructed_traj.numpy())
     print("MSE Autoencoder fidelity: ", mse_fidelity)
 
     return auto_encoder.decoder, projected_trajectories_list, fidelity

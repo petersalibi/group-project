@@ -36,16 +36,22 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
 
     model = Model(landscape_params.network, data.inputs, data.outputs)
 
-    dir1, dir2, pca_trajectories = get_directions(model, landscape_params.method, landscape_params.args)
+    dir1, dir2, projections = get_directions(model, landscape_params.method, landscape_params.args)
+    
+    if projections is not None:
+        (pca_trajectories, fidelity) = projections
+    else:
+        pca_trajectories = None
+        fidelity = None
 
-    k=1
+    k=1.5
     pca_mean = None
-    if landscape_params.method == VisualisationMethod.PCAMINIMISER :
+    if landscape_params.method == VisualisationMethod.PCAMINIMISER:
 
         landscape_params.scale = [k*pca_trajectories[:, 0].min(), k*pca_trajectories[:, 0].max(),
                                   k*pca_trajectories[: , 1].min(), k*pca_trajectories[:, 1].max()]
 
-        # args contains your list of 300 weight vectors
+        # args contains list of 300 weight vectors
         traj_tensors = [torch.tensor(p) for p in landscape_params.args]
         pca_mean = torch.mean(torch.stack(traj_tensors), dim=0)
 
@@ -68,7 +74,8 @@ def generate_loss_landscape(landscape_params: LandscapeParams, verbose=False):
             "theta_0": flatten_params(model.parameters()).tolist(),
             "proj_trajectories": pca_trajectories,
             "pca_mean" : pca_mean,
-            "column_labels": data.column_labels}
+            "column_labels": data.column_labels,
+            "fidelity": fidelity}
 
 def compute_loss_surface(model, X, y, dir1, dir2, loss, samples=200, scale=10, verbose=False, pca_mean = None):
 
@@ -151,9 +158,9 @@ def compute_loss_surface_from_autoencoder(model, X, y, decoder, projected_trajec
         x_center = (x_max + x_min) / 2
         y_center = (y_max + y_min) / 2
         
-        # Determine the side length for a square: the larger dimension + 20%
-        # Adding 20% means multiplying the span by 1.2
-        max_span = max(width, height) * 1.2
+        # Determine the side length for a square: the larger dimension + 50%
+        # Adding 50% means multiplying the span by 1.5
+        max_span = max(width, height) * 1.5
         half_span = max_span / 2
         
         # Set limits centered around the original data
@@ -242,4 +249,5 @@ def generate_loss_manifold(landscape_params: LandscapeParams, verbose=False):
             "y_direction": None,
             "theta_0": flatten_params(model.parameters()).tolist(),
             "proj_trajectories": projected_trajectories,
-            "column_labels": data.column_labels}
+            "column_labels": data.column_labels,
+            "fidelity": fidelity}
