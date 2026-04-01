@@ -78,7 +78,8 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=
     plt.show()
     return ani
 
-params = regression_params_wide
+# THIS IS WHERE YOU CAN TEST THINGS
+params = regression_params_basic
 
 landscape = generate_loss_landscape(params, verbose=True)
 # print(print_landscape(landscape["surface"]))

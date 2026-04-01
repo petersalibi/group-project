@@ -105,7 +105,7 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = self.fcs(x)
-        z = torch.tanh(x)
+        z = x
         return z
 
 class Decoder(nn.Module):
@@ -124,7 +124,7 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = self.fcs(x)
-        z=x
+        z = x
         return z
 
 
