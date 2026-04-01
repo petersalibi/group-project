@@ -44,20 +44,32 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=
 
             if minimiser_path is not None:
                 path = np.array(minimiser_path)
-                line, = ax.plot([], [], [], color='r', marker='o')
 
                 xmin, xmax = xAxis.min(), xAxis.max()
                 ymin,ymax = yAxis.min(), yAxis.max()
 
+                # thin line
+                trail, = ax.plot([], [], [], color='red', alpha=0.5, linewidth=1)
+                # large dot
+                head, = ax.plot([], [], [], color='red', marker='o', markersize=6)
+
                 def update(num):
-                    line.set_data(np.array([path[num, 0]]), np.array([path[num, 1]]))
-                    zx = surface.shape[0] * (path[num, 0] - xmin) / (xmax - xmin)
-                    zy = surface.shape[1] * (path[num, 1] - ymin) / (ymax-ymin)
-                    zx = int(np.clip(zx, 0, surface.shape[0]-1))
-                    zy = int(np.clip(zy, 0, surface.shape[1]-1))
-                    z_value = surface[zx, zy]
-                    line.set_3d_properties(np.array([z_value]))  # Dummy z-values
-                    return line,
+                    trail_data = path[:num+1]
+                    zx = (surface.shape[0] * (trail_data[:, 0] - xmin) / (xmax - xmin)).astype(int)
+                    zy = (surface.shape[1] * (trail_data[:, 1] - ymin) / (ymax - ymin)).astype(int)
+                    zx = np.clip(zx, 0, surface.shape[0]-1)
+                    zy = np.clip(zy, 0, surface.shape[1]-1)
+                    
+                    # Get Z values from surface for the entire trail
+                    z_trail = surface[zx, zy]
+                    trail.set_data(trail_data[:, 0], trail_data[:, 1])
+                    trail.set_3d_properties(z_trail)
+
+                    # Update the head (only the current point)
+                    head.set_data(np.array([trail_data[-1, 0]]), np.array([trail_data[-1, 1]]))
+                    head.set_3d_properties(np.array([z_trail[-1]]))
+
+                    return trail, head
 
                 ani = FuncAnimation(fig, update, frames=len(path), interval=30, blit=True)
             else:
@@ -66,7 +78,7 @@ def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=
     plt.show()
     return ani
 
-params = regression_params_complex
+params = regression_params_wide
 
 landscape = generate_loss_landscape(params, verbose=True)
 # print(print_landscape(landscape["surface"]))

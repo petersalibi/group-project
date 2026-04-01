@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from network import *
 from utils import *
+from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 from minimisers import calculate_fidelity
 
@@ -21,13 +22,15 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     X = torch.stack(trajectory_tensors).cpu()
     #print(f"Projected trajectories in parameter space: {X}\n\n")
 
+    # Instantiate Autoencoder
+    auto_encoder = UniformAutoencoder(X.shape[1], 5, 2)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    auto_encoder.to(device)
+
+    optimizer = optim.Adam(auto_encoder.parameters(), lr=1e-3, weight_decay=1e-8)
+
     epochs = 5000
     loss_function = nn.MSELoss()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    auto_encoder = UniformAutoencoder(X.shape[1], 5, 2)
-    auto_encoder.to(device)
-    optimizer = optim.Adam(auto_encoder.parameters(), lr=1e-3, weight_decay=1e-8)
     # print(auto_encoder)
 
     auto_encoder.train()
