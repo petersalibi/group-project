@@ -19,7 +19,7 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     ]
 
     # Stack into a single tensor of shape (num_points, param_size)
-    X = torch.stack(trajectory_tensors).cpu()
+    X = torch.stack(trajectory_tensors)
     #print(f"Projected trajectories in parameter space: {X}\n\n")
 
     # Instantiate Autoencoder
@@ -32,11 +32,12 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     epochs = 5000
     loss_function = nn.MSELoss()
     # print(auto_encoder)
+    X = X.to(device)
 
     auto_encoder.train()
     loss_values = []
     for i in range(epochs):
-        
+
         # for point in trajectory_tensors:
         reconstructed, _ = auto_encoder(X)
         # print(type(reconstructed), reconstructed)
@@ -55,7 +56,9 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     plt.yscale('log')
     plt.ylabel('Loss (Log Scale)')
     plt.show()
-    
+
+    X = X.cpu()
+    auto_encoder.cpu()
     auto_encoder.eval()
     projected_trajectories = auto_encoder.encoder(X)
     projected_trajectories_list = projected_trajectories.detach().cpu().numpy().tolist()
