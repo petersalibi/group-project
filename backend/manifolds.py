@@ -23,8 +23,9 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     #print(f"Projected trajectories in parameter space: {X}\n\n")
 
     # Instantiate Autoencoder
-    auto_encoder = UniformAutoencoder(X.shape[1], 5, 2)
+    auto_encoder = UniformAutoencoder(X.shape[1], 2, 2)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
     auto_encoder.to(device)
 
     optimizer = optim.Adam(auto_encoder.parameters(), lr=1e-3, weight_decay=1e-8)
@@ -42,6 +43,10 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
         # print(type(reconstructed), reconstructed)
         loss = loss_function(reconstructed, X)
 
+        if loss.item() < 1e-4:
+            print(f"Early stopping at epoch {i} with loss {loss.item():.2e}")
+            break
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -50,12 +55,8 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
         if i % 100 == 0 or i == epochs - 1:
             print_progress_bar(i, epochs, prefix=f'Progress (loss={loss.item():.2e}):', suffix='Complete', length=50)
 
-    import matplotlib.pyplot as plt
-    plt.plot(loss_values)
-    plt.yscale('log')
-    plt.ylabel('Loss (Log Scale)')
-    plt.show()
-    
+    plot_loss(loss_values)
+
     auto_encoder.eval()
     projected_trajectories = auto_encoder.encoder(X)
     projected_trajectories_list = projected_trajectories.detach().cpu().numpy().tolist()
@@ -78,6 +79,13 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
     # return the decoder of the trained autoencoder, and the projected trajectories in the latent space (for visualization).
    # If you want to test this function, run plot.py and it will call this function with minimiser trajectories.
 
+
+def plot_loss(loss_values):
+    import matplotlib.pyplot as plt
+    plt.plot(loss_values)
+    plt.yscale('log')
+    plt.ylabel('Loss (Log Scale)')
+    plt.show()
 
 def get_hidden_layer_sizes(num_of_inputs, num_of_outputs, num_of_layers):
     if num_of_layers < 2:

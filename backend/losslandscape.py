@@ -145,8 +145,6 @@ def compute_loss_surface_from_autoencoder(model, X, y, decoder, projected_trajec
     # Latent limits is the same as our scale here
     if latent_limits is None:
         points = np.vstack(projected_trajectory) 
-        
-        # 2. Extract mins and maxes (ensuring they are scalars)
         x_min, y_min = points.min(axis=0)
         x_max, y_max = points.max(axis=0)
         
@@ -157,10 +155,9 @@ def compute_loss_surface_from_autoencoder(model, X, y, decoder, projected_trajec
         # Find the center point
         x_center = (x_max + x_min) / 2
         y_center = (y_max + y_min) / 2
-        
-        # Determine the side length for a square: the larger dimension + 50%
-        # Adding 50% means multiplying the span by 1.5
-        max_span = max(width, height) * 1.5
+
+        # Add 20%
+        max_span = max(width, height) * 1.2
         half_span = max_span / 2
         
         # Set limits centered around the original data
