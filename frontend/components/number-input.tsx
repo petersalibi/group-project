@@ -44,7 +44,6 @@ export function NumberInput({
           const parsed = parseFloat(text);
           if (!isNaN(parsed)) updateValue(parsed);
         }}
-        // We remove the internal input border to let the container handle it
         style={[styles.input, { color: theme.colors.foreground }]}
       />
 
@@ -83,7 +82,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderRadius: 8, 
     height: 36,
-    width: 90, // Explicitly smaller width
+    width: 90,
     overflow: "hidden" 
   },
   input: { 
@@ -91,7 +90,7 @@ const styles = StyleSheet.create({
     height: "100%",
     paddingHorizontal: 8,
     fontSize: 12,
-    borderWidth: 0, // Removes default input border
+    borderWidth: 0,
     textAlign: "left"
   },
   buttonStack: { 

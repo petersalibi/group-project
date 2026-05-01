@@ -9,7 +9,6 @@ interface SegmentedControlProps {
 }
 
 export function SegmentedControl({ options, selectedIndex, onChange }: SegmentedControlProps) {
-  //  1. Plug into the theme
   const { theme } = useTheme();
 
   return (
@@ -31,7 +30,6 @@ export function SegmentedControl({ options, selectedIndex, onChange }: Segmented
               paddingVertical: 8,
               backgroundColor: isActive ? theme.colors.card : "transparent",
               borderRadius: theme.radius.sm,
-              // Apply soft shadow only to the active "sliding" part
               ...(isActive ? theme.shadows.soft : {}),
               alignItems: "center",
             }}

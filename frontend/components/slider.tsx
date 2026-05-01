@@ -1,4 +1,3 @@
-// ./components/ui/slider.tsx
 import * as React from "react";
 import RNSlider from "@react-native-community/slider";
 import { useTheme } from "./theme-provider";

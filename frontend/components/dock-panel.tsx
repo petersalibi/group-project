@@ -20,7 +20,6 @@ export function DockPanel({
   isDraggable?: boolean, 
   children: React.ReactNode 
 }) {
-  // Extract the sizing variables from our context
   const { theme, registry, requestSwap, updateGhost, getSlotDims, isResizing, leftBarWidth, rightBarWidth, bottomBarHeight } = useLayout();
   
   const isDragging = useSharedValue(false);
@@ -51,8 +50,6 @@ export function DockPanel({
     });
 
   const animatedStyle = useAnimatedStyle(() => {
-    // 1. DUMMY READS: This is the magic fix! By accessing these values, Reanimated 
-    // knows it MUST re-run this style block every frame that a lozenge is dragged.
     leftBarWidth.value;
     rightBarWidth.value;
     bottomBarHeight.value;
@@ -68,7 +65,6 @@ export function DockPanel({
     const target = getSlotDims(registry[id], registry);
     const isCollapsed = target.w === 0 || target.h === 0;
 
-    // 2. If grabbing the header to drag the panel across the screen
     if (isDragging.value) {
       return {
         width: target.w, height: target.h,
@@ -77,9 +73,6 @@ export function DockPanel({
       };
     }
 
-    // 3. Smooth Swap vs Instant Resize: 
-    // If we are actively dragging a lozenge, jump instantly to the new value.
-    // If we just swapped panels, smoothly animate the transition!
     const animConfig = { duration: 250 };
     const x = isResizing.value ? target.x : withTiming(target.x, animConfig);
     const y = isResizing.value ? target.y : withTiming(target.y, animConfig);
@@ -90,7 +83,7 @@ export function DockPanel({
       width: w, height: h,
       transform: [{ translateX: x }, { translateY: y }] as any,
       zIndex: 1, position: 'absolute' as any,
-      opacity: isCollapsed ? 0 : 1, // Completely hide if crushed to 0
+      opacity: isCollapsed ? 0 : 1,
       pointerEvents: isCollapsed ? 'none' : 'auto',
     };
   });

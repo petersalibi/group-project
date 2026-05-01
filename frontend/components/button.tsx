@@ -39,7 +39,7 @@ export interface ButtonProps {
       }) => React.ReactNode);
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  customBg?: string; // Optional custom background color for the button
+  customBg?: string;
 }
 
 const sizeStyles = {
@@ -64,14 +64,13 @@ export function Button({
   rightIcon,
   customBg,
 }: ButtonProps) {
-  const { theme } = useTheme(); //  Hook added inside
+  const { theme } = useTheme();
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
 
   const isDisabled = disabled || loading;
   const sz = sizeStyles[size];
 
-  //  Moved inside to access theme safely
   const getVariantColors = () => {
     switch (variant) {
       case 'destructive':
@@ -122,11 +121,7 @@ export function Button({
       onPress={onPress}
       onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
       onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
-      // onFocus={() => Platform.OS === "web" && setFocused(true)}
-      // onBlur={() => Platform.OS === "web" && setFocused(false)}
       style={({ pressed }) => {
-        // Fix: Hover should only show if not pressed.
-        // Focus (the sticky highlight) is handled separately now.
         const isCurrentlyActive = (hovered || pressed) && !isDisabled;
 
         const base: any = {
@@ -147,11 +142,10 @@ export function Button({
           ...(Platform.OS === 'web' && {
             cursor: isDisabled ? 'not-allowed' : 'pointer',
             transition: 'all 150ms ease',
-            outlineStyle: 'none', // Prevents the default browser blue ring
+            outlineStyle: 'none',
           }),
         };
 
-        // Focus Ring: Only shows when tabbed into or clicked on Web
         if (focused && !isDisabled && Platform.OS === 'web') {
           base.boxShadow = `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.ring}`;
         }

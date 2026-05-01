@@ -10,11 +10,10 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useLayout } from './docking-provider';
 import { Text } from './text';
 
-// Added isDraggable to the props interface with an optional flag
 export function DockPanel({
   id,
   title,
-  isDraggable = true, // Defaulting to true as requested
+  isDraggable = true,
   children,
 }: {
   id: string;
@@ -33,7 +32,6 @@ export function DockPanel({
   const width = useSharedValue(slot.w);
   const height = useSharedValue(slot.h);
 
-  // Capture the starting position for the pan gesture
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
 
@@ -48,7 +46,7 @@ export function DockPanel({
   }, [slot, isDragging.value]);
 
   const pan = Gesture.Pan()
-    .enabled(isDraggable) // This line kills the gesture if isDraggable is false
+    .enabled(isDraggable)
     .onStart(() => {
       isDragging.value = true;
       startX.value = x.value;
@@ -105,16 +103,11 @@ export function DockPanel({
           borderColor: theme.colors.border,
           borderRadius: theme.radius.md,
           overflow: 'hidden',
-          // Optional: reduce shadow if not draggable to signal it's "locked"
           ...(isDraggable ? theme.shadows.soft : {}),
         },
         animatedStyle,
       ]}
     >
-      {/* Wrap ONLY the header in the GestureDetector. 
-        This allows the user to scroll/slide things inside the panel 
-        without accidentally dragging the whole window.
-      */}
       {isDraggable ? (
         <GestureDetector gesture={pan}>{HeaderContent}</GestureDetector>
       ) : (

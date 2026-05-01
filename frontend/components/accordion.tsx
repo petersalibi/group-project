@@ -42,7 +42,6 @@ export function Accordion({
   style,
   children,
 }: AccordionProps) {
-  // 1. Theme hook inside the Accordion component
   const { theme } = useTheme(); 
   
   const isControlled = value !== undefined;
@@ -104,7 +103,6 @@ function useAccordionItem() {
 }
 
 export function AccordionItem({ value, style, children }: { value: string; style?: StyleProp<ViewStyle>; children: React.ReactNode; }) {
-  // 2. MUST call useTheme here too because we use theme.colors.border
   const { theme } = useTheme(); 
 
   return (
@@ -125,7 +123,6 @@ export function AccordionItem({ value, style, children }: { value: string; style
 }
 
 export function AccordionTrigger({ children, showChevron = true, style, textStyle, disabled }: { children: React.ReactNode; showChevron?: boolean; style?: StyleProp<ViewStyle>; textStyle?: any; disabled?: boolean; }) {
-  // 3. And here, because we use spacing, radius, and colors
   const { theme } = useTheme(); 
   const { toggleItem, isOpen } = useAccordion();
   const { value } = useAccordionItem();
@@ -164,7 +161,7 @@ export function AccordionTrigger({ children, showChevron = true, style, textStyl
         <Feather
           name="chevron-down"
           size={16}
-          color={theme.colors.mutedForeground} // Corrected from theme.colors.muted
+          color={theme.colors.mutedForeground}
           style={{
             marginTop: 2,
             transform: [{ rotate: open ? "180deg" : "0deg" }],
@@ -176,7 +173,6 @@ export function AccordionTrigger({ children, showChevron = true, style, textStyl
 }
 
 export function AccordionContent({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; }) {
-  // 4. And finally here for the padding
   const { theme } = useTheme(); 
   const { isOpen } = useAccordion();
   const { value } = useAccordionItem();

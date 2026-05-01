@@ -18,10 +18,8 @@ export function InfoModal({ visible, onClose, title, children }: InfoModalProps)
   if (!visible) return null;
 
   return (
-    // The wrapper ensures it floats over everything else
     <View style={[StyleSheet.absoluteFill, styles.overlayContainer]}>
       
-      {/* 1. Dark, clickable backdrop (clicking outside closes the modal) */}
       <Animated.View
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(200)}
@@ -34,7 +32,6 @@ export function InfoModal({ visible, onClose, title, children }: InfoModalProps)
         />
       </Animated.View>
 
-      {/* 2. The Main Content Box */}
       <Animated.View
         entering={ZoomIn.duration(250).springify().damping(15)}
         exiting={ZoomOut.duration(200)}
@@ -47,7 +44,6 @@ export function InfoModal({ visible, onClose, title, children }: InfoModalProps)
           }
         ]}
       >
-        {/* Header with Title and Close Button */}
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <Text style={styles.title}>{title}</Text>
           <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.colors.muted }]}>
@@ -55,7 +51,6 @@ export function InfoModal({ visible, onClose, title, children }: InfoModalProps)
           </TouchableOpacity>
         </View>
 
-        {/* Scrollable Children Area */}
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}

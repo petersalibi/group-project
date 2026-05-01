@@ -18,7 +18,6 @@ interface NodeData {
 const MAX_WIDTH = 5;
 const MAX_DEPTH = 5;
 
-// Easing function for smooth animation
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 const lerp = (start: number, end: number, t: number) =>
   start + (end - start) * t;
@@ -42,11 +41,10 @@ const getActivationPath = (type: string) => {
 const getEdgeStyle = (weight: number | undefined, theme: Theme) => {
   if (weight === undefined) return { stroke: theme.colors.foreground, width: 2, opacity: 0.8 };
 
-  // Normalize weight (-1 to 1)
+  // Normalise weight (-1 to 1)
   const val = Math.tanh(weight / 2);
   const magnitude = Math.abs(val);
 
-  // Color: Green if > 0, Red if < 0
   const color = val > 0 ? `rgba(9, 255, 0, 0.8)` : `rgba(255, 0, 0, 0.8)`;
   const width = 2 + magnitude * 10;
 
@@ -153,7 +151,6 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
 
     const isLayerTruncated = depth > MAX_DEPTH;
     
-    // Calculate total columns being rendered
     const renderedHiddenCount = isLayerTruncated ? 3 : (depth === 1 ? 0 : depth); 
     let logicalHiddenLayers = depth; 
     if (depth === 1) logicalHiddenLayers = 0;
@@ -168,8 +165,6 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
 
     const nodes: NodeData[] = [];
 
-    // Helper to determine Y position and indices for a column
-    // If count > MAX_WIDTH, we show: Node 0, Ellipsis, Node Last
     const getColumnNodes = (
         count: number, 
         colX: number, 
@@ -186,14 +181,13 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
             let nodeType = type;
             let label = '';
             
-            // Determine logical index and visual position
             if (isNodeTruncated) {
                 if (i === 0) actualIndex = 0;
                 else if (i === 1) {
                     colNodes.push({
                         id: `${baseId}-ellipsis`,
                         x: colX,
-                        y: h / 2, // Center vertically
+                        y: h / 2,
                         type: 'ellipsis-v',
                         label: '',
                         opacity: 1,
@@ -221,14 +215,13 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
 
     let colIndex = 0;
 
-    // 1. Input Layer
+    // Input Layer
     nodes.push(...getColumnNodes(inputs, getX(colIndex), 'in', 'input'));
     colIndex++;
 
-    // 2. Hidden Layers
+    // Hidden Layers
     if (logicalHiddenLayers > 0) {
         if (isLayerTruncated) {
-            // Render First Hidden Layer
             nodes.push(...getColumnNodes(width, getX(colIndex), 'h-1', 'hidden'));
             colIndex++;
 
@@ -244,11 +237,9 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
             });
             colIndex++;
 
-            // Render Last Hidden Layer
             nodes.push(...getColumnNodes(width, getX(colIndex), `h-${logicalHiddenLayers}`, 'hidden'));
             colIndex++;
         } else {
-            // Standard Loop
             for (let l = 1; l <= logicalHiddenLayers; l++) {
                 nodes.push(...getColumnNodes(width, getX(colIndex), `h-${l}`, 'hidden'));
                 colIndex++;
@@ -256,13 +247,12 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
         }
     }
 
-    // 3. Output Layer
+    // Output Layer
     nodes.push(...getColumnNodes(outputs, getX(colIndex), 'out', 'output'));
 
     return nodes;
   }, [depth, width, inputs, outputs, dimensions]);
 
-  // Animation Loop
   useEffect(() => {
     if (targetLayout.length === 0) return;
     const startMap = new Map(prevNodesRef.current);
@@ -319,12 +309,10 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
     y: number;
   } | null>(null);
 
-  // Edges Calculation
   const { edges, nodeBiases } = useMemo(() => {
     const calculatedEdges: any[] = [];
     const calculatedBiases: Record<string, number> = {};
 
-    // Helper: Filter out ellipsis nodes so we don't draw lines to dots
     const cleanNodes = (nodes: NodeData[]) => nodes.filter(n => !n.type.includes('ellipsis'));
 
     // Group nodes
@@ -338,7 +326,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
       .filter((n) => n.type === 'hidden')
       .forEach((n) => {
         const parts = n.id.split('-');
-        const layerIdx = parts[1]; // Keep as string for map key
+        const layerIdx = parts[1];
         if (!hiddenLayersMap[layerIdx]) hiddenLayersMap[layerIdx] = [];
         hiddenLayersMap[layerIdx].push(n);
       });
@@ -347,7 +335,6 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
     const sortedLayerKeys = Object.keys(hiddenLayersMap).sort((a, b) => parseInt(a) - parseInt(b));
     const hiddenLayers = sortedLayerKeys.map(k => cleanNodes(hiddenLayersMap[k]));
 
-    // Check for Horizontal Ellipsis to break connections
     const hasHorizontalEllipsis = displayNodes.some(n => n.type === 'ellipsis-h');
 
     let paramIndex = 0;
@@ -385,9 +372,6 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
       processLayer(inputNodes, hiddenLayers[0]);
       
       // Hidden -> Hidden
-      // If hasHorizontalEllipsis, we have [First Layer] ... [Last Layer]
-      // In `hiddenLayers` array, index 0 is First, index 1 is Last.
-      // We should NOT connect index 0 to index 1 if there is an ellipsis.
       if (!hasHorizontalEllipsis) {
           for (let i = 0; i < hiddenLayers.length - 1; i++) {
             processLayer(hiddenLayers[i], hiddenLayers[i + 1]);
@@ -471,7 +455,6 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
             const stepY = dimensions.h / 4; 
             const yOffset = (stepY / 2) * 0.75;
             
-            // Horizontal offset: exactly half the distance between columns
             const visibleHiddenCols = depth > MAX_DEPTH ? 3 : (depth === 1 ? 0 : depth);
             const totalCols = 2 + visibleHiddenCols; 
             const colSpacing = (dimensions.w - 80) / (totalCols - 1); // 80 is paddingX * 2
@@ -529,7 +512,7 @@ export function NetworkArchitecture({ inputs, depth, width, activation, outputs,
             );
           }
 
-          // --- Render Standard Nodes ---
+          // Render Standard Nodes
           let fill = theme.colors.muted;
           if (n.type === 'input') fill = theme.colors.frenchBlue;
           if (n.type === 'output') fill = "#bef264";

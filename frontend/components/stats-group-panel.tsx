@@ -20,11 +20,6 @@ export function StatsGroupPanel({ archContent, metricsContent }: any) {
     };
   });
 
-  // Get current dimensions to determine orientation
-  const slot = getSlotDims(registry['STATS_GROUP'], registry);
-  // Automatic Orientation: If width is small, go vertical.
-  const isVertical = slot.w < 400;
-
   const internalSwap = Gesture.Pan().onEnd((e) => {
     if (Math.abs(e.translationX) > 80 || Math.abs(e.translationY) > 80) {
       React.startTransition(() => setIsSwapped(!isSwapped));
@@ -49,7 +44,6 @@ export function StatsGroupPanel({ archContent, metricsContent }: any) {
         }
       >
         <Animated.View style={[{ flex: 1, gap: 12, padding: 10 }, animatedInnerStyle]}>
-          {/* Sub-Panel 1 */}
           <View
             style={{
               flex: 1,
@@ -84,7 +78,6 @@ export function StatsGroupPanel({ archContent, metricsContent }: any) {
             <View style={{ flex: 1 }}>{LeftSection}</View>
           </View>
 
-          {/* Sub-Panel 2 */}
           <View
             style={{
               flex: 1,

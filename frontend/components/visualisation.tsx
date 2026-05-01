@@ -428,7 +428,7 @@ export function Visualisation({ id }: VisualisationProps) {
                 />
               )}
 
-              {/* DATASET DROPDOWN */}
+              {/* Dataset dropdown */}
               <View style={styles.controlGroup}>
                 <Text style={styles.label}>DATASET</Text>
                 {data === 'CUSTOM' && (
@@ -493,7 +493,7 @@ export function Visualisation({ id }: VisualisationProps) {
                 </View>
               </View>
 
-              {/* ACTIVATION & LOSS DROPDOWNS */}
+              {/* Activation & Loss Dropdowns */}
               <View style={styles.controlGroup}>
                 <View
                   style={{
@@ -510,7 +510,6 @@ export function Visualisation({ id }: VisualisationProps) {
                 </View>
 
                 <View style={styles.rowGap}>
-                  {/* Left Column: Activation Function */}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.subLabel}>Activation Function</Text>
                     <DropdownMenu>
@@ -548,7 +547,6 @@ export function Visualisation({ id }: VisualisationProps) {
                     </DropdownMenu>
                   </View>
 
-                  {/* Right Column: Loss Function */}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.subLabel}>Loss Function</Text>
                     <DropdownMenu>
@@ -692,7 +690,7 @@ export function Visualisation({ id }: VisualisationProps) {
                 )}
               </View>
 
-              {/* ARCHITECTURE WITH STACKED NUMBER INPUTS */}
+              {/* Network Architecture */}
               <View style={styles.controlGroup}>
                 <Text style={styles.label}>ARCHITECTURE</Text>
                 <View style={styles.rowGap}>
@@ -731,7 +729,7 @@ export function Visualisation({ id }: VisualisationProps) {
               {isPathLoading || isPathLoaded ? (
                 <Button
                   variant='secondary'
-                  disabled={true} // Always disabled if paths are active
+                  disabled={true}
                   onPress={() => {
                     onGenerateLandscape();
                   }}
@@ -755,7 +753,7 @@ export function Visualisation({ id }: VisualisationProps) {
                 </Button>
               )}
 
-              {/* PATH DETAILS CARD */}
+              {/* Path Configurations */}
               <View style={styles.controlGroup}>
                 <View
                   style={{
@@ -831,13 +829,10 @@ export function Visualisation({ id }: VisualisationProps) {
                 )}
               </View>
 
-              {/*
-            <Button variant="secondary" style={styles.exportBtn}>Export Data</Button>
-            */}
             </ScrollView>
           </DockPanel>
 
-          {/* ENGINE AREA */}
+          {/* Engine Area */}
           <DockPanel
             id='ENGINE'
             title='LOSS LANDSCAPE VISUALISATION'
@@ -1043,7 +1038,7 @@ export function Visualisation({ id }: VisualisationProps) {
           />
         </LayoutManager>
       )}
-      {/* --- NETWORK CONFIGURATION MODAL --- */}
+      {/* Network Configuration Modal */}
       <InfoModal
         visible={showNetworkInfo}
         onClose={() => setShowNetworkInfo(false)}
@@ -1259,7 +1254,7 @@ export function Visualisation({ id }: VisualisationProps) {
         </View>
       </InfoModal>
 
-      {/* --- PATH CONFIGURATIONS MODAL --- */}
+      {/* Path Configurations Modal */}
       <InfoModal
         visible={showPathInfo}
         onClose={() => setShowPathInfo(false)}
@@ -1643,7 +1638,7 @@ export function Visualisation({ id }: VisualisationProps) {
         </View>
       </InfoModal>
 
-      {/* --- VISUALISATION MODAL --- */}
+      {/* Visualisation Modal */}
       <InfoModal
         visible={showVisualisationInfo}
         onClose={() => setShowVisualisationInfo(false)}
@@ -1805,7 +1800,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    height: 180, // Matches the height of your DockPanel footer
+    height: 180,
     padding: 12,
     paddingTop: 6,
     gap: 0,

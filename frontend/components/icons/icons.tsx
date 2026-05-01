@@ -176,12 +176,10 @@ const makeAnimated = (Component) => {
   const Wrapped = React.forwardRef(({ collapsable, ...props }, ref) => (
     <Component ref={ref} {...props} />
   ));
-  // Set a display name for debugging (optional)
   Wrapped.displayName = `Animated${Component.displayName || Component.name}`;
   return Animated.createAnimatedComponent(Wrapped);
 };
 
-// 2. Create your Animated components using the helper
 const AnimatedCircle = makeAnimated(Circle);
 const AnimatedLine = makeAnimated(Line);
 const AnimatedPolygon = makeAnimated(Polygon);
@@ -239,7 +237,7 @@ export function LandscapeLoadingIcon({ isLandscapeLoading, size = 300 }) {
         if (i < GRID - 1) lines.push({ from: idx, to: getIdx(i + 1, j), dist });
         if (j < GRID - 1) lines.push({ from: idx, to: getIdx(i, j + 1), dist });
 
-        // Quads (Surface Fill)
+        // Quads
         if (i < GRID - 1 && j < GRID - 1) {
           const p1 = getIdx(i, j),
             p2 = getIdx(i + 1, j),

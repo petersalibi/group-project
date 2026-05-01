@@ -3,14 +3,13 @@ import { Pressable, Animated, Platform } from "react-native";
 import { useTheme } from "./theme-provider";
  
 export function Switch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange?: (val: boolean) => void }) {
-  //  1. Plug into the theme
   const { theme } = useTheme();
   const thumbAnim = React.useRef(new Animated.Value(checked ? 1 : 0)).current;
 
   React.useEffect(() => {
     Animated.spring(thumbAnim, {
       toValue: checked ? 1 : 0,
-      useNativeDriver: false, // Colors and layout properties don't support native driver in standard Animated
+      useNativeDriver: false,
       friction: 10,
       tension: 100,
     }).start();
@@ -18,7 +17,7 @@ export function Switch({ checked, onCheckedChange }: { checked: boolean; onCheck
 
   const translateX = thumbAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [2, 16], // Adjusted for 36px width
+    outputRange: [2, 16],
   });
 
   const backgroundColor = thumbAnim.interpolate({
@@ -30,7 +29,7 @@ export function Switch({ checked, onCheckedChange }: { checked: boolean; onCheck
     <Pressable 
       onPress={() => onCheckedChange?.(!checked)}
       style={({ hovered }: any) => [
-        { opacity: hovered ? 0.9 : 1 } // Web hover feedback
+        { opacity: hovered ? 0.9 : 1 }
       ]}
     >
       <Animated.View style={[
@@ -50,7 +49,7 @@ export function Switch({ checked, onCheckedChange }: { checked: boolean; onCheck
             height: 14,
             borderRadius: 7,
             backgroundColor: "white",
-            ...theme.shadows.soft, // Add your theme's soft shadow
+            ...theme.shadows.soft,
             transform: [{ translateX }],
           }
         ]} />

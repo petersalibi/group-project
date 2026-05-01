@@ -3,25 +3,20 @@ import { View, Animated, ViewStyle, StyleProp } from 'react-native';
 import { useTheme } from './theme-provider';
 
 export type ProgressProps = {
-  /**
-   * Value from 0 to 100
-   */
   value?: number;
   style?: StyleProp<ViewStyle>;
   indicatorStyle?: StyleProp<ViewStyle>;
 };
 
 export function Progress({ value = 0, style, indicatorStyle }: ProgressProps) {
-  //  1. Call the hook inside the function
   const { theme } = useTheme();
 
-  // Animation value for smooth transitions
   const progressAnim = React.useRef(new Animated.Value(value)).current;
 
   React.useEffect(() => {
     Animated.spring(progressAnim, {
       toValue: value,
-      useNativeDriver: false, // width cannot use native driver
+      useNativeDriver: false,
       friction: 8,
       tension: 40,
     }).start();
@@ -40,7 +35,7 @@ export function Progress({ value = 0, style, indicatorStyle }: ProgressProps) {
         {
           height: 8,
           width: '100%',
-          backgroundColor: theme.colors.muted, //  Uses theme safely
+          backgroundColor: theme.colors.muted,
           borderRadius: theme.radius.full,
           overflow: 'hidden',
         },
@@ -52,7 +47,7 @@ export function Progress({ value = 0, style, indicatorStyle }: ProgressProps) {
         style={[
           {
             height: '100%',
-            backgroundColor: theme.colors.primary, //  Uses theme safely
+            backgroundColor: theme.colors.primary,
             width: width,
           },
           indicatorStyle,

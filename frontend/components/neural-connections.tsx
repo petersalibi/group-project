@@ -4,7 +4,6 @@ import { View } from "react-native";
 import { useTheme } from "./theme-provider";
  
 export function NeuralConnections() {
-  //  1. Call the hook inside the function
   const { theme } = useTheme();
 
   return (
@@ -25,15 +24,13 @@ export function NeuralConnections() {
           </LinearGradient>
         </Defs>
         
-        {/* Active connection: Basics to Optimization */}
         <Line
-          x1="20%" y1="75" // Half of SVG height
+          x1="20%" y1="75"
           x2="50%" y2="75"
           stroke="url(#activeGrad)"
           strokeWidth="3"
         />
         
-        {/* Inactive connection: Optimization to Advanced */}
         <Line
           x1="50%" y1="75"
           x2="80%" y2="75"

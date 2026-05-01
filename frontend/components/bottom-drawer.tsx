@@ -11,7 +11,6 @@ interface BottomDrawerProps {
 }
 
 export function BottomDrawer({ isOpen, onClose, title, children }: BottomDrawerProps) {
-  //  1. Call the hook inside the component
   const { theme } = useTheme();
 
   return (
@@ -21,7 +20,6 @@ export function BottomDrawer({ isOpen, onClose, title, children }: BottomDrawerP
       animationType="slide"
       onRequestClose={onClose}
     >
-      {/* Backdrop */}
       <Pressable 
         onPress={onClose}
         style={{
@@ -30,9 +28,8 @@ export function BottomDrawer({ isOpen, onClose, title, children }: BottomDrawerP
           justifyContent: "flex-end",
         }}
       >
-        {/* Drawer Content */}
         <Pressable 
-          onPress={(e) => e.stopPropagation()} // Prevent click-through to backdrop
+          onPress={(e) => e.stopPropagation()}
           style={{
             backgroundColor: theme.colors.background,
             borderTopLeftRadius: theme.radius.xl,
@@ -44,7 +41,6 @@ export function BottomDrawer({ isOpen, onClose, title, children }: BottomDrawerP
             borderColor: theme.colors.border,
           }}
         >
-          {/* Handle bar for visual cue */}
           <View style={{
             width: 40,
             height: 4,
@@ -54,7 +50,6 @@ export function BottomDrawer({ isOpen, onClose, title, children }: BottomDrawerP
             marginBottom: theme.spacing.md,
           }} />
 
-          {/* Header */}
           <View style={{ 
             flexDirection: "row", 
             justifyContent: "space-between", 
@@ -73,7 +68,6 @@ export function BottomDrawer({ isOpen, onClose, title, children }: BottomDrawerP
             </Pressable>
           </View>
 
-          {/* Content Area */}
           <ScrollView showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>

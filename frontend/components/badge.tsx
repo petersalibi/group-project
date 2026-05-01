@@ -7,16 +7,9 @@ export type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
  
 export type BadgeProps = {
   variant?: BadgeVariant;
-  /**
-   * If you want the badge to behave like a link/button (hover + press),
-   * pass onPress. Otherwise it renders as a static badge.
-   */
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   textStyle?: any;
-  /**
-   * Optional icon (Feather / Image / etc.)
-   */
   leftIcon?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -29,15 +22,12 @@ export function Badge({
   leftIcon,
   children,
 }: BadgeProps) {
-  //  1. Call the hook inside the component
   const { theme } = useTheme();
 
-  // Web-only hover/focus states
   const isWeb = Platform.OS === "web";
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
 
-  //  2. Resolve colors inside the component so 'theme' is available
   const getColors = () => {
     switch (variant) {
       case "secondary":
@@ -101,7 +91,6 @@ export function Badge({
             ? ({ cursor: "pointer", outlineStyle: "none" } as any)
             : null),
         },
-        // focus ring (web only)
         focused && onPress
           ? ({
               boxShadow: `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.ring}`,

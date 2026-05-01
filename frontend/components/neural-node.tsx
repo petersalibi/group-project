@@ -25,15 +25,14 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
   const isAvailable = status === 'available';
   const isLocked = status === 'locked';
 
-  // Breathing animation for the active/available node
   const pulse = useSharedValue(1);
   
   useEffect(() => {
     if (isAvailable) {
       pulse.value = withRepeat(
         withTiming(1.3, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-        -1, // Infinite
-        true // Reverse
+        -1,
+        true
       );
     } else {
       pulse.value = 1;
@@ -58,7 +57,6 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
           alignItems: 'center',
         }}
       >
-        {/* Animated Glow for Active Node */}
         {isAvailable && (
           <Animated.View
             style={[
@@ -67,14 +65,13 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
                 width: 64,
                 height: 64,
                 borderRadius: theme.radius.full,
-                backgroundColor: theme.colors.chart4, // A nice contrast color from your theme
+                backgroundColor: theme.colors.chart4,
               },
               animatedGlowStyle,
             ]}
           />
         )}
 
-        {/* Main Node Circle */}
         <LinearGradient
           colors={
             isCompleted
@@ -97,7 +94,6 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
           }}
         >
           
-          {/* Inner Dots replacing the Tick and Padlock */}
           {isCompleted && (
             <View
               style={{
@@ -143,7 +139,6 @@ export function NeuralNode({ status, label }: NeuralNodeProps) {
         </LinearGradient>
       </View>
 
-      {/* Label */}
       {label && (
         <Text
           style={{

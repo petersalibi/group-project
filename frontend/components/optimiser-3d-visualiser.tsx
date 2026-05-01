@@ -60,7 +60,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       propsRef.current = { optimiser, learningRate };
     }, [optimiser, learningRate]);
 
-    // --- API DATA INTERPOLATION MATH ---
     const getInterpolatedLoss = (x: number, z: number) => {
       const dict = dictRef.current;
       if (!dict || !dict.surface) return 0;
@@ -113,7 +112,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       return t * 0.4 * Z_SCALE; 
     };
 
-    // FETCH API AND BUILD 3D SCENE
     useEffect(() => {
       if (!containerRef.current) return;
       const container = containerRef.current;
@@ -235,7 +233,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       };
     }, []);
 
-    // OPTIMISER MATH & ARROW UPDATES
     const stepOptimiser = () => {
       if (!sceneRef.current || !dictRef.current) return;
       const { marker, gradArrow, momArrow } = sceneRef.current;
@@ -322,7 +319,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       drawForces(rawStepX, rawStepZ, momX, momZ);
     };
 
-    // 2D CANVAS DRAWING
     const drawCurve = () => {
       if (!curveRef.current || !dictRef.current) return;
       const ctx = curveRef.current.getContext('2d');
@@ -378,7 +374,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       ctx.lineTo(cx, h);
       ctx.stroke();
 
-      // Draw White Dot in Middle
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(cx, cy, 3, 0, Math.PI * 2);
@@ -386,7 +381,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
 
       const drawArrow = (dx: number, dy: number, color: string) => {
         if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return;
-        const scale = 12; // Increased scale so arrows don't look tiny in the box
+        const scale = 12;
         const ex = cx - dx * scale;
         const ey = cy - dy * scale;
 
@@ -408,7 +403,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       drawArrow(m1, m2, '#3b82f6'); // Mom
     };
 
-    // --- PLAY/PAUSE LOOP ---
     useEffect(() => {
       let raf: number;
       const loop = () => {
@@ -419,7 +413,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       return () => cancelAnimationFrame(raf);
     }, [isRunning]);
 
-    // EXPOSE CONTROLS TO PARENT
     useImperativeHandle(ref, () => ({
       step: () => stepOptimiser(),
       toggleRun: () => {
@@ -450,7 +443,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
       <View style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden' }}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-        {/* GUI OVERLAY */}
+        {/* GUI Overlay */}
         <View
           style={{
             position: 'absolute',
@@ -503,7 +496,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
                 <Text
                   style={{
                     fontSize: 16,
-                    color: '#f59e0b', // Keep your orange for loss
+                    color: '#f59e0b',
                     fontFamily: 'monospace',
                     fontWeight: '700',
                     marginTop: 2,
@@ -530,7 +523,7 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
               </View>
             </View>
 
-            {/* LEGEND */}
+            {/* Legend */}
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
@@ -544,7 +537,6 @@ const Optimiser3DVisualiser = forwardRef<OptimiserVisualiserHandle, Props>(
           </View>
         </View>
 
-        {/* LOADING OVERLAY */}
         {isLoading && (
           <View
             style={[

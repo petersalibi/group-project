@@ -4,10 +4,6 @@ import { Text } from 'react-native';
 import { useTheme } from './theme-provider';
 
 interface GradientBoxProps {
-  /**
-   * Array of color strings.
-   * Example: [theme.colors.frenchBlue, theme.colors.oceanTwilight]
-   */
   colors: string[];
   label: string;
   textColor?: string;
@@ -18,7 +14,6 @@ export function GradientBox({
   label,
   textColor = 'white',
 }: GradientBoxProps) {
-  //  1. Call the hook inside the function to access theme.radius
   const { theme } = useTheme();
 
   return (
@@ -28,7 +23,7 @@ export function GradientBox({
       end={{ x: 1, y: 1 }}
       style={{
         height: 80,
-        borderRadius: theme.radius.md, //  Now theme is defined!
+        borderRadius: theme.radius.md,
         alignItems: 'center',
         justifyContent: 'center',
         flex: 1,

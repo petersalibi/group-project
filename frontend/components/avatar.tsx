@@ -25,9 +25,6 @@ function useAvatar() {
 }
 
 export type AvatarProps = {
-  /**
-   * Default matches your `size-10` (~40)
-   */
   size?: number;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
@@ -66,7 +63,6 @@ export type AvatarImageProps = Omit<ImageProps, "style"> & {
 function AvatarImage({ style, ...props }: AvatarImageProps) {
   const { imageStatus, setImageStatus } = useAvatar();
  
-  // If we already errored, don't keep rendering the broken image.
   if (imageStatus === "error") return null;
 
   return (
@@ -95,15 +91,10 @@ function AvatarImage({ style, ...props }: AvatarImageProps) {
 
 export type AvatarFallbackProps = {
   children?: React.ReactNode;
-  /**
-   * Show fallback even before image loads? (Radix usually shows fallback until loaded)
-   * default: true
-   */
   showUntilLoaded?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 };
-// ... (Keep Context and Avatar/AvatarImage as they are)
 
 function AvatarFallback({
   children,
@@ -112,7 +103,7 @@ function AvatarFallback({
   textStyle,
 }: AvatarFallbackProps) {
   const { size, imageStatus } = useAvatar();
-  const { theme } = useTheme(); //  Hook added inside the function
+  const { theme } = useTheme();
 
   const shouldShow =
     imageStatus === "error" || (showUntilLoaded && imageStatus !== "loaded");
@@ -129,7 +120,7 @@ function AvatarFallback({
           borderRadius: size / 2,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: theme.colors.muted, //  Now theme is defined!
+          backgroundColor: theme.colors.muted,
         },
         style,
       ]}
@@ -138,7 +129,7 @@ function AvatarFallback({
         <Text
           style={[
             {
-              color: theme.colors.foreground, //  Now theme is defined!
+              color: theme.colors.foreground,
               fontWeight: "600",
             },
             textStyle,

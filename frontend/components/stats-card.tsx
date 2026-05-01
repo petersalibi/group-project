@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { useTheme } from "./theme-provider";
-import { Tooltip } from "./tooltip";
  
 interface StatsCardProps {
   value: string;
@@ -16,9 +15,7 @@ interface StatsCardProps {
 export function StatsCard({ value, label, color, subText, subColor, valueTooltip, subTextTooltip }: StatsCardProps) {
   const { theme } = useTheme();
 
-  // Primary value color (defaults to theme French Blue)
   const statusColor = color || theme.colors.frenchBlue;
-  // Subtext color (defaults to muted foreground if not provided)
   const secondaryColor = subColor || theme.colors.mutedForeground;
 
   const ValueNode = (
@@ -54,7 +51,6 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
       zIndex: 1,
       overflow: 'visible',
     }}>
-      {/* Top Label */}
       <Text style={{ 
         fontSize: 9, 
         fontWeight: "700", 
@@ -66,7 +62,6 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
         {label}
       </Text>
 
-      {/* Values Container */}
       <View style={{
         flex: 1, 
         flexDirection: 'row', 
@@ -77,12 +72,10 @@ export function StatsCard({ value, label, color, subText, subColor, valueTooltip
         columnGap: 12,
         rowGap: 4,
       }}>
-        {/* Main Metric Value */}
         <View style={{ flexShrink: 0 }}>
           {ValueNode}
         </View>
 
-        {/* Bottom Subtext (Trend/Status) */}
         <View style={{ flexShrink: 0 }}>
           {SubTextNode}
         </View>

@@ -81,7 +81,7 @@ export function BreadcrumbLink({
   textStyle,
   children,
 }: BreadcrumbLinkProps) {
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
   const isWeb = Platform.OS === "web";
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
@@ -133,7 +133,7 @@ export type BreadcrumbPageProps = {
 };
 
 export function BreadcrumbPage({ style, textStyle, children }: BreadcrumbPageProps) {
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
   return (
     <View data-slot="breadcrumb-page" style={style}>
       <Text
@@ -159,7 +159,7 @@ export type BreadcrumbSeparatorProps = {
 };
 
 export function BreadcrumbSeparator({ style, children }: BreadcrumbSeparatorProps) {
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
   return (
     <View
       style={[{ alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }, style]}
@@ -180,7 +180,7 @@ export type BreadcrumbEllipsisProps = {
 };
 
 export function BreadcrumbEllipsis({ style, onPress }: BreadcrumbEllipsisProps) {
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
   const isWeb = Platform.OS === "web";
   const [hovered, setHovered] = React.useState(false);
 

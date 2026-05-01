@@ -55,7 +55,6 @@ export function DropdownMenuTrigger({ children }: { children: React.ReactNode })
       });
       context?.setVisible(true);
     } else {
-      // Fallback to standard measure for iOS/Android
       viewRef.measure((x: number, y: number, width: number, height: number, px: number, py: number) => {
         context?.setLayout({ x, y, w: width, h: height, px, py });
         context?.setVisible(true);
@@ -78,7 +77,7 @@ export function DropdownMenuContent({ children }: { children: React.ReactNode })
 
   const { px, py, h } = context.layout;
   const MENU_WIDTH = 200;
-  const ESTIMATED_HEIGHT = 150; // Safety buffer for edge detection
+  const ESTIMATED_HEIGHT = 150;
 
   // Edge detection: If near the bottom, flip to show above the trigger
   const showAbove = py + h + ESTIMATED_HEIGHT > SCREEN_HEIGHT;
@@ -88,10 +87,10 @@ export function DropdownMenuContent({ children }: { children: React.ReactNode })
     left: px,
     top: showAbove ? py - ESTIMATED_HEIGHT : py + h + 4,
     width: MENU_WIDTH,
-    backgroundColor: theme.colors.popover, // Using your theme popover color
+    backgroundColor: theme.colors.popover,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.md, // Using your theme radius
-    ...theme.shadows.medium, // Spreading your existing theme shadows
+    borderRadius: theme.radius.md,
+    ...theme.shadows.medium,
   };
 
   return (

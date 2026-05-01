@@ -6,7 +6,7 @@ import { useTheme } from "./theme-provider";
 interface CircularProgressProps {
   size?: number;
   strokeWidth?: number;
-  progress: number; // 0 to 100
+  progress: number;
   label: string;
 }
 
@@ -16,10 +16,8 @@ export function CircularProgress({
   progress, 
   label 
 }: CircularProgressProps) {
-  //  1. Call the hook inside the function
   const { theme } = useTheme();
 
-  // SVG Calculations
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress / 100) * circumference;
@@ -27,21 +25,19 @@ export function CircularProgress({
   return (
     <View style={{ alignItems: "center", justifyContent: "center", width: size, height: size }}>
       <Svg width={size} height={size}>
-        {/* Background Circle (Track) */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={theme.colors.muted} //  Uses theme safely
+          stroke={theme.colors.muted}
           strokeWidth={strokeWidth}
           fill="none"
         />
-        {/* Progress Circle (Indicator) */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={theme.colors.frenchBlue} //  Uses theme safely
+          stroke={theme.colors.frenchBlue}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -50,7 +46,6 @@ export function CircularProgress({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      {/* Inner Text Overlay */}
       <View style={{ position: "absolute", alignItems: "center" }}>
         <Text style={{ fontSize: 18, fontWeight: "700", color: theme.colors.foreground }}>
           {progress}%

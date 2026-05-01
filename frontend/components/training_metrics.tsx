@@ -20,11 +20,8 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
   return (
     <View style={{ flex: 1, padding: 12 }}>
 
-      {/* Top Metrics Row */}
       {!showLog && hasMetrics && (
         <View style={styles.metricsRow}>
-          
-          {/* Main Loss Card - Left Column */}
           {currentLoss != null && (
             <View style={{ flex: 1 }}>
                 <StatsCard 
@@ -39,7 +36,6 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
             </View>
           )}
 
-          {/* Secondary Metrics - Right Column */}
           <View style={[styles.secondaryCard, { flex: 1.5, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             
               <View style={styles.miniMetricRow}>
@@ -90,7 +86,6 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
         </View>
       )}
       
-      {/* Live Log Section */}
       {(!hasMetrics || showLog) && log && (
         <View style={[styles.logContainer, { backgroundColor: logBgColor, borderColor: logBorderColor }]}>
           

@@ -13,7 +13,7 @@ export type AlertProps = {
 };
 
 function Alert({ variant = "default", style, children, icon }: AlertProps) {
-  const { theme } = useTheme(); //  Hook added inside function
+  const { theme } = useTheme();
   const isDestructive = variant === "destructive";
 
   return (
@@ -44,7 +44,7 @@ function Alert({ variant = "default", style, children, icon }: AlertProps) {
 }
 
 function AlertTitle({ style, children }: { style?: any; children: React.ReactNode }) {
-  const { theme } = useTheme(); //  Hook added inside function
+  const { theme } = useTheme();
   return (
     <Text
       style={[
@@ -64,7 +64,7 @@ function AlertTitle({ style, children }: { style?: any; children: React.ReactNod
 }
 
 function AlertDescription({ style, children }: { style?: any; children: React.ReactNode }) {
-  const { theme } = useTheme(); //  Hook added inside function
+  const { theme } = useTheme();
   return (
     <Text
       style={[

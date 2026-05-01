@@ -1,4 +1,3 @@
-// ./components/skeleton.tsx
 import React from "react";
 import { View, ViewStyle } from "react-native";
 import { useTheme } from "./theme-provider";

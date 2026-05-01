@@ -2,10 +2,6 @@ import * as React from "react";
 import { View, ViewStyle, StyleProp } from "react-native";
 
 export type AspectRatioProps = {
-  /**
-   * width / height
-   * Example: 16 / 9, 1 / 1
-   */
   ratio?: number;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;

@@ -14,7 +14,6 @@ import {
 
 import { optimisers, lrs } from '../constants/constants';
 
-// Define the shape of a single path's configuration
 export interface PathConfigInterface {
   id: number;
   colorName: string;
@@ -75,7 +74,6 @@ export function PathConfig(props: PathConfigProps) {
         },
       ]}
     >
-      {/* 1. HEADER ROW */}
       <View style={styles.headerRow}>
         <Text style={[styles.pathTitle, { color: colorValue }]}>
           PATH {id + 1}
@@ -111,7 +109,6 @@ export function PathConfig(props: PathConfigProps) {
         style={[styles.divider, { backgroundColor: theme.colors.border }]}
       />
 
-      {/* 2. PARAMETERS ROW */}
       <View style={styles.paramsRow}>
         <View style={styles.paramItem}>
           <Text style={styles.subLabel}>Optimiser</Text>
@@ -182,7 +179,6 @@ export function PathConfig(props: PathConfigProps) {
         </View>
       </View>
 
-      {/* 3. START POINT ROW */}
       <View style={styles.startPointRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.subLabel}>Start Point</Text>
@@ -215,7 +211,6 @@ export function PathConfig(props: PathConfigProps) {
         </View>
       </View>
 
-      {/* 4. ACTIONS ROW (Only visible if placed/loaded) */}
       {(startPoint != null || isPathLoaded) && (
         <>
           <View
@@ -223,7 +218,6 @@ export function PathConfig(props: PathConfigProps) {
           />
 
           <View style={styles.actionsRow}>
-            {/* View Path Button */}
             <View style={{ flex: 1 }}>
               <Button
                 variant='outline'
@@ -243,7 +237,6 @@ export function PathConfig(props: PathConfigProps) {
               </Button>
             </View>
 
-            {/* Regeneration Buttons */}
             {isPathLoaded && (
               <>
                 <View style={{ flex: 1 }}>

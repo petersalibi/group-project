@@ -28,7 +28,7 @@ export function AlertDialogTrigger({ children, ...props }: ButtonProps) {
 
 export function AlertDialogContent({ children }: { children: React.ReactNode }) {
   const { open, setOpen } = useAlertDialog();
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
 
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -41,7 +41,7 @@ export function AlertDialogContent({ children }: { children: React.ReactNode }) 
       }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} />
         <View style={{ 
-          backgroundColor: theme.colors.card, // Changed to card for better depth
+          backgroundColor: theme.colors.card,
           borderRadius: theme.radius.lg, 
           padding: 20, 
           width: "100%", 
@@ -76,12 +76,12 @@ export function AlertDialogCancel({ children, onPress, ...props }: ButtonProps) 
 }
 
 export const AlertDialogTitle = ({ children }: any) => {
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
   return <Text style={{ fontSize: 18, fontWeight: "700", color: theme.colors.foreground }}>{children}</Text>;
 };
 
 export const AlertDialogDescription = ({ children }: any) => {
-  const { theme } = useTheme(); //  Hook added
+  const { theme } = useTheme();
   return <Text style={{ fontSize: 14, color: theme.colors.mutedForeground }}>{children}</Text>;
 };
 

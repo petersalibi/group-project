@@ -14,13 +14,13 @@ export function Card({ children, style }: BaseProps) {
     <View 
       style={[
         {
-          backgroundColor: theme.colors.card, // Use card color instead of background
+          backgroundColor: theme.colors.card,
           borderRadius: theme.radius.lg,
           borderWidth: 1,
           borderColor: theme.colors.border,
           flexDirection: "column",
           overflow: "hidden",
-          ...theme.shadows.soft, // Optional: add that nice shadow we defined
+          ...theme.shadows.soft,
         }, 
         style
       ]}
@@ -93,7 +93,7 @@ export function CardContent({ children, style }: BaseProps) {
       style={[
         {
           paddingHorizontal: 24,
-          paddingTop: 12, // Add a little space between header and content
+          paddingTop: 12,
           paddingBottom: 24,
         }, 
         style
@@ -123,7 +123,6 @@ export function CardFooter({ children, style }: BaseProps) {
   );
 }
 
-// CardAction is usually just a wrapper for a Button or Icon
 export function CardAction({ children, style }: BaseProps) {
   return (
     <View style={[{ alignSelf: "flex-start" }, style]}>

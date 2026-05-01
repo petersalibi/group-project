@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TextInput, Platform } from 'react-native';
-import { useTheme } from './theme-provider'; // Adjust path if needed
+import { useTheme } from './theme-provider';
 
 export interface InputProps extends React.ComponentProps<typeof TextInput> {
   isInvalid?: boolean;
@@ -8,7 +8,6 @@ export interface InputProps extends React.ComponentProps<typeof TextInput> {
 }
 
 export function Input({ style, isInvalid, disabled, ...props }: InputProps) {
-  //  1. Call the hook inside the component
   const { theme } = useTheme();
   const [isFocused, setIsFocused] = React.useState(false);
 
@@ -16,7 +15,7 @@ export function Input({ style, isInvalid, disabled, ...props }: InputProps) {
     <TextInput
       style={[
         {
-          height: 40, // Increased slightly for better mobile touch targets
+          height: 40,
           width: '100%',
           borderRadius: theme.radius.md,
           borderWidth: 1,
@@ -29,11 +28,9 @@ export function Input({ style, isInvalid, disabled, ...props }: InputProps) {
           paddingHorizontal: 12,
           color: theme.colors.foreground,
           fontSize: 14,
-          // Handle web-specific focus rings
           ...(Platform.OS === 'web' &&
             ({
               outlineStyle: 'none',
-              //transition: "all 0.15s ease-in-out",
               boxShadow:
                 isFocused && !isInvalid
                   ? `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.ring}40`

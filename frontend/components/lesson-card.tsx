@@ -16,7 +16,6 @@ export function LessonCard({
   status,
   onPress,
 }: LessonCardProps) {
-  //  1. ADD THIS LINE BACK IN:
   const { theme } = useTheme();
 
   const isLocked = status === 'locked';

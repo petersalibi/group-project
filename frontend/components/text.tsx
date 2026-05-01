@@ -1,4 +1,3 @@
-// ./components/text.tsx
 import { Text as RNText } from "react-native";
 import { useTheme } from "./theme-provider";
  

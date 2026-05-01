@@ -7,8 +7,8 @@ export interface UseLossLandscapeProps {
   depth: number;
   width: number;
   method: string;
-  dir1: number;
-  dir2: number;
+  dir1: number | null;
+  dir2: number | null;
   data: string;
   loss: string;
   pathConfigs: PathConfigInterface[];
@@ -17,7 +17,7 @@ export interface UseLossLandscapeProps {
     field: keyof PathConfigInterface,
     value: number | [number, number] | string | boolean | null,
   ) => void;
-  setLog: (log: string[]) => void;
+  setLog: any;
 }
 
 export function useLossLandscape(props: UseLossLandscapeProps) {

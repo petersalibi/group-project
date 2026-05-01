@@ -47,7 +47,7 @@ export function LayoutManager({
     })
     .onUpdate((e) => {
       let newWidth = startLeftWidth.value + e.translationX;
-      if (newWidth < 0) newWidth = 0; // Smoothly track to 0
+      if (newWidth < 0) newWidth = 0;
       else if (newWidth > SCREEN_W * 0.6) newWidth = SCREEN_W * 0.6;
       leftBarWidth.value = newWidth;
     })
@@ -61,7 +61,7 @@ export function LayoutManager({
     })
     .onUpdate((e) => {
       let newWidth = startRightWidth.value - e.translationX;
-      if (newWidth < 0) newWidth = 0; // Smoothly track to 0
+      if (newWidth < 0) newWidth = 0;
       else if (newWidth > SCREEN_W * 0.6) newWidth = SCREEN_W * 0.6;
       rightBarWidth.value = newWidth;
     })
@@ -75,7 +75,7 @@ export function LayoutManager({
     })
     .onUpdate((e) => {
       let newHeight = startBottomHeight.value - e.translationY;
-      if (newHeight < 0) newHeight = 0; // Smoothly track to 0
+      if (newHeight < 0) newHeight = 0;
       else if (newHeight > SCREEN_H * 0.8) newHeight = SCREEN_H * 0.8;
       bottomBarHeight.value = newHeight;
     })
@@ -102,12 +102,12 @@ export function LayoutManager({
     
     switch (slotId) {
       case 'LEFT': {
-        const actualLeftW = Math.max(220, currentLeft); // Never shrink below 220px
-        return { x: currentLeft - actualLeftW, y: 0, w: actualLeftW, h: USABLE_H }; // Shifts X negative as it closes!
+        const actualLeftW = Math.max(220, currentLeft);
+        return { x: currentLeft - actualLeftW, y: 0, w: actualLeftW, h: USABLE_H };
       }
       case 'RIGHT': {
-        const actualRightW = Math.max(220, currentRight); // Never shrink below 220px
-        return { x: SCREEN_W - currentRight, y: 0, w: actualRightW, h: USABLE_H }; // Shifts X right as it closes!
+        const actualRightW = Math.max(220, currentRight);
+        return { x: SCREEN_W - currentRight, y: 0, w: actualRightW, h: USABLE_H };
       }
       case 'TOP_MAIN': 
         return { 
@@ -117,10 +117,10 @@ export function LayoutManager({
           h: isBottomVisible ? USABLE_H - currentBottom - gap : USABLE_H 
         };
       case 'BOTTOM_MAIN': {
-        const actualBottomH = Math.max(200, currentBottom); // Never shrink below 200px
+        const actualBottomH = Math.max(200, currentBottom);
         return { 
           x: leftOffset, 
-          y: USABLE_H - currentBottom, // Shifts Y downwards as it closes!
+          y: USABLE_H - currentBottom,
           w: mainW, 
           h: actualBottomH 
         };
@@ -217,7 +217,6 @@ export function LayoutManager({
       <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         {children}
         
-        {/* LEFT LOZENGE */}
         {Object.values(registry).includes('LEFT') && (
           <GestureDetector gesture={panLeft}>
             <Animated.View style={[styles.vHandleContainer, leftHandleStyle]}>
@@ -226,7 +225,6 @@ export function LayoutManager({
           </GestureDetector>
         )}
 
-        {/* RIGHT LOZENGE */}
         {Object.values(registry).includes('RIGHT') && (
           <GestureDetector gesture={panRight}>
             <Animated.View style={[styles.vHandleContainer, rightHandleStyle]}>
@@ -235,7 +233,6 @@ export function LayoutManager({
           </GestureDetector>
         )}
 
-        {/* BOTTOM LOZENGE */}
         {Object.values(registry).includes('BOTTOM_MAIN') && (
           <GestureDetector gesture={panBottom}>
             <Animated.View style={[styles.hHandleContainer, bottomHandleStyle]}>
@@ -255,7 +252,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    width: 32, // Large invisible hit-box
+    width: 32,
     zIndex: 1000,
     justifyContent: 'center',
     alignItems: 'center',
@@ -268,7 +265,7 @@ const styles = StyleSheet.create({
   },
   hHandleContainer: {
     position: 'absolute',
-    height: 32, // Large invisible hit-box
+    height: 32,
     zIndex: 1000,
     justifyContent: 'center',
     alignItems: 'center',
