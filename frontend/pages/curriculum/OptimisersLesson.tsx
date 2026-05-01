@@ -64,7 +64,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
       const running = visRef.current.toggleRun();
       setIsRunning(running);
       
-      // Check if they are fulfilling the final step of the task!
       if (running && optimiser === 'Adam') {
           setHasRunAdam(true);
       }
@@ -78,11 +77,10 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
     }
   };
 
-  // --- DYNAMIC TASK VALIDATION ---
   useEffect(() => {
     if (onTaskUpdate) {
       if (hasSelectedSGD && hasRunAdam) {
-        onTaskUpdate(true, null); // Task Complete!
+        onTaskUpdate(true, null); // Task Complete
       } else if (!hasSelectedSGD) {
         onTaskUpdate(false, "Step 1: Select 'SGD' to see how noisy, random batches affect the trajectory.");
       } else if (!hasSelectedAdam) {
@@ -96,7 +94,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.groupContainer}>
-        {/* LEFT PANEL */}
         <View style={styles.subPanel}>
           <View
             style={[
@@ -109,7 +106,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
           </View>
 
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* CONTEXT BOX */}
             <View
               style={[
                 styles.infoBox,
@@ -155,7 +151,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
               </Text>
             </View>
 
-            {/* OPTIMISER SELECTOR (PILLS) */}
             <View style={styles.controlGroup}>
               <Text
                 style={[
@@ -184,7 +179,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
                       ]}
                       onPress={() => {
                         setOptimiser(opt);
-                        // Track task progression!
                         if (opt === 'SGD') setHasSelectedSGD(true);
                         if (opt === 'Adam') setHasSelectedAdam(true);
                         handleReset();
@@ -217,7 +211,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
               </Text>
             </View>
 
-            {/* HYPERPARAMETERS */}
             <View style={styles.controlGroup}>
               <View style={styles.sliderGroup}>
                 <View
@@ -256,7 +249,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
               </View>
             </View>
 
-            {/* VISUALIZATION CANVASES */}
             <View
               style={{
                 flexDirection: 'row',
@@ -326,7 +318,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
               </View>
             </View>
 
-            {/* EXECUTION CONTROLS */}
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
                 onPress={handleRunToggle}
@@ -388,7 +379,6 @@ export function OptimisersLesson({ onTaskUpdate }: any) {
           </ScrollView>
         </View>
 
-        {/* RIGHT PANEL (3D VISUALIZER) */}
         <View
           style={[
             styles.subPanel,

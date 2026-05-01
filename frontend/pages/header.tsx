@@ -10,7 +10,6 @@ export function Header() {
   const location = useLocation();
   const { isDark, toggleTheme, theme } = useTheme();
 
-  // Helper to check if a route is active
   const isActive = (path: string) => {
     if (path === "/") {
       return location.pathname === "/";
@@ -18,7 +17,6 @@ export function Header() {
     return location.pathname.startsWith(path);
   };
 
-  // DYNAMIC COLOR LOGIC: Lime in Dark (#C6F382), Blue in Light (#353F91)
   const activeAccent = isDark ? '#C6F382' : '#353F91';
 
   return (
@@ -42,13 +40,11 @@ export function Header() {
         </Text>
       </View>
       
-      {/* Navigation Tabs */}
       <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 30 }}>
         <Pressable onPress={() => navigate("/")}>
           <Text style={{ 
             fontSize: 11, 
             fontWeight: '900', 
-            // Apply the dynamic accent here
             color: isActive("/") ? activeAccent : theme.colors.mutedForeground 
           }}>
             VISUALISATION
@@ -58,7 +54,6 @@ export function Header() {
           <Text style={{ 
             fontSize: 11, 
             fontWeight: '900', 
-            // Apply the dynamic accent here
             color: isActive("/curriculum") ? activeAccent : theme.colors.mutedForeground 
           }}>
             CURRICULUM
@@ -66,21 +61,12 @@ export function Header() {
         </Pressable>
       </View>
 
-      {/* Action Icons */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
         <Pressable onPress={toggleTheme}>
           {isDark ? 
             <Sun size={18} color={theme.colors.foreground} /> : 
             <Moon size={18} color={theme.colors.foreground} />
           }
-        </Pressable>
-        
-        <Pressable onPress={() => navigate("/components")}>
-          <Settings 
-            size={18} 
-            // Apply the dynamic accent to the icon too
-            color={isActive("/components") ? activeAccent : theme.colors.foreground} 
-          />
         </Pressable>
       </View>
     </View>

@@ -35,7 +35,6 @@ import { OptimisersLesson } from './curriculum/OptimisersLesson';
 import { ProjectionsLesson } from './curriculum/ProjectionsLesson';
 
 const LESSON_REGISTRY = [
-  // --- LAYER 1 ---
   {
     id: 0,
     slug: 'loss',
@@ -66,7 +65,6 @@ const LESSON_REGISTRY = [
     Component: LandscapeOriginLesson,
   },
 
-  // --- LAYER 2 ---
   {
     id: 2,
     slug: 'complexity',
@@ -127,7 +125,6 @@ const LESSON_REGISTRY = [
   },
 ];
 
-// --- LAYER 3 (Output Node) ---
 const VISUALISATION_NODE = {
   title: 'Visualisation Tool',
   xPos: '50%' as DimensionValue,
@@ -151,7 +148,6 @@ export function LearningPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const bounceAnim = useState(new RNAnimated.Value(1))[0];
 
-  // SIDEBAR ANIMATION LOGIC
   const sidebarWidth = useSharedValue(300);
 
   useEffect(() => {
@@ -230,7 +226,6 @@ export function LearningPage() {
 
   return (
     <View style={[styles.container]}>
-      {/* ANIMATED SIDEBAR */}
       <Animated.View
         style={[
           styles.sidebar,
@@ -241,7 +236,6 @@ export function LearningPage() {
           },
         ]}
       >
-        {/* We use a fixed internal width wrapper so the SVGs don't crush during animation */}
         <View style={{ width: 300, flex: 1 }}>
             <View style={styles.sidebarHeader}>
               <BookOpen size={14} color={theme.colors.accent} />
@@ -254,7 +248,6 @@ export function LearningPage() {
 
             <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
               <View style={styles.networkContainer}>
-                {/* SVG BRANCHING LINES */}
                 <View style={StyleSheet.absoluteFill}>
                   <Svg width='100%' height='100%'>
                     {LESSON_REGISTRY.map((node, idx) => {
@@ -281,7 +274,6 @@ export function LearningPage() {
                       });
                     })}
 
-                    {/* Lines mapping down to the final Visualisation Sandbox */}
                     {VISUALISATION_NODE.parents.map((parentId) => {
                       const parent = LESSON_REGISTRY.find(
                         (l) => l.id === parentId,
@@ -308,7 +300,6 @@ export function LearningPage() {
                   </Svg>
                 </View>
 
-                {/* DYNAMIC NEURAL NODES */}
                 {LESSON_REGISTRY.map((l, idx) => {
                   let status: 'available' | 'completed' | 'locked' = 'locked';
                   if (idx < currentIdx) status = 'completed';
@@ -326,7 +317,6 @@ export function LearningPage() {
                   );
                 })}
 
-                {/* FINAL VISUALISATION NODE */}
                 <TouchableOpacity
                   style={[
                     styles.absoluteNode,
@@ -358,7 +348,6 @@ export function LearningPage() {
       </Animated.View>
 
       <View style={{ flex: 1 }}>
-        {/* HEADER */}
         <View
           style={[
             styles.header,
@@ -408,7 +397,6 @@ export function LearningPage() {
           />
         </View>
 
-        {/* TASK DRAWER */}
         <View
           style={[
             styles.drawer,
@@ -505,7 +493,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row' },
   sidebar: { 
     borderRightWidth: 1, 
-    overflow: 'hidden' // Vital for smooth slide animation
+    overflow: 'hidden'
   },
   sidebarHeader: {
     padding: 24,

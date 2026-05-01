@@ -402,16 +402,14 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     // Calculate the 2D direction of the slice on the landscape floor (XY plane)
     let normal2D = new THREE.Vector2(
       projectionPlaneNormal.x,
-      projectionPlaneNormal.z, // Z in world space corresponds to Y in landscape data
+      projectionPlaneNormal.z,
     );
-    //console.log('Normal2D:', normal2D);
 
     if (normal2D.lengthSq() < 1e-6) return [];
     normal2D.normalize();
 
     // Perpendicular vector for the direction of the line
     const dir = new THREE.Vector2(-normal2D.y, normal2D.x);
-    //console.log('Dir:', dir);
     const span = Math.max(landscapeTransform.xRange, landscapeTransform.yRange);
     const tMax = span * 1.8;
     const samples = 260;
@@ -440,7 +438,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       landscapeTransform.centerX,
       landscapeTransform.centerY,
     ).addScaledVector(normal2D, planeOffset);
-    //console.log('Line Center:', lineCenter);
     const points: { x: number; y: number; z: number; t: number }[] = [];
     for (let i = 0; i < samples; i++) {
       const t = -tMax + (i / (samples - 1)) * tMax * 2;
@@ -496,7 +493,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       };
     }
 
-    // Robust convexity measure: most second differences should be non-negative.
     const nonNegativeCurvatureCount = secondDiffs.filter(
       (d2) => d2 >= 0 - 1e-4, // allow small negative values due to noise
     ).length;
@@ -861,7 +857,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     const onResize = () => {
       const w = container.clientWidth || 1;
       const h = container.clientHeight || 1;
-      // Frustum stays square; only the renderer pixel size changes
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', onResize);
@@ -1026,7 +1021,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.groupContainer}>
-        {/* LEFT PANEL */}
         <View style={(styles.subPanel, { width: 300 })}>
           <View
             style={[
@@ -1189,7 +1183,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
           </ScrollView>
         </View>
 
-        {/* MIDDLE PANEL */}
         <View
           style={[
             styles.subPanel,
@@ -1241,7 +1234,6 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
           )}
         </View>
 
-        {/* RIGHT PANEL */}
         <View
           style={[
             styles.subPanel,

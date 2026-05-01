@@ -4,7 +4,6 @@ import { useTheme } from '../components/theme-provider';
 export function LandscapeGenerationPage() {
   const { theme } = useTheme();
 
-  // --- STATE ---
   const [dataset, setDataset] = useState<'sine' | 'step' | 'linear' | 'cluster'>('sine');
   const [w1, setW1] = useState(-2.2);
   const [w2, setW2] = useState(1.4);
@@ -16,11 +15,9 @@ export function LandscapeGenerationPage() {
   const viewRef = useRef({ rotY: -0.8, rotX: 0.75 });
   const gridRef = useRef({ nx: 60, ny: 50, z: new Float32Array(0), zMin: 0, zMax: 1 });
 
-  // Parameter bounds
   const W1 = useMemo(() => ({ min: -4, max: 4 }), []);
   const W2 = useMemo(() => ({ min: -3, max: 3 }), []);
 
-  // --- MODEL & DATA ---
   const xs = useMemo(() => {
     const arr = [];
     for (let i = 0; i < 41; i++) arr.push(-2 + 4 * (i / 40));
@@ -47,12 +44,10 @@ export function LandscapeGenerationPage() {
       const e = yhat(w1, w2, x) - targetFn(x);
       s += e * e;
     }
-    // Add mild regularization for stability
     const reg = 0.01 * (w1 * w1 + 0.6 * w2 * w2);
     return (s / xs.length) + reg;
   }
 
-  // --- MATH HELPERS ---
   function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
   function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
   
@@ -69,7 +64,6 @@ export function LandscapeGenerationPage() {
     return { X: cx + x1 * scale * persp, Y: cy + y2 * scale * persp };
   }
 
-  // --- REBUILD 3D SURFACE GRID ---
   function rebuildGrid() {
     const g = gridRef.current;
     g.z = new Float32Array(g.nx * g.ny);
@@ -88,7 +82,6 @@ export function LandscapeGenerationPage() {
     setLossVal(calculateLoss(w1, w2));
   }
 
-  // --- DRAW 3D LANDSCAPE ---
   function draw3D() {
     const canvas = canvas3DRef.current;
     if (!canvas) return;
@@ -116,7 +109,6 @@ export function LandscapeGenerationPage() {
       return `rgb(${(v * 0.55) | 0},${(v * 0.7) | 0},${v | 0})`;
     }
 
-    // Painter's Algorithm sorting
     const cells = [];
     for (let j = 0; j < ny - 1; j++) {
       for (let i = 0; i < nx - 1; i++) cells.push({ i, j, key: i + j });
@@ -172,7 +164,6 @@ export function LandscapeGenerationPage() {
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
   }
 
-  // --- DRAW 2D ERRORS ---
   function draw2D() {
     const canvas = canvas2DRef.current;
     if (!canvas) return;
@@ -202,9 +193,8 @@ export function LandscapeGenerationPage() {
     function mapX(x: number) { return 10 + ((x - -2) / 4) * (cssW - 20); }
     function mapY(y: number) { return cssH - 10 - ((y - ymin) / (ymax - ymin + 1e-9)) * (cssH - 20); }
 
-    // 1. Draw Residuals (Error lines)
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(239, 68, 68, 0.7)"; // Red for errors
+    ctx.strokeStyle = "rgba(239, 68, 68, 0.7)";
     xs.forEach((x) => {
       const ty = targetFn(x);
       const py = yhat(w1, w2, x);
@@ -214,28 +204,24 @@ export function LandscapeGenerationPage() {
       ctx.stroke();
     });
 
-    // 2. Draw Target Curve
     ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(233,238,247,0.5)"; ctx.beginPath();
     xs.forEach((x, i) => {
       if (i === 0) ctx.moveTo(mapX(x), mapY(targetFn(x))); else ctx.lineTo(mapX(x), mapY(targetFn(x)));
     });
     ctx.stroke();
 
-    // 3. Draw Prediction Curve
     ctx.lineWidth = 3; ctx.strokeStyle = theme.colors.primary; ctx.beginPath();
     xs.forEach((x, i) => {
       if (i === 0) ctx.moveTo(mapX(x), mapY(yhat(w1, w2, x))); else ctx.lineTo(mapX(x), mapY(yhat(w1, w2, x)));
     });
     ctx.stroke();
 
-    // 4. Draw Data Points
     ctx.fillStyle = "#fff";
     for (const x of xs) {
       ctx.beginPath(); ctx.arc(mapX(x), mapY(targetFn(x)), 2.5, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  // --- EFFECT HOOKS ---
   useEffect(() => {
     rebuildGrid();
   }, [dataset]);
@@ -246,7 +232,6 @@ export function LandscapeGenerationPage() {
     draw2D();
   }, [dataset, w1, w2]);
 
-  // 3D Drag Rotation Logic
   useEffect(() => {
     const canvas = canvas3DRef.current;
     if (!canvas) return;
@@ -275,7 +260,6 @@ export function LandscapeGenerationPage() {
     };
   }, []);
 
-  // --- STYLES ---
   const panelStyle = {
     backgroundColor: theme.colors.card, 
     border: `1px solid ${theme.colors.border}`, 
@@ -304,7 +288,6 @@ export function LandscapeGenerationPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', fontFamily: "system-ui, sans-serif", padding: 16 }}>
       
-      {/* PAGE TITLE */}
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ color: theme.colors.foreground, fontSize: 20, margin: 0 }}>Understanding Loss Generation</h1>
         <p style={{ color: theme.colors.mutedForeground, fontSize: 12, margin: '4px 0 0 0' }}>
@@ -314,7 +297,6 @@ export function LandscapeGenerationPage() {
 
       <div style={{ display: 'flex', flexDirection: 'row', gap: 16, flex: 1 }}>
         
-        {/* LEFT COLUMN: CONFIGURATION */}
         <div style={{ ...panelStyle, width: '25%', minWidth: 250 }}>
           <div style={headerStyle}>
             <span style={headerTextStyle}>DATASET & MODEL</span>
@@ -322,7 +304,6 @@ export function LandscapeGenerationPage() {
 
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 24 }}>
             
-            {/* DATASET SELECTOR */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 10, fontWeight: '900', color: theme.colors.foreground, opacity: 0.8 }}>SELECT DATASET</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -343,7 +324,6 @@ export function LandscapeGenerationPage() {
               </div>
             </div>
 
-            {/* PARAMETER SLIDERS */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <span style={{ fontSize: 10, fontWeight: '900', color: theme.colors.foreground, opacity: 0.8 }}>ADJUST PARAMETERS</span>
               
@@ -358,7 +338,6 @@ export function LandscapeGenerationPage() {
               </label>
             </div>
 
-            {/* MATH EXPLANATION */}
             <div style={{ padding: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8, borderLeft: `4px solid ${theme.colors.border}` }}>
               <div style={{ fontSize: 11, color: theme.colors.mutedForeground, lineHeight: 1.6 }}>
                 <b style={{ color: theme.colors.foreground }}>Model:</b> ŷ = tanh(w1·x) · w2<br/><br/>
@@ -369,7 +348,6 @@ export function LandscapeGenerationPage() {
           </div>
         </div>
 
-        {/* MIDDLE COLUMN: 3D LANDSCAPE */}
         <div style={{ ...panelStyle, flex: 2, minWidth: 400 }}>
           <div style={headerStyle}>
             <span style={headerTextStyle}>MORPHING 3D LANDSCAPE (DRAG TO ROTATE)</span>
@@ -381,7 +359,6 @@ export function LandscapeGenerationPage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: ERROR VISUALIZATION */}
         <div style={{ ...panelStyle, flex: 1.5, minWidth: 300 }}>
           <div style={headerStyle}>
             <span style={headerTextStyle}>ERROR GENERATION (RESIDUALS)</span>

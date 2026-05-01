@@ -11,7 +11,7 @@ export function Footer() {
   return (
     <View
       style={{
-        height: 28, // Slightly taller for better touch/visual clearance
+        height: 28,
         borderTopWidth: 1,
         borderColor: theme.colors.border,
         backgroundColor: theme.colors.muted,

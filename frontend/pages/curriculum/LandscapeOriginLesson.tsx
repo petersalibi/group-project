@@ -148,7 +148,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
     };
   }, [theme]);
 
-  // --- UPDATE MESH, DOTS, AND TASK VALIDATION ---
   useEffect(() => {
     if (!sceneRef.current) return;
     const { mesh, historyGroup, Z_SCALE } = sceneRef.current;
@@ -174,7 +173,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
         onTaskUpdate(true, null);
       } else if (history.length > 0) {
         
-        // Dynamic coaching based on their progress
         if (coverageScore < 20) {
           onTaskUpdate(false, "Your landscape is flat! Map the edges (high loss) and the center (low loss) to cover the area.");
         } else if (coverageScore < 50) {
@@ -220,7 +218,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
     <View style={styles.mainContainer}>
       <View style={styles.groupContainer}>
         
-        {/* LEFT PANEL */}
         <View style={styles.subPanel}>
           <View style={[styles.subHeader, {borderBottomColor: theme.colors.border}]}>
             <BarChart3 size={12} color={theme.colors.accent} />
@@ -252,7 +249,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
               </Svg>
             </View>
 
-            {/* MSE LOSS METRIC */}
             <View style={[styles.metricStrip, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', marginBottom: 12 }]}>
               <View>
                 <Text style={[styles.metricLabel, { color: theme.colors.mutedForeground }]}>MSE LOSS</Text>
@@ -264,7 +260,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
               </TouchableOpacity>
             </View>
 
-            {/* EXPLORATION COVERAGE PROGRESS BAR */}
             <View style={[styles.metricStrip, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', paddingVertical: 12 }]}>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -281,7 +276,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
               </View>
             </View>
 
-            {/* SUCCESS TEXT */}
             {coverageScore >= 70 && (
               <Animated.View style={[styles.successBox, successAnimatedStyle, { borderColor: successColor, backgroundColor: successBgColor }]}>
                 <Text style={[styles.successText, { color: successColor }]}>
@@ -327,7 +321,6 @@ export function LandscapeOriginLesson({ onTaskUpdate }: any) {
           </ScrollView>
         </View>
 
-        {/* RIGHT PANEL (THREE.JS) */}
         <View style={[styles.subPanel, { flex: 1.4, backgroundColor: 'rgba(0,0,0,0.05)' }]}>
           <View style={[styles.subHeader, {borderBottomColor: theme.colors.border, zIndex: 10}]}>
             <Layers size={12} color={theme.colors.accent} />

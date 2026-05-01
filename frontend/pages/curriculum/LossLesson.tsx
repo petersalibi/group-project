@@ -73,7 +73,6 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
     };
   }, []);
 
-  // Animation Value for Icon
   const refreshAnim = useSharedValue(0);
 
   const onRefreshPress = () => {
@@ -83,7 +82,7 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
     });
     // Reset state
     setWeight(-1);
-    setBias(-1); // Resetting back to start bias
+    setBias(-1);
     setIsDone(false);
     scale.value = 0;
     setRefreshKey((prev) => prev + 1);
@@ -220,7 +219,6 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
   return (
     <GestureHandlerRootView style={styles.mainContainer}>
       <View style={styles.groupContainer}>
-        {/* LEFT PANEL */}
         <View style={styles.subPanel}>
           <View
             style={[
@@ -232,10 +230,8 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
             <Text style={styles.subTitle}>MODEL PERFORMANCE</Text>
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* LINE GRAPH */}
             <View style={styles.wideGraphBox}>{LineGraphContent}</View>
 
-            {/* METRIC STRIP */}
             <View
               style={[
                 styles.metricStrip,
@@ -259,7 +255,6 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
               </View>
             </View>
 
-            {/* SUCCESS TEXT */}
             {isDone && (
               <Animated.View
                 style={[
@@ -281,7 +276,6 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
               </Animated.View>
             )}
 
-            {/* CONTROLS */}
             <View style={styles.controlGroup}>
               <View style={styles.sliderGroup}>
                 <Text
@@ -326,7 +320,6 @@ export function LossLesson({ onTaskUpdate }: LossLessonProps) {
           </ScrollView>
         </View>
 
-        {/* RIGHT PANEL (LANDSCAPE) */}
         <View
           style={[
             styles.subPanel,

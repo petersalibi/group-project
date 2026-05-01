@@ -106,7 +106,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
         let dict: any;
 
         if (activation === 'Linear') {
-          // FRONTEND PROCEDURAL GENERATION
           const res = 40;
           const surface = [];
           const axis = [];
@@ -129,7 +128,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
           await new Promise((resolve) => setTimeout(resolve, 400));
           if (!isMounted) return;
         } else {
-          // BACKEND API GENERATION (For ReLU and Tanh)
           const payload = {
             network: {
               activation: activation,
@@ -168,7 +166,7 @@ export function ActivationLesson({ onTaskUpdate }: any) {
         scene.add(mesh);
         meshRef.current = mesh;
 
-        // Progress the task milestones based on what they just generated
+        // Progress the task milestones based on what user just generated
         if (
           activation === 'Linear' &&
           depth >= 3 &&
@@ -243,7 +241,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.groupContainer}>
-        {/* LEFT PANEL */}
         <View style={styles.subPanel}>
           <View
             style={[
@@ -255,7 +252,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
             <Text style={styles.subTitle}>ACTIVATION FUNCTIONS</Text>
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* DATASET CONTEXT */}
             <View
               style={[
                 styles.datasetBox,
@@ -304,7 +300,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
               </Text>
             </View>
 
-            {/* NETWORK ARCHITECTURE VISUAL */}
             <View
               style={[
                 styles.wideGraphBox,
@@ -328,7 +323,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
               />
             </View>
 
-            {/* SUCCESS TEXT */}
             {hasSeenDeepTanh && (
               <Animated.View
                 style={[
@@ -352,7 +346,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
               </Animated.View>
             )}
 
-            {/* ACTIVATION SELECTOR (PILLS) */}
             <View style={styles.controlGroup}>
               <Text
                 style={[
@@ -398,7 +391,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
               </View>
             </View>
 
-            {/* ARCHITECTURE CONTROLS */}
             <View style={[styles.controlGroup, { marginTop: 24 }]}>
               <View style={styles.sliderGroup}>
                 <Text
@@ -447,7 +439,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
           </ScrollView>
         </View>
 
-        {/* RIGHT PANEL (THREE.JS) */}
         <View
           style={[
             styles.subPanel,
@@ -498,7 +489,6 @@ export function ActivationLesson({ onTaskUpdate }: any) {
             style={{ flex: 1, width: '100%', minHeight: 0 }}
           />
 
-          {/* LOADING OVERLAY */}
           {isLoading && (
             <View style={[StyleSheet.absoluteFill, styles.loadingOverlay]}>
               <ActivityIndicator size='large' color={theme.colors.powderBlue} />

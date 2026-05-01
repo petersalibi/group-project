@@ -1,4 +1,3 @@
-// ./components/page-container.tsx
 import React from "react";
 import { View, ScrollView } from "react-native";
 import { useTheme } from "../components/theme-provider";

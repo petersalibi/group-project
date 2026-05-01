@@ -14,7 +14,6 @@ export function RootLayout() {
       <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <Header />
         
-        {/* This container must grow to fill space, but stay ABOVE the footer */}
         <View style={{ flex: 1 }}>
           <Outlet />
         </View>

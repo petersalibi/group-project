@@ -1,4 +1,3 @@
-// ./screens/curriculum-page.tsx
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { useNavigate } from 'react-router-native';
@@ -17,7 +16,6 @@ export default function CurriculumPage() {
     description: string;
   } | null>(null);
 
-  // Example curriculum data
   const modules = [
     {
       id: 'nn-1',
@@ -57,7 +55,6 @@ export default function CurriculumPage() {
         ))}
       </View>
 
-      {/* Detail Drawer */}
       <BottomDrawer
         isOpen={!!selectedLesson}
         onClose={() => setSelectedLesson(null)}

@@ -22,7 +22,6 @@ import { Button } from '../components/button';
 import { LearningPage } from './LearningPage';
 import { Plus, X, GraduationCap } from 'lucide-react-native';
 
-// A distinct set of colors to map to the workspaces
 const WORKSPACE_COLORS = [
   '#10b981', // Green
   '#f59e0b', // Orange
@@ -79,7 +78,6 @@ export function VisualisationPage() {
     }
   };
 
-  // Helper to reliably get the same color for a specific workspace ID
   const getColorForId = (id: string) => {
     return viewColors[id] || WORKSPACE_COLORS[0];
   };
@@ -90,7 +88,7 @@ export function VisualisationPage() {
     // Find which colors are currently in use by active tabs
     const usedColors = views.map((id) => viewColors[id]);
 
-    // Find the first color in our array that isn't being used
+    // Find the first color in the array that isn't being used
     const availableColor =
       WORKSPACE_COLORS.find((color) => !usedColors.includes(color)) ||
       WORKSPACE_COLORS[0];
@@ -122,7 +120,7 @@ export function VisualisationPage() {
   };
 
   const toggleMaximize = (id: string) => {
-    if (minimizedIds.includes(id)) handleRestore(id); // Auto-restore if minimized
+    if (minimizedIds.includes(id)) handleRestore(id); // Auto-restore if minimised
 
     if (maximizedId === id) {
       setMaximizedId(null);
@@ -141,17 +139,16 @@ export function VisualisationPage() {
       height: '100%',
     };
 
-    // Hidden if minimized
+    // Hidden if minimised
     if (minimizedIds.includes(id)) return hiddenStyle;
 
-    // Full screen if maximized
+    // Full screen if maximised
     if (maximizedId) {
       if (maximizedId === id)
         return { width: '100%', height: '100%', display: 'flex' };
       return hiddenStyle;
     }
 
-    // Standard grid logic calculated ONLY for active (un-minimized) views
     const activeViews = views.filter((v) => !minimizedIds.includes(v));
     const count = activeViews.length;
     const index = activeViews.indexOf(id);
@@ -169,7 +166,6 @@ export function VisualisationPage() {
 
   return (
     <View style={styles.container} onPointerMove={handlePointerMove}>
-      {/* FLOATING MODE SWITCH BUTTON */}
       <Button
         variant='ghost'
         onPress={() => {
@@ -195,7 +191,6 @@ export function VisualisationPage() {
         />
       </Button>
 
-      {/* --- GLOBAL BROWSER TAB BAR --- */}
       {!isLearningMode && (
         <Animated.View
           style={[
@@ -297,9 +292,7 @@ export function VisualisationPage() {
         </Animated.View>
       )}
 
-      {/* RENDER PAGES */}
       <View style={{ flex: 1, position: 'relative' }}>
-        {/* VISUALISATIONS */}
         <Animated.View
           style={[StyleSheet.absoluteFill, visAnimatedStyle]}
           pointerEvents={isLearningMode ? 'none' : 'auto'}
@@ -331,7 +324,6 @@ export function VisualisationPage() {
           </View>
         </Animated.View>
 
-        {/* CURRICULUM SHELL */}
         {isLearningMode && (
           <Animated.View
             entering={FadeIn.duration(300)}

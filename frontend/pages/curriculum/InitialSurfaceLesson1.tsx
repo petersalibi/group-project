@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-// To this:
 import {
   View,
   ScrollView,
@@ -47,7 +46,6 @@ export function InitialSurfaceLesson({ onTaskUpdate }: any) {
     setLog: () => {},
   });
 
-  // Success trigger: When the backend successfully returns data
   useEffect(() => {
     if (isLandscapeLoaded && !isLandscapeLoading && data === 'SINREGRESSION') {
       onTaskUpdate(true, null);
@@ -61,7 +59,6 @@ export function InitialSurfaceLesson({ onTaskUpdate }: any) {
       onTaskUpdate(false, null);
       onGenerateLandscape();
     } else {
-      // BLOCK GENERATION and show error visuals
       setShowErrorOverlay(true);
       onTaskUpdate(
         false,
@@ -177,7 +174,6 @@ export function InitialSurfaceLesson({ onTaskUpdate }: any) {
             >
               <View ref={containerRef} style={{ flex: 1 }} />
 
-              {/* ERROR OVERLAY ON THE LANDSCAPE ITSELF */}
               {showErrorOverlay && (
                 <View
                   style={{

@@ -109,7 +109,7 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
     };
   }, []);
 
-  // Fetch landscape from api
+  // Fetch landscape from API
   useEffect(() => {
     let isMounted = true;
 
@@ -229,7 +229,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
             <Text style={styles.subTitle}>NETWORK CAPACITY</Text>
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* DATASET CONTEXT */}
             <View
               style={[
                 styles.datasetBox,
@@ -279,7 +278,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
               </Text>
             </View>
 
-            {/* NETWORK ARCHITECTURE VISUAL */}
             <View
               style={[
                 styles.wideGraphBox,
@@ -303,7 +301,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
               />
             </View>
 
-            {/* COMPLEXITY METRIC */}
             <View
               style={[
                 styles.metricStrip,
@@ -376,7 +373,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
               </View>
             </View>
 
-            {/* SUCCESS TEXT */}
             {hasSeenSmoothing && (
               <Animated.View
                 style={[
@@ -399,7 +395,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
               </Animated.View>
             )}
 
-            {/* ARCHITECTURE CONTROLS */}
             <View style={styles.controlGroup}>
               <View style={styles.sliderGroup}>
                 <Text
@@ -448,7 +443,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
           </ScrollView>
         </View>
 
-        {/* RIGHT PANEL (THREE.JS) */}
         <View
           style={[
             styles.subPanel,
@@ -497,7 +491,6 @@ export function ArchitectureComplexityLesson({ onTaskUpdate }: any) {
             style={{ flex: 1, width: '100%', minHeight: 0 }}
           />
 
-          {/* LOADING OVERLAY */}
           {isLoading && (
             <View style={[StyleSheet.absoluteFill, styles.loadingOverlay]}>
               <ActivityIndicator size='large' color={theme.colors.powderBlue} />
