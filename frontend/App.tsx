@@ -1,10 +1,6 @@
-// App.tsx
 import { NativeRouter, Routes, Route } from "react-router-native";
 import { RootLayout } from "./pages/RootLayout";
-import CurriculumPage from "./pages/CurriculumPage";
 import { VisualisationPage } from "./pages/VisualisationPage";
-import { ComponentsPage } from "./pages/ComponentsPage";
-import { LearningPage } from "./pages/LearningPage";
 import { ThemeProvider } from "./components/theme-provider";
 
 export default function App() {
