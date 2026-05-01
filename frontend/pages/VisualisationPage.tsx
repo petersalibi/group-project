@@ -272,9 +272,7 @@ export function VisualisationPage() {
                     <TouchableOpacity
                       onPress={() => handleRemoveView(id)}
                       style={[styles.macDot, { backgroundColor: '#ef4444' }]}
-                    >
-                      <X size={8} color='white' strokeWidth={3} />
-                    </TouchableOpacity>
+                    />
                   </View>
                 </TouchableOpacity>
               );
