@@ -46,16 +46,14 @@ export function initScene(container: HTMLElement) {
 
   scene.add(new THREE.AmbientLight(0xffffff, 3.0));
 
-  const overheadLight = new THREE.DirectionalLight(0xffffff, 2.5); // High intensity (2.5)
+  const overheadLight = new THREE.DirectionalLight(0xffffff, 2.5);
   overheadLight.position.set(0, 200, 0);
   overheadLight.castShadow = true;
   
-  // Optimize shadow map for overhead view
   overheadLight.shadow.mapSize.width = 2048; 
   overheadLight.shadow.mapSize.height = 2048;
   overheadLight.shadow.camera.near = 0.5;
   overheadLight.shadow.camera.far = 50;
-  // Increase shadow camera size to cover the whole landscape from above
   overheadLight.shadow.camera.left = -20;
   overheadLight.shadow.camera.right = 20;
   overheadLight.shadow.camera.top = 20;
@@ -530,13 +528,11 @@ export function updateLandscapeVisibility(
   const posAttr = geom.attributes.position;
   let colAttr = geom.attributes.color;
 
-  // If the buffer only has 3 slots (RGB), we replace it with a 4-slot buffer (RGBA)
   if (!colAttr || colAttr.itemSize === 3) {
     const rgba = new Float32Array(posAttr.count * 4);
     geom.setAttribute('color', new THREE.BufferAttribute(rgba, 4));
     colAttr = geom.attributes.color;
     
-    // Tell the material it is now allowed to render transparency
     if (mesh.material) {
       (mesh.material as THREE.Material).transparent = true;
       (mesh.material as THREE.Material).needsUpdate = true;
@@ -559,7 +555,6 @@ export function updateLandscapeVisibility(
   let v = 0;
   for (let j = 0; j <= gridSize; j++) {
     for (let i = 0; i <= gridSize; i++) {
-      // PlaneGeometry builds from top-left, so we map to our grid coordinates
       const row = gridSize - j;
       const col = i;
 
@@ -644,8 +639,8 @@ export function updateOriginHeights(mesh: THREE.Mesh, history: any[], yMultiplie
   const posAttr = geom.attributes.position;
 
   for (let i = 0; i < posAttr.count; i++) {
-    const x = posAttr.getX(i); // This represents Weight (m)
-    const z = posAttr.getZ(i); // This represents Bias (b)
+    const x = posAttr.getX(i); // Weight (m)
+    const z = posAttr.getZ(i); // Bias (b)
 
     let height = 0;
     if (history.length > 0) {
@@ -671,9 +666,6 @@ export function updateOriginHeights(mesh: THREE.Mesh, history: any[], yMultiplie
 
 /**
  * Procedurally deforms a landscape based on network architecture and activation functions.
- * - Linear: Remains a simple convex bowl (no non-linearity).
- * - ReLU: Creates sharp, piecewise-linear creases using Math.abs().
- * - Tanh: Creates smooth, sweeping periodic valleys using Sine/Cosine interference.
  */
 export function updateArchitectureComplexity(mesh: THREE.Mesh, depth: number, width: number, activation: string = 'Tanh', Z_SCALE: number = 1.5) {
   if (!mesh || !mesh.geometry) return;
