@@ -8,7 +8,7 @@ export interface UseLandscapeControlsProps {
   method: string;
   data: string;
   loss: string;
-  setLog;
+  setLog: any;
 }
 
 export function useLandscapeControls(props: UseLandscapeControlsProps){
@@ -31,15 +31,11 @@ export function useLandscapeControls(props: UseLandscapeControlsProps){
     const [loadingCsv, setLoadingCsv] = useState<boolean | null>(false);
     const [csvLoaded, setLoadedCsv] = useState<boolean | null>(false);
 
-    /**
-     * Parses a CSV file as a string
-     */
     const parseAndValidateCSV = async (csv: File) => {
         return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.onerror = (e) => reject(e);
-        // Read the file as a string
         reader.readAsText(csv, 'UTF-8');
         });
     };

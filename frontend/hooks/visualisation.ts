@@ -1,35 +1,22 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { View } from 'react-native';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Line2 } from 'three/examples/jsm/lines/Line2.js';
-import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import api from '../src/api';
 import {
   initScene,
   createLandscapeMesh,
   updateMeshColors,
-  createOrUpdatePathLine,
-  createBall,
-  createGhostObjects,
-  handleResize,
   cleanupScene,
 } from '../utils/threejs-utils';
 import { usePathVisualisations } from './path-visualisations';
 import { gradientPresets } from '../constants/constants';
 import { PathConfigInterface } from '../components/path-config';
 
-// --- Constants ---
-const animationSpeed = 0.2;
 
-// --- Reusable Three.js Vectors/Matrices ---
-const TEMP_BALL_POS = new THREE.Vector3();
-const TEMP_BALL_NORM = new THREE.Vector3();
-const TEMP_BALL_OFFSET = new THREE.Vector3();
-const MOUSE_VECTOR = new THREE.Vector2();
+// Reusable Three.js Vectors/Matrices
 const TEMP_HIT_VECTOR = new THREE.Vector3();
 const LINE_TOP_OFFSET = new THREE.Vector3(0, 0.2, 0);
-const VIRTUAL_GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 export interface UseVisualisationProps {
   activation: string;
@@ -66,17 +53,15 @@ export function useVisualisation(props: UseVisualisationProps) {
     setLog,
   } = props;
 
-  // --- UI State ---
+  // UI State
   const [zValue, setZValue] = useState(1);
   const [logPlot, setLogPlot] = useState(true);
   const [isRotating, setIsRotating] = useState(false);
-  const [datasetInputs, setDatasetInputs] = useState<number | null>(null);
-  const [datasetOutputs, setDatasetOutputs] = useState<number | null>(null);
   const [isLandscapeLoading, setIsLandscapeLoading] = useState<boolean>(false);
   const [isLandscapeLoaded, setIsLandscapeLoaded] = useState<boolean>(false);
   const [minMaxLoss, setMinMaxLoss] = useState([0, 0]);
 
-  // --- Internal state refs ---
+  // Internal state refs
   const dataRef = useRef<string>(data);
   const lossRef = useRef<string>(loss);
   const activationRef = useRef<string>(activation);
@@ -89,7 +74,7 @@ export function useVisualisation(props: UseVisualisationProps) {
   const yDirRef = useRef<number[] | null>(null);
   const regenPathRef = useRef<number[][] | null>(null);
 
-  // --- Three.js refs ---
+  // Three.js refs
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -99,8 +84,6 @@ export function useVisualisation(props: UseVisualisationProps) {
   const clockRef = useRef<THREE.Timer | null>(null);
   const rafRef = useRef<number>(0);
   const landscapeColoursRef = useRef(gradientPresets[0].colors);
-
-  // --- Scene Setup ---
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   /**
@@ -224,7 +207,6 @@ export function useVisualisation(props: UseVisualisationProps) {
     clockRef.current = new THREE.Timer();
     raycasterRef.current = new THREE.Raycaster();
 
-    // Animation Loop
     const animate = () => {
       rafRef.current = requestAnimationFrame(animate);
       clockRef.current.update();

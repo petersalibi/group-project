@@ -56,10 +56,9 @@ export interface UsePathVisualisationsProps {
   dictRef: React.RefObject<LandscapeProjectionData>;
 }
 
-// --- Constants ---
 const animationSpeed = 0.1;
 
-// --- Reusable Three.js Vectors/Matrices ---
+// Reusable Three.js Vectors/Matrices
 const TEMP_BALL_POS = new THREE.Vector3();
 const TEMP_BALL_NORM = new THREE.Vector3();
 const TEMP_BALL_OFFSET = new THREE.Vector3();
@@ -137,8 +136,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     [id: number]: { ball: THREE.Mesh; line: THREE.Line };
   }>({});
 
-  // --- Refs for Animation Loop ---
-  // These refs will mirror the state, so the animate loop can read them
+  // Refs for Animation Loop
   const isPlayingRef = useRef(isPlaying);
   const isPathLoadedRef = useRef(isPathLoaded);
   const lastUiUpdateRef = useRef(0);
@@ -147,7 +145,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const minMaxLossRef = useRef(minMaxLoss);
   const zScaleRef = useRef(zScale);
 
-  // --- Array refs for multiple paths ---
+  // Array refs for multiple paths
   const pathLinesRef = useRef<Line2[]>([]);
   const ballsRef = useRef<THREE.Mesh[]>([]);
   const pathPointsArrayRef = useRef<THREE.Vector3[][]>([]);
@@ -569,7 +567,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   const getMaxSteps = useCallback(() => {
     if (!parametersArrayRef.current || parametersArrayRef.current.length === 0)
       return 1;
-    // Use parametersArrayRef because it holds the raw, un-resampled backend data
     return Math.max(...parametersArrayRef.current.map((arr) => arr.length));
   }, []);
 
@@ -659,7 +656,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       )
         return;
 
-      // Get the marker for the CURRENT placing ID
       const marker = getOrCreateMarker(placingPathId);
       if (!marker) return;
 
@@ -675,7 +671,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         const newStartPoint: [number, number] = [hit.point.x, -hit.point.z];
         onPathConfigChange(placingPathId, 'startPoint', newStartPoint);
 
-        // Make the ghost line solid for THIS path
         const mat = marker.line.material as THREE.LineDashedMaterial;
         mat.dashSize = 1000;
         mat.gapSize = 0;
@@ -722,7 +717,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         animationTimeRef.current = 0;
         clockRef.current.setTimescale(1);
       } else if (animationTimeRef.current > 0) {
-        clockRef.current.update(); // Sync clock to current animation time for smooth resuming
+        clockRef.current.update();
         clockRef.current.setTimescale(1);
       } else {
         animationTimeRef.current = 0;
@@ -807,7 +802,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
     [placingPathId, disposeObject],
   );
 
-  // --- Placing Mode Effect ---
+  // Placing Mode
   useEffect(() => {
     const canvas = rendererRef.current?.domElement;
     if (!canvas) return;
@@ -862,7 +857,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
   ]);
 
   useEffect(() => {
-    // Animation Loop
     const animate = () => {
       rafRef.current = requestAnimationFrame(animate);
 
@@ -936,7 +930,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
 
           const newPos = TEMP_BALL_POS.clone().add(TEMP_BALL_OFFSET);
 
-          // Only roll if the ball has actually moved and isn't at the origin (0,0,0)
+          // Only roll if the ball has actually moved and isn't at the origin
           if (radius > 0 && oldPos.lengthSq() > 0) {
             const deltaPos = newPos.clone().sub(oldPos);
             const distance = deltaPos.length();
@@ -989,7 +983,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
                 const prevAccLoss = prevNormalizedY * (maxL - minL) + minL;
 
                 if (prevAccLoss !== 0) {
-                  // Use accLoss instead of currentY here so the units match
                   const change =
                     ((accLoss - prevAccLoss) / Math.abs(prevAccLoss)) * 100;
                   setLossChange(Math.round(change));
@@ -1044,7 +1037,6 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       }
     };
 
-    // Start everything
     animate();
 
     return () => {
