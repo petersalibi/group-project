@@ -88,8 +88,9 @@ def animate_optimiser(params: MinimiserParams):
             params, model, data, minimiser_path, parameters_path
         )
 
-    print()
+    #print()
     model.load_state_dict(saved_state)
+    #print(loss_path)
 
     print("calculating instability...")
     instab_score = create_instability_vectors(params, model, data.X, data.y, condense=True)
@@ -156,23 +157,13 @@ def _train_locked_to_plane(params, model, data, minimiser_path, parameters_path)
 def _train_free(params, model, data, minimiser_path, parameters_path):
     x, y = params.init_xy
     dir1, dir2 = params.directions
+    
+    projected_path = []
 
     new_params = flatten_params(model.parameters()) + x * dir1 + y * dir2
     _load_flat_params(model, new_params)
 
     optimiser = params.optimiser(model.parameters(), lr=params.learning_rate)
-
-    # How we track fidelity --
-    # calculate the full path length in parameter space
-    # and the path length projected onto the plane
-    # then fidelity = plane_path_length / full_path_length (measure of orthogonality)
-    prev_theta = None
-    prev_ab = None
-
-    # full_path_length should always be >= plane_path_length
-    full_path_length = 0.0
-    plane_path_length = 0.0
-    
     loss_path = []
 
     for i in range(params.epochs):
@@ -187,19 +178,19 @@ def _train_free(params, model, data, minimiser_path, parameters_path):
         theta = flatten_params(model.parameters())
         a, b = project_to_plane(theta, params.theta_0, dir1, dir2)
 
-        # accumulate path lengths
-        if prev_theta is not None:
-            full_path_length += torch.norm(theta - prev_theta).item()
-            plane_path_length += torch.norm((a - prev_ab[0]) * dir1 + (b - prev_ab[1]) * dir2).item()
-
-        prev_theta = theta.clone()
-        prev_ab = (a, b)
-
         minimiser_path.append((a, b))
+        projected_path.append(params.theta_0 + a * dir1 + b * dir2)
         parameters_path.append(theta.tolist())
         loss_path.append(loss.item())
 
-    fidelity = plane_path_length / (full_path_length + 1e-12) # avoid div by zero
+    trajectory_tensors = [
+        torch.tensor(p, dtype=torch.float32)
+        for p in parameters_path
+    ]
+
+    fidelity = calculate_fidelity(trajectory_tensors, projected_path)
+    print(f"Fidelity: {fidelity:.4f}")
+    
     return fidelity, loss_path
 
 import numpy as np
@@ -392,4 +383,18 @@ def _load_flat_params(model, flat_params):
 def _clamp(x, lo=-1.0, hi=1.0):
     return max(lo, min(hi, float(x)))
 
-
+# Calculate pairwise-cosine similarity between two parameter paths
+# runtime: O((nm)^2), where n is the number of epochs and m is the size of the network
+def calculate_fidelity(path, projected_path):
+    n = len(path)
+    
+    total_similarity = 0
+    sim = nn.CosineSimilarity(dim=0, eps=1e-6)
+    
+    for i in range(n):
+        for j in range(i+1, n):
+            total_similarity += max(sim(path[j] - path[i], projected_path[j]-projected_path[i]), 0)
+    
+    n_pairs = (n*(n-1))/2
+    
+    return (total_similarity.item()) / n_pairs
