@@ -61,7 +61,7 @@ def get_random_directions(model):
 
 def get_filterwise_directions(model):
     dirs = []
-    rand_dir1, rand_dir2 = get_random_directions(model)
+    rand_dir1, rand_dir2, _ = get_random_directions(model)
     for direction in [rand_dir1, rand_dir2]:
         norm_direction = []
         for d, p in zip(direction, model.parameters()):

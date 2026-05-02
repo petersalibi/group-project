@@ -1,0 +1,703 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+
+/**
+ * Creates the scene, camera, renderer, lights, and controls.
+ */
+export function initScene(container: HTMLElement) {
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  const scene = new THREE.Scene();
+
+  // Camera
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    width / height,
+    0.1,
+    1000,
+  );
+  camera.position.set(0, -3, 5);
+  camera.updateProjectionMatrix();
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(width, height);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.domElement.style.position = 'absolute';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.zIndex = '1';
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  container.appendChild(renderer.domElement);
+
+  // Controls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.update();
+
+  scene.add(new THREE.AmbientLight(0xffffff, 3.0));
+
+  const overheadLight = new THREE.DirectionalLight(0xffffff, 2.5);
+  overheadLight.position.set(0, 200, 0);
+  overheadLight.castShadow = true;
+  
+  overheadLight.shadow.mapSize.width = 2048; 
+  overheadLight.shadow.mapSize.height = 2048;
+  overheadLight.shadow.camera.near = 0.5;
+  overheadLight.shadow.camera.far = 50;
+  overheadLight.shadow.camera.left = -20;
+  overheadLight.shadow.camera.right = 20;
+  overheadLight.shadow.camera.top = 20;
+  overheadLight.shadow.camera.bottom = -20;
+
+  scene.add(overheadLight);
+
+  const underLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  underLight.position.set(0, -20, 0);
+
+  scene.add(underLight);
+
+  return { scene, camera, renderer, controls };
+}
+
+/**
+ * Creates the landscape mesh from API data.
+ */
+export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: number) {
+  const zGrid: number[][] = isLogPlot ? data.surface_log : data.surface;
+  const xs: number[] = data.x_axis;
+  const ys: number[] = data.y_axis;
+
+  const nx = xs.length;
+  const ny = ys.length;
+
+  const geoWidth = 2;
+  const geoHeight = 2;
+  const widthSegments = nx - 1;
+  const heightSegments = ny - 1;
+
+  const geometry = new THREE.PlaneGeometry(
+    geoWidth,
+    geoHeight,
+    widthSegments,
+    heightSegments,
+  );
+  const positions = geometry.attributes.position;
+  const vertexCount = positions.count;
+
+  const zs = zGrid.flat();
+  const minZ = Math.min(...zs);
+  const maxZ = Math.max(...zs);
+  const range = maxZ - minZ || 1;
+  const baseZScale = Math.min(geoWidth, geoHeight) * 0.2;
+
+  const RAINBOW = ['#9333ea', '#3b82f6', '#22d3ee', '#4ade80', '#eab308', '#ef4444'];
+  const segmentCount = RAINBOW.length - 1;
+
+  const colors = new Float32Array(vertexCount * 3);
+  let v = 0;
+
+  const _c1 = new THREE.Color();
+  const _c2 = new THREE.Color();
+  const _finalColor = new THREE.Color();
+
+  for (let j = 0; j <= heightSegments; j++) {
+    for (let i = 0; i <= widthSegments; i++) {
+      const row = heightSegments - j;
+      const col = i;
+      const zVal = zGrid[row][col];
+      positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
+      const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
+      
+      // Map 0-1 to segments
+      const scaledT = t * segmentCount;
+      const index = Math.floor(scaledT);
+      const localT = scaledT - index;
+
+      // Get the two neighboring colors
+      const hex1 = RAINBOW[Math.min(index, segmentCount)];
+      const hex2 = RAINBOW[Math.min(index + 1, segmentCount)];
+      
+      // Interpolate
+      _c1.set(hex1);
+      _c2.set(hex2);
+      _finalColor.copy(_c1).lerp(_c2, localT);
+
+      // Apply
+      colors[v * 3] = _finalColor.r;
+      colors[v * 3 + 1] = _finalColor.g;
+      colors[v * 3 + 2] = _finalColor.b;
+      v++;
+    }
+  }
+
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+
+  const material = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    side: THREE.DoubleSide,
+    flatShading: false,
+    metalness: 0.5,
+    roughness: 0.5,
+  });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.receiveShadow = true;
+  mesh.castShadow = true;
+  mesh.scale.set(1, 1, zValue);
+  
+  return { mesh, geoWidth, geoHeight };
+}
+
+/**
+ * Helper to interpolate colors from a palette array based on a 0-1 value (t).
+ */
+function getColorAtT(t: number, colors: string[], target: THREE.Color) {
+  // Clamp values
+  if (t <= 0) return target.set(colors[0]);
+  if (t >= 1) return target.set(colors[colors.length - 1]);
+
+  const segmentCount = colors.length - 1;
+  const scaledT = t * segmentCount;
+  const index = Math.floor(scaledT);       // The lower color index
+  const localT = scaledT - index;          // The interpolation factor between lower and upper
+
+  const c1 = new THREE.Color(colors[index]);
+  const c2 = new THREE.Color(colors[Math.min(index + 1, segmentCount)]);
+  
+  return target.copy(c1).lerp(c2, localT);
+}
+
+/**
+ * Updates an existing mesh's vertex colors based on a new color palette.
+ */
+export function updateMeshColors(mesh: THREE.Mesh, palette: string[], heightAxis: 'y' | 'z' = 'z') {
+  if (!mesh || !mesh.geometry) return;
+
+  const geom = mesh.geometry;
+  const posAttr = geom.attributes.position;
+  const count = posAttr.count;
+
+  // Find the Min and Max height of the geometry
+  let minH = Infinity;
+  let maxH = -Infinity;
+
+  for (let i = 0; i < count; i++) {
+    const h = heightAxis === 'y' ? posAttr.getY(i) : posAttr.getZ(i);
+    if (h < minH) minH = h;
+    if (h > maxH) maxH = h;
+  }
+
+  const range = maxH - minH || 1;
+
+  if (!geom.attributes.color) {
+    geom.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+  }
+  const colAttr = geom.attributes.color;
+  const tempColor = new THREE.Color();
+
+  // Iterate through vertices and color them
+  for (let i = 0; i < count; i++) {
+    const h = heightAxis === 'y' ? posAttr.getY(i) : posAttr.getZ(i);
+    const t = (h - minH) / range;
+
+    getColorAtT(t, palette, tempColor);
+
+    colAttr.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+  }
+
+  colAttr.needsUpdate = true;
+
+  if (!Array.isArray(mesh.material)) {
+    if (!mesh.material.vertexColors) {
+        mesh.material.vertexColors = true;
+        mesh.material.needsUpdate = true;
+    }
+  }
+}
+
+/**
+ * Projects a 2D path onto the 3D mesh using a raycaster.
+ */
+export function project2DPathTo3D(
+  mesh: THREE.Mesh,
+  path2D: THREE.Vector2[],
+  raycaster: THREE.Raycaster,
+  bounds: { xMin: number; xMax: number; yMin: number; yMax: number }
+) {
+  const lineLiftAmount = 0.001;
+  const newPathPoints: THREE.Vector3[] = [];
+  const newPathNormals: THREE.Vector3[] = [];
+  let totalLength = 0;
+
+  const NORMAL_MATRIX = new THREE.Matrix3();
+  const TEMP_WORLD_NORMAL = new THREE.Vector3();
+  const TEMP_LIFT_OFFSET = new THREE.Vector3();
+  const RAY_ORIGIN = new THREE.Vector3();
+  const RAY_DIRECTION = new THREE.Vector3(0, -1, 0);
+
+  NORMAL_MATRIX.getNormalMatrix(mesh.matrixWorld);
+
+  // Get the true size and position of the mesh in the 3D world
+  const boundingBox = new THREE.Box3().setFromObject(mesh);
+
+  for (const p of path2D) {
+    const xPercent = (p.x - bounds.xMin) / (bounds.xMax - bounds.xMin);
+    const yPercent = (p.y - bounds.yMin) / (bounds.yMax - bounds.yMin);
+
+    // Map to the actual physical boundaries of the mesh
+    const targetX = boundingBox.min.x + (xPercent * (boundingBox.max.x - boundingBox.min.x));
+    
+    const targetZ = boundingBox.min.z + ((1 - yPercent) * (boundingBox.max.z - boundingBox.min.z)); 
+
+    RAY_ORIGIN.set(targetX, 100, targetZ);
+    raycaster.set(RAY_ORIGIN, RAY_DIRECTION);
+    const hit = raycaster.intersectObject(mesh)[0];
+
+    if (hit) {
+      TEMP_WORLD_NORMAL.copy(hit.face!.normal)
+        .applyMatrix3(NORMAL_MATRIX)
+        .normalize();
+      TEMP_LIFT_OFFSET.copy(TEMP_WORLD_NORMAL).multiplyScalar(lineLiftAmount);
+      const liftedPoint = hit.point.clone().add(TEMP_LIFT_OFFSET);
+
+      if (newPathPoints.length > 0) {
+        totalLength += liftedPoint.distanceTo(
+          newPathPoints[newPathPoints.length - 1],
+        );
+      }
+      newPathPoints.push(liftedPoint);
+      newPathNormals.push(TEMP_WORLD_NORMAL.clone());
+    } else {
+      console.warn('Raycast did not hit the mesh for point:', p);
+    }
+  }
+
+  // Create smooth 3D points for the line geometry
+  const positions: number[] = [];
+  if (newPathPoints.length >= 2) {
+    const curve3D = new THREE.CatmullRomCurve3(
+      newPathPoints,
+      false,
+      'centripetal',
+    );
+    const smooth3DPoints = curve3D.getPoints(1000);
+    for (const p of smooth3DPoints) {
+      positions.push(p.x, p.y, p.z);
+    }
+  }
+
+  return { newPathPoints, newPathNormals, positions, totalLength };
+}
+
+/**
+ * Creates or updates the visible path line.
+ */
+export function createOrUpdatePathLine(
+  scene: THREE.Scene,
+  positions: number[],
+  existingLine: Line2 | null,
+  color: string,
+  canvasSize: { width: number; height: number } = { width: window.innerWidth, height: window.innerHeight }
+) {
+  if (existingLine) {
+    (existingLine.geometry as LineGeometry).setPositions(positions);
+    return existingLine;
+  }
+
+  const lineGeometry = new LineGeometry();
+  lineGeometry.setPositions(positions);
+  const lineMaterial = new LineMaterial({
+    color: new THREE.Color(color).getHex(),
+    linewidth: 3,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false, // Prevents z-fighting with the terrain
+    toneMapped: false,
+  }) as any;
+  lineMaterial.resolution = new THREE.Vector2(
+    canvasSize.width,
+    canvasSize.height,
+  );
+  const line2 = new Line2(lineGeometry as any, lineMaterial);
+  (line2.geometry as any).instanceCount = 0;
+  line2.renderOrder = 1;
+  scene.add(line2);
+  return line2;
+}
+
+/**
+ * Creates the animated ball.
+ */
+export function createBall(
+  scene: THREE.Scene,
+  mesh: THREE.Mesh,
+  pathPoints: THREE.Vector3[],
+  pathNormals: THREE.Vector3[],
+  color: string,
+) {
+  const TEMP_BBOX_SIZE = new THREE.Vector3();
+  const TEMP_BALL_OFFSET = new THREE.Vector3();
+
+  mesh.geometry.computeBoundingBox();
+  mesh.geometry.boundingBox!.getSize(TEMP_BBOX_SIZE);
+  const geoWidth = TEMP_BBOX_SIZE.x || 1;
+  const geoHeight = TEMP_BBOX_SIZE.z || 1;
+  const ballRadius = Math.hypot(geoWidth, geoHeight) * 0.01;
+
+  const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+  const ballMaterial = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    emissive: new THREE.Color(color),
+    emissiveIntensity: 0.5,
+    metalness: 0.1,
+    roughness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    reflectivity: 1.0,
+  });
+  const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+  ball.castShadow = true; 
+  ball.receiveShadow = true;
+
+  if (pathPoints.length > 0 && pathNormals.length > 0) {
+    TEMP_BALL_OFFSET.copy(pathNormals[0]).multiplyScalar(ballRadius);
+    ball.position.copy(pathPoints[0]).add(TEMP_BALL_OFFSET);
+  }
+
+  scene.add(ball);
+  return ball;
+}
+
+/**
+ * Creates the ghost objects for placing mode.
+ */
+export function createGhostObjects(
+  scene: THREE.Scene,
+  ballRadius: number,
+  color: string,
+) {
+  const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+  const ballMaterial = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    emissive: new THREE.Color(color),
+    emissiveIntensity: 0.5,
+    metalness: 0.1,
+    roughness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    reflectivity: 1.0,
+  });
+  const ghostBall = new THREE.Mesh(ballGeometry, ballMaterial);
+  ghostBall.visible = false;
+  scene.add(ghostBall);
+
+  const lineMat = new THREE.LineDashedMaterial({
+    color: 0xffffff,
+    dashSize: 0.01,
+    gapSize: 0.01,
+    transparent: true,
+    opacity: 0.7,
+  });
+  const lineGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(),
+    new THREE.Vector3(0, 0.2, 0),
+  ]);
+  const ghostLine = new THREE.Line(lineGeom, lineMat);
+  ghostLine.visible = false;
+  scene.add(ghostLine);
+
+  return { ghostBall, ghostLine };
+}
+
+/**
+ * Handles window resize events for camera and line material.
+ */
+export function handleResize(
+  container: HTMLElement,
+  camera: THREE.PerspectiveCamera,
+  renderer: THREE.WebGLRenderer,
+  pathLines: Line2[] | Line2 | null,
+) {
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(window.devicePixelRatio); 
+  const lines = Array.isArray(pathLines) ? pathLines : (pathLines ? [pathLines] : []);
+  
+  lines.forEach(line => {
+      const mat = line.material as any;
+      if (mat && mat.resolution) {
+        mat.resolution.set(width, height);
+      }
+  });
+}
+
+/**
+ * Disposes all of a scene's children and related assets.
+ */
+export function cleanupScene(
+  scene: THREE.Scene,
+  renderer: THREE.WebGLRenderer,
+) {
+  try {
+    scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        object.geometry?.dispose();
+        if (Array.isArray(object.material)) {
+          object.material.forEach((material) => material.dispose());
+        } else {
+          object.material?.dispose();
+        }
+      } else if (object instanceof Line2) {
+        (object.geometry as any)?.dispose();
+        (object.material as any)?.dispose();
+      }
+    });
+    scene.clear();
+    renderer.dispose();
+    if (renderer.domElement.parentElement) {
+      renderer.domElement.parentElement.removeChild(renderer.domElement);
+    }
+  } catch (err) {
+    console.warn('Error during scene cleanup:', err);
+  }
+}
+
+/**
+ * Generates an MSE Loss bowl based on the provided dataset.
+ */
+export function generateMSEData(gridSize: number = 20, dataPoints: {x: number, y: number}[]) {
+  const zGrid: number[][] = [];
+  const xs: number[] = [];
+  const ys: number[] = [];
+
+  for (let i = 0; i <= gridSize; i++) {
+    xs.push((i / gridSize) * 2 - 1);
+    ys.push((i / gridSize) * 2 - 1);
+  }
+
+  // Calculate the MSE for every combination of weight and bias
+  for (let j = 0; j <= gridSize; j++) {
+    const row: number[] = [];
+    for (let i = 0; i <= gridSize; i++) {
+      const w = xs[i];
+      const b = ys[j];
+      
+      let sumSqErr = 0;
+      for (const pt of dataPoints) {
+        sumSqErr += Math.pow(pt.y - (w * pt.x + b), 2);
+      }
+      const mse = sumSqErr / dataPoints.length;
+
+      const visualLoss = Math.min(1, mse);
+      row.push(visualLoss);
+    }
+    zGrid.push(row);
+  }
+
+  return { surface: zGrid, x_axis: xs, y_axis: ys };
+}
+
+/**
+ * Updates the mesh visibility to create a "fog of war" effect based on visited coordinates.
+ */
+export function updateLandscapeVisibility(
+  mesh: THREE.Mesh,
+  visited: Set<string>,
+  isDone: boolean,
+  gridSize: number,
+) {
+  if (!mesh || !mesh.geometry || !mesh.geometry.attributes.color) return;
+  const geom = mesh.geometry as THREE.PlaneGeometry;
+  const posAttr = geom.attributes.position;
+  let colAttr = geom.attributes.color;
+
+  if (!colAttr || colAttr.itemSize === 3) {
+    const rgba = new Float32Array(posAttr.count * 4);
+    geom.setAttribute('color', new THREE.BufferAttribute(rgba, 4));
+    colAttr = geom.attributes.color;
+    
+    if (mesh.material) {
+      (mesh.material as THREE.Material).transparent = true;
+      (mesh.material as THREE.Material).needsUpdate = true;
+    }
+  }
+
+  // Calculate the Z range to properly map the colors
+  const zs = [];
+  for (let k = 0; k < posAttr.count; k++) zs.push(posAttr.getZ(k));
+  const minZ = Math.min(...zs);
+  const maxZ = Math.max(...zs);
+  const range = maxZ - minZ || 1;
+
+  const RAINBOW = ['#9333ea', '#3b82f6', '#22d3ee', '#4ade80', '#eab308', '#ef4444'];
+  const segmentCount = RAINBOW.length - 1;
+  const _c1 = new THREE.Color();
+  const _c2 = new THREE.Color();
+  const _finalColor = new THREE.Color();
+
+  let v = 0;
+  for (let j = 0; j <= gridSize; j++) {
+    for (let i = 0; i <= gridSize; i++) {
+      const row = gridSize - j;
+      const col = i;
+
+      // Only check the current cell
+      const isVisible = isDone || visited.has(`${col}-${row}`);
+
+      const zVal = posAttr.getZ(v);
+      const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
+
+      const scaledT = t * segmentCount;
+      const index = Math.floor(scaledT);
+      const localT = scaledT - index;
+      _c1.set(RAINBOW[Math.min(index, segmentCount)]);
+      _c2.set(RAINBOW[Math.min(index + 1, segmentCount)]);
+      _finalColor.copy(_c1).lerp(_c2, localT);
+
+      if (isVisible) {
+        colAttr.setXYZW(v, _finalColor.r, _finalColor.g, _finalColor.b, 1.0);
+      } else {
+        colAttr.setXYZW(v, _finalColor.r, _finalColor.g, _finalColor.b, 0.0);
+      }
+      v++;
+    }
+  }
+  colAttr.needsUpdate = true;
+}
+
+/**
+ * Creates the base wireframe/solid plane for the Origin Landscape lesson.
+ */
+export function createOriginLandscape(gridSize: number, size: number = 20, themeAccentColor: string) {
+
+  const geometry = new THREE.PlaneGeometry(size, size, gridSize, gridSize);
+  geometry.rotateX(-Math.PI / 2);
+
+  const material = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(themeAccentColor),
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+
+  const wireframeGeom = new THREE.BufferGeometry();
+  
+  wireframeGeom.setAttribute('position', geometry.attributes.position);
+
+  const indices = [];
+  const verticesPerRow = gridSize + 1;
+  for (let row = 0; row < verticesPerRow; row++) {
+    for (let col = 0; col < verticesPerRow; col++) {
+      const i = row * verticesPerRow + col;
+      // Connect horizontal edges
+      if (col < gridSize) indices.push(i, i + 1);
+      // Connect vertical edges
+      if (row < gridSize) indices.push(i, i + verticesPerRow);
+    }
+  }
+  wireframeGeom.setIndex(indices);
+
+  const wireframeMat = new THREE.LineBasicMaterial({
+    color: new THREE.Color(themeAccentColor),
+    transparent: true,
+    opacity: 0.3,
+  });
+  const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
+  
+  mesh.add(wireframe);
+  mesh.userData.wireframe = wireframe;
+
+  return mesh;
+}
+
+/**
+ * Dynamically updates the heights (Y values) of the origin landscape mesh
+ * using Inverse Distance Weighting from the user's plotted history points.
+ */
+export function updateOriginHeights(mesh: THREE.Mesh, history: any[], yMultiplier: number = 0.05) {
+  if (!mesh || !mesh.geometry) return;
+  const geom = mesh.geometry as THREE.PlaneGeometry;
+  const posAttr = geom.attributes.position;
+
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i); // Weight (m)
+    const z = posAttr.getZ(i); // Bias (b)
+
+    let height = 0;
+    if (history.length > 0) {
+      let totalWeight = 0;
+      let weightedHeight = 0;
+      
+      // Interpolate height based on distance to recorded points
+      for (const p of history) {
+        const distSq = Math.pow(x - p.m, 2) + Math.pow(z - p.b, 2) + 0.2;
+        const weight = 1 / Math.pow(distSq, 2.5);
+        weightedHeight += p.mse * weight;
+        totalWeight += weight;
+      }
+      height = weightedHeight / totalWeight;
+    }
+    
+    // Set the Y axis (Height) scaled down so it fits in the camera
+    posAttr.setY(i, height * yMultiplier);
+  }
+  
+  posAttr.needsUpdate = true;
+}
+
+/**
+ * Procedurally deforms a landscape based on network architecture and activation functions.
+ */
+export function updateArchitectureComplexity(mesh: THREE.Mesh, depth: number, width: number, activation: string = 'Tanh', Z_SCALE: number = 1.5) {
+  if (!mesh || !mesh.geometry) return;
+  const geom = mesh.geometry as THREE.PlaneGeometry;
+  const posAttr = geom.attributes.position;
+
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i);
+    const z = posAttr.getZ(i);
+
+    let height = (x * x + z * z) * 0.005;
+
+    if (depth > 1 && activation !== 'Linear') {
+      const freqX = 0.3 + (depth * 0.15);
+      const freqZ = 0.3 + (depth * 0.15);
+      const smoothing = Math.max(1, width * 0.3);
+      const amplitude = (0.5 + depth * 0.4) / smoothing;
+
+      if (activation === 'ReLU') {
+        const wave1 = Math.abs(Math.sin(x * freqX + z * 0.5)) - 0.5;
+        const wave2 = Math.abs(Math.cos(z * freqZ - x * 0.5)) - 0.5;
+        height += (wave1 + wave2) * amplitude * 0.8;
+      } else {
+        const wave1 = Math.sin(x * freqX + z * 0.5) * Math.cos(z * freqZ - x * 0.5);
+        const wave2 = Math.cos(x * freqX * 0.8 + z * freqZ * 0.8);
+        height += (wave1 + wave2) * amplitude * 0.5;
+      }
+    }
+
+    posAttr.setY(i, height * Z_SCALE);
+  }
+  
+  geom.computeVertexNormals();
+  posAttr.needsUpdate = true;
+}
