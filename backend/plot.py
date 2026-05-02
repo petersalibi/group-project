@@ -3,9 +3,12 @@ import numpy as np
 from matplotlib import cm
 from matplotlib.animation import FuncAnimation
 from losslandscape import generate_loss_landscape, LandscapeParams, VisualisationMethod, TrainingDataType
-from minimisers import animate_optimiser, MinimiserParams, convert_plane_coordinates
+from minimisers import animate_optimiser, MinimiserParams, convert_plane_coordinates, instability_knn, create_instability_vectors
 from directions import get_pca_directions
-from network import NetworkParams
+from network import NetworkParams, Model
+
+from sklearn.model_selection import train_test_split
+from network import TrainingData
 
 # pre-generated testcases
 from testcases import *
@@ -16,6 +19,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 from collections import OrderedDict
+
 
 def animate_landscape(landscapes, x_axis, y_axis, minimiser_path=None, fidelity=None, copies=1):
 
