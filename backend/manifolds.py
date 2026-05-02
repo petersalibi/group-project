@@ -56,8 +56,10 @@ def find_optimal_ae_manifold(model, minimiser_trajectories):
         if i % 100 == 0 or i == epochs - 1:
             print_progress_bar(i, epochs, prefix=f'Progress (loss={loss.item():.2e}):', suffix='Complete', length=50)
 
-    plot_loss(loss_values)
-
+    # plot_loss(loss_values)
+    X = X.cpu()
+    auto_encoder.cpu()
+    
     auto_encoder.eval()
     projected_trajectories = auto_encoder.encoder(X)
     projected_trajectories_list = projected_trajectories.detach().cpu().numpy().tolist()
