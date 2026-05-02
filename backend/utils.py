@@ -1,130 +1,6 @@
 
 import torch
 
-def parse_loss(loss: str):
-    import torch.nn as nn
-
-    loss_mapping = {
-        "MSELoss": nn.MSELoss(),
-        "CrossEntropyLoss": nn.CrossEntropyLoss(),
-        "BCELoss": nn.BCEWithLogitsLoss(), # WITH LOGITS - to apply sigmoid internally for prob. distributions
-        "L1Loss": nn.L1Loss()
-    }
-
-    if loss in loss_mapping:
-        return loss_mapping[loss]
-    else:
-        raise ValueError(f"Unsupported loss function: {loss}")
-
-def parse_optimiser(optimiser: str):
-    import torch.optim as optim
-
-    optimiser_mapping = {
-        "SGD": optim.SGD,
-        "Adam": optim.Adam,
-        "RMSprop": optim.RMSprop
-    }
-
-    if optimiser in optimiser_mapping:
-        return optimiser_mapping[optimiser]
-    else:
-        raise ValueError(f"Unsupported optimiser: {optimiser}")
-
-def parse_activation(activation: str):
-    import torch.nn as nn
-
-    activation_mapping = {
-        "ReLU": nn.ReLU(),
-        "Tanh": nn.Tanh(),
-        "Sigmoid": nn.Sigmoid(),
-        "LeakyReLU": nn.LeakyReLU()
-    }
-
-    if activation in activation_mapping:
-        return activation_mapping[activation]
-    else:
-        raise ValueError(f"Unsupported activation function: {activation}")
-
-def parse_network_params(params: dict):
-    from network import NetworkParams
-
-    try:
-        activation = parse_activation(params.get("activation", "Tanh"))
-        depth = params.get("depth", 2)
-        width = params.get("width", 10)
-
-        network_params = NetworkParams(
-            activation=activation,
-            depth=depth,
-            width=width
-        )
-        return network_params
-    except Exception as e:
-        raise ValueError(f"Error parsing network parameters: {e}")
-
-def parse_landscape_params(params: dict):
-    from losslandscape import LandscapeParams, NetworkParams, VisualisationMethod, TrainingDataType
-
-    try:
-        network_params = parse_network_params(params.get("network", {}))
-        method = VisualisationMethod[params.get("method", "FILTERNORM")]
-        data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
-        args = params.get("args", [])
-        loss = parse_loss(params.get("loss", "MSELoss"))
-        scale = params.get("scale", 1)
-        training_samples = params.get("training_samples", 128)
-        surface_samples = params.get("surface_samples", 100)
-        
-        landscape_params = LandscapeParams(
-            network=network_params,
-            method=method,
-            data=data_type,
-            args=args,
-            loss=loss,
-            scale=scale,
-            training_samples=training_samples,
-            surface_samples=surface_samples
-        )
-        return landscape_params
-    except Exception as e:
-        raise ValueError(f"Error parsing landscape parameters: {e}")
-
-def parse_minimiser_params(params: dict):
-    from minimisers import MinimiserParams, NetworkParams, TrainingDataType
-    import torch
-
-    try:
-        network_params = parse_network_params(params.get("network", {}))
-        data_type = TrainingDataType[params.get("data", "SINREGRESSION")]
-
-        x_direction = torch.tensor(params.get("x_direction", torch.randn(100).tolist()))
-        y_direction = torch.tensor(params.get("y_direction", torch.randn(100).tolist()))
-
-        theta_0 = torch.tensor(params.get("theta_0", torch.randn(100).tolist()))
-        init_xy = tuple(params.get("init_xy", (0.0, 0.0)))
-        optimiser = parse_optimiser(params.get("optimiser", "Adam"))
-        learning_rate = params.get("learning_rate", 0.01)
-        loss = parse_loss(params.get("loss", "MSELoss"))
-        epochs = params.get("epochs", 300)
-        lock_to_plane = params.get("lock_to_plane", False)
-
-        minimiser_params = MinimiserParams(
-            network=network_params,
-            data=data_type,
-            x_direction=x_direction,
-            y_direction=y_direction,
-            theta_0=theta_0,
-            init_xy=init_xy,
-            optimiser=optimiser,
-            loss=loss,
-            learning_rate=learning_rate,
-            epochs=epochs,
-            lock_to_plane=lock_to_plane
-        )
-        return minimiser_params
-    except Exception as e:
-        raise ValueError(f"Error parsing minimiser parameters: {e}")
-
 def print_progress_bar(progress, total, prefix = '', suffix = '', length = 100):
     percent = ("{0:.1f}").format(100 * (progress / float(total)))
     filledLength = int(length * progress // total)
@@ -146,6 +22,76 @@ def print_landscape(surface):
             chars.append(gradient[idx])
         lines.append("".join(chars))
     return "\n".join(lines)
+
+import numpy as np
+
+# Helper function for calculating number of times predictions change
+
+def jump_count(X : np.ndarray, axis : int = 0, epsilon : float = 1e-7) -> np.ndarray :
+    
+    """Returns number of jumps in a Numpy array according to a given axis.
+
+    Parameters:
+        X : the array to be counted.
+        axis : the axis (rows, columns, ...) to count differences along
+        epsilon : margin of sensitivity for what constitutes a "jump", such that |X[i+1] - X[i]| > epsilon
+
+    Raises:
+        ValueError: X is a scalar  
+
+    Returns:
+       Count of nonzero jumps along the given axis.
+    """
+    
+    if not X.ndim :
+        raise ValueError("Expected a 1D or 2D NumPy array")
+    
+    diff = np.diff(X, axis = axis)
+    
+    return np.sum( np.abs(diff) > epsilon, axis = axis)
+    
+
+def generate_random_points(X : np.ndarray, n : float = 1) -> np.ndarray :
+
+    """Function to create random noise points that fit within a given dataset X.
+
+    Parameters:
+        X : the dataset itself.
+        n : the number of random points to be generated.
+
+    Returns:
+        rand_points: the random points themselves.
+    """
+    
+    if isinstance(X, torch.Tensor) :
+        X = X.cpu().numpy()
+
+    Xmins = np.min(X, axis=0)
+    Xmaxs = np.max(X, axis=0)
+    
+    mean = np.mean(X, axis = 0)
+    stds = np.std(X, axis = 0)
+    
+    rand_points = np.clip(np.random.normal(loc = mean, scale = stds, size = (n, X.shape[1])), a_min=Xmins, a_max= Xmaxs  )
+     
+    print(f"Shape of random points created given n={n}: {rand_points.shape}")
+     
+    return rand_points
+
+def trainability_score_exp(Y : np.ndarray, beta : float = 0.0001) -> np.ndarray :
+    
+    N, m = Y[:, 0], Y[:, 1]
+    
+    vals = np.exp( - beta * N * m)
+
+    return vals
+    
+def get_model_parameters(model):
+    # Collects every parameter, flattens it, and concatenates it
+    params = [p.data.view(-1) for p in model.parameters()]
+    return torch.cat(params)
+    
+    
 
 sample_dir1 = torch.tensor([-0.829729676246643, 1.55447745323181, -0.562628149986267, -0.841594338417053, -0.418806344270706, -0.243454962968826, 0.789319634437561, 2.02066278457642, -1.02924585342407, 0.548056304454804, 0.122647278010845, 0.421875536441803, -1.63491594791412, 0.14681576192379, -0.396395564079285, -0.877109467983246, 0.807907283306122, -1.10898399353027, 1.11423492431641, -0.426909923553467, -0.23316802084446, -0.455215752124786, 0.65056312084198, 0.737926959991455, -0.0832749530673027, -0.196329906582832, 0.99505215883255, 1.92722058296204, -0.544365286827087, 0.453362375497818, 0.171118572354317, -0.794777572154999, 0.578550577163696, 1.37287771701813, 1.00729131698608, -0.475415766239166, -0.268600165843964, -1.55773019790649, 0.51795494556427, -0.321280717849731, -2.26763010025024, -0.497300773859024, -0.173639833927155, 0.27571576833725, -1.56276154518127, -1.73505401611328, -0.0612065196037293, -0.387766242027283, 1.23971259593964, 0.91237223148346, -1.97125554084778, -1.15301263332367, 1.03870511054993, -0.714477181434631, -1.00870859622955, -0.115009307861328, -1.6367073059082, 0.693422496318817, -0.559608161449432, -1.07630264759064, 0.0135629503056407, -0.82790619134903, -0.310632556676865, -0.560892164707184, 0.386325210332871, -0.299615025520325, -1.89117038249969, -0.020186934620142, -0.112017497420311, -0.765760362148285, 0.954761147499085, -1.46301257610321, 0.217340812087059, -0.170808285474777, -0.3286072909832, 0.268586277961731, -0.952093422412872, 0.683162033557892, -1.34936583042145, 0.208177611231804, -0.697232067584992, 1.40358126163483, -0.730842709541321, 0.758319795131683, -0.807361960411072, 1.00849425792694, 0.320208549499512, 1.77383196353912, 1.44530630111694, 1.50806105136871, -0.627395510673523, -0.21616031229496, 1.01176583766937, -1.00312960147858, -0.0459014438092709, 0.286439806222916, 0.117535032331944, 0.133255884051323, -1.6409295797348, 0.861765861511231, -0.466550171375275, -1.14394724369049, 0.379328489303589, -0.0140257971361279, 1.15384316444397, 0.0879185274243355, -0.431470215320587, 0.776503562927246, -1.63760876655579, 0.167443320155144, -1.82926940917969, -1.31366753578186, 0.0275776814669371, 1.67877960205078, 0.951641857624054, 0.400291055440903, 1.41647803783417, -0.672683656215668, -1.28812396526337, -0.122957073152065, -0.720107138156891, -0.985572278499603, -0.522265374660492, 0.730084836483002, 1.58722221851349, 1.25945234298706, 0.315156996250153, -0.990005075931549, -0.496723741292954, 1.04211676120758, 0.893424332141876, 0.0861052125692368, 0.0862836018204689, -0.834646105766296, -0.864354729652405, 2.53446698188782, 0.611583292484283, -0.21122995018959, -0.686894655227661, 1.11628580093384, 0.0396314412355423])
 sample_dir2 = torch.tensor([1.35208070278168, 0.669945597648621, 0.283803224563599, 0.51443350315094, 0.364350020885468, -0.0466967634856701, -2.12816905975342, 1.73800146579742, 1.28314030170441, -1.12244582176209, 1.43400537967682, 0.275329262018204, -0.251688987016678, 0.581281363964081, 0.094782717525959, 1.11548101902008, -0.342253893613815, -1.54716396331787, -0.229699075222015, 0.244954243302345, 0.149455413222313, 1.87866628170013, 0.515518844127655, 1.59560990333557, -0.959974765777588, 1.02523458003998, 0.206626892089844, 1.06525802612305, 1.26212227344513, 0.262098878622055, -1.31172895431519, -0.388154089450836, 1.41471982002258, -1.33212053775787, -1.41328227519989, -0.132220134139061, 0.243890389800072, -0.227882519364357, -1.32087016105652, -0.593705475330353, -1.9417679309845, 1.14520370960236, -0.738955914974213, 0.70678699016571, -0.103540547192097, -1.33083081245422, -0.0949135795235634, -0.728438019752502, 0.662373423576355, 1.10784590244293, -1.77431380748749, 0.94397097826004, -0.37602362036705, 1.4260880947113, -0.400424093008041, 1.17207431793213, 0.727431118488312, -0.0414754599332809, -0.461614370346069, 1.8492306470871, -0.466725647449493, 1.76432275772095, 0.675576269626617, -0.0744127184152603, -1.10283946990967, -0.187504932284355, 2.15749526023865, -0.569355070590973, -0.0304348450154066, -0.775315821170807, 0.712299168109894, 0.935233414173126, 0.479086250066757, 0.363093465566635, -2.20924687385559, 0.366170674562454, 1.11128342151642, -1.20886147022247, -0.491811633110046, -0.164842307567596, -0.288163930177689, -0.466991156339645, 0.266309976577759, -1.13591456413269, 0.267889946699142, 1.38271820545197, 1.27734470367432, -0.162004709243774, 0.767237365245819, 0.0887354463338852, 0.205353304743767, -0.508903324604034, -0.174972653388977, 2.48356342315674, -1.81860458850861, 0.398474335670471, 0.90971177816391, 0.31844300031662, 0.199510350823402, 0.455718904733658, 0.73544716835022, 0.402281552553177, -1.07527756690979, 2.39136385917664, -0.00846900325268507, -0.740872442722321, 0.378006964921951, 1.66189968585968, -0.794583916664124, 0.906323552131653, 2.31687211990356, -0.914348006248474, 1.15846085548401, -0.845507681369782, -1.03353643417358, -0.15198078751564, 1.69934463500977, 0.457534343004227, 0.160039722919464, 1.35304749011993, 0.150417506694794, -1.99904000759125, 0.737065076828003, -0.120071850717068, 0.120301254093647, 1.08010601997375, -0.00709541980177164, -0.455166429281235, -0.536970853805542, -0.449701219797134, -0.314599066972733, -0.116324581205845, 0.444981932640076, -0.507414817810059, 1.32368814945221, -1.24456369876862, 1.09641790390015, -0.992198944091797, -0.00493074348196387, -0.544399082660675, 0.763781070709229])

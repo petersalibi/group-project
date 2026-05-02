@@ -4,6 +4,7 @@ from pandas.api.types import is_numeric_dtype
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
+from minimisers import calculate_fidelity
 import pandas as pd
 import math
 import numpy as np
@@ -15,6 +16,7 @@ class VisualisationMethod(Enum):
     RANDOMDIRS      = 1
     FILTERNORM      = 2
     PCAMINIMISER    = 3
+    AUTOENCODER     = 4
 
 def get_directions(model, method: VisualisationMethod, args=None):
     # set seeds for reproducibility
@@ -28,7 +30,7 @@ def get_directions(model, method: VisualisationMethod, args=None):
         case VisualisationMethod.FILTERNORM:
             return get_filterwise_directions(model)
         case VisualisationMethod.PCAMINIMISER:
-            return get_pca_directions(model)
+            return get_pca_directions(model, args)
         case _:
             raise ValueError("Cannot Find Visualisation Method")
 
@@ -47,7 +49,7 @@ def get_two_parameter_directions(model, args):
         dirs.append(direction)
     
     print(dirs)
-    return dirs[0], dirs[1]
+    return dirs[0], dirs[1], None
 
 def get_random_directions(model):
     dirs = []
@@ -55,11 +57,11 @@ def get_random_directions(model):
         direction = [torch.randn_like(p) for p in model.parameters()]
         dirs.append(direction)
 
-    return dirs[0], dirs[1]
+    return dirs[0], dirs[1], None
 
 def get_filterwise_directions(model):
     dirs = []
-    rand_dir1, rand_dir2 = get_random_directions(model)
+    rand_dir1, rand_dir2, _ = get_random_directions(model)
     for direction in [rand_dir1, rand_dir2]:
         norm_direction = []
         for d, p in zip(direction, model.parameters()):
@@ -83,7 +85,52 @@ def get_filterwise_directions(model):
 
         dirs.append(scaled_direction)
     
-    return dirs[0], dirs[1]
+    return dirs[0], dirs[1], None
+
+def get_pca_directions(model, minimiser_trajectories, 
+                       add_random_noise : bool = True, 
+                       n_points : int =1, sigma : float = 0.02) -> tuple[list[list[float]]]:
+    # Convert List[List[float]] to Tensor
+    trajectory_tensors = [
+        torch.tensor(p, dtype=torch.float32)
+        for p in minimiser_trajectories
+    ]
+    
+
+    X = torch.stack(trajectory_tensors).cpu().numpy()
+
+    if add_random_noise and (n_points - 1) > 0:
+        
+        perturbations = sample_random_points(X, n_points - 1, sigma, True, True)
+        
+        X = np.vstack([X, perturbations])
+
+    # Center trajectory (critical)
+    X = ( X - X.mean(axis=0, keepdims=True) )  / ( X.std(axis=0, keepdims=True) + 1e-10 )
+
+    pca = PCA(n_components=2)
+    pca.fit(X)
+
+    # PCA unit directions
+    pc1 = torch.tensor(pca.components_[0], dtype=torch.float32)
+    pc2 = torch.tensor(pca.components_[1], dtype=torch.float32)
+
+    # Unflatten into parameter-shaped tensors
+    dir1, dir2 = [], []
+    idx = 0
+
+    for p in model.parameters():
+        n = p.numel()
+        dir1.append(pc1[idx:idx + n].view_as(p))
+        dir2.append(pc2[idx:idx + n].view_as(p))
+        idx += n
+    
+    X_pca = pca.transform(X)
+    X_recon = pca.inverse_transform(X_pca)
+    
+    fidelity = calculate_fidelity(torch.tensor(X), torch.tensor(X_recon))
+
+    return dir1, dir2, (X_pca, fidelity) # PCA-transformed points; these correspond directly to the loss points on the loss path!
 
 
 def ztransform(train : pd.DataFrame, test : pd.DataFrame, 
@@ -159,7 +206,7 @@ def set_params_from_vector(model, vector):
         pointer += numel
         
 
-def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : str, epochs : int = 200,
+def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : str, model, epochs : int = 200,
                      record_interval : int = 1, n_random_samples : int = 500, sigma : float = 0.02) :
     
     all_vars = independents + [dependent]
@@ -176,15 +223,11 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : st
 
     # Initialising everything
     
-    # Input-output shape of the network
-    n_inputs = len(independents)
-    n_outputs = train[dependent].nunique()
+    # Input-output shape of the network (REDUNDANT due to existing model)
+    # n_inputs = len(independents)
+    # n_outputs = train[dependent].nunique()
     
-    model = nn.Sequential(nn.Linear(n_inputs,5),
-                    nn.Tanh(),
-                    nn.Linear(5,5),
-                    nn.Tanh(),
-                    nn.Linear(5,n_outputs))
+    original_model_state = model.state_dict()
     
     lf = nn.CrossEntropyLoss()
     optim = torch.optim.Adam(model.parameters(), lr = 0.01)
@@ -256,22 +299,28 @@ def get_trajectories(df : pd.DataFrame, independents : list[str], dependent : st
                 
                 loss_vals.append(loss.item())
 
+    # Return to the original model state
+    model.load_state_dict(original_model_state)
+
     # Combine to get a tuple of the vectors and associated loss
     return parameter_snapshots, loss_vals
 
 
-def get_pca_directions(minimiser_trajectories) -> tuple[np.ndarray, np.ndarray, None]:
-    
-    # We will not be using the loss values directly, we only need the PCA directions for this function
-    all_samples, _ = minimiser_trajectories
-    
-    # Convert into one matrix so we can use PCA on it
-    X = torch.stack(all_samples).numpy()
-    
-    pca = PCA(n_components=2)
-    X_pca = pca.fit_transform(X)
 
-    x, y = X_pca[:, 0], X_pca[:, 1]
+def sample_random_points(X : np.ndarray, n_points : int = 10, 
+                         sigma : float = 0.03, use_norm : bool = True,
+                         collapse : bool = True) -> np.ndarray :
     
-    # Let's also return the PCA object if we want to use it later
-    return x, y, pca
+    if not n_points : return np.array([])
+    
+    noise_shape = (n_points, *X.shape)
+    random_noise = np.random.randn(*noise_shape)
+    Xs = np.stack([X] * n_points)
+    norms = np.linalg.norm(X, axis = 1).reshape(1, -1, 1) if use_norm else 1
+    
+    Xs = Xs + sigma * random_noise * norms
+    
+    if collapse:
+        Xs = Xs.reshape(n_points * X.shape[0], *X.shape[1:])
+    
+    return Xs
