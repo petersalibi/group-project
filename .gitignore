@@ -1,0 +1,7 @@
+node_modules/
+.expo/
+__pycache__/
+*.pyc
+.env
+.vscode/
+.idea/
