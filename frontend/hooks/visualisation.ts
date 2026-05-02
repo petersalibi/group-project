@@ -293,8 +293,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         originRef.current = dict.theta_0;
         xDirRef.current = dict.x_direction;
         yDirRef.current = dict.y_direction;
-        if (dict.pca_trajectories) regenPathRef.current = dict.pca_trajectories;
-        // TODO: get autoencoder directions
+        if (dict.proj_trajectories) regenPathRef.current = dict.proj_trajectories;
 
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
           logPlot,
@@ -447,7 +446,7 @@ export function useVisualisation(props: UseVisualisationProps) {
       const savedMetrics = metricArrayRef.current[pathId];
 
       if (method === 'pca') await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
-      // TODO: if (method === 'autoencoder') await loadAndBuildLandscape('AEMINIMISER', pathParameters);
+      if (method === 'autoencoder') await loadAndBuildLandscape('AUTOENCODER', pathParameters);
 
       if (regenPathRef.current) {
         loadRegenPath(savedParams, savedMetrics, regenPathRef.current);

@@ -485,7 +485,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
         metricArrayRef.current[viewIdRef.current] !== undefined
       ) {
         setFidelity(metricArrayRef.current[viewIdRef.current][0] * 100 || null);
-        setInstability(metricArrayRef.current[viewIdRef.current][1] * 100 || null);
+        setInstability(metricArrayRef.current[viewIdRef.current][1] || null);
         setTrainability(metricArrayRef.current[viewIdRef.current][2] * 100 || null);
       }
 

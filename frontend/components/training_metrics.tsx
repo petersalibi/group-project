@@ -54,7 +54,7 @@ export function TrainingMetrics({ currentLoss, lossChange, fidelity, instability
                   <Text style={[styles.miniMetricLabel, { color: theme.colors.mutedForeground }]}>Instability</Text>
                 </View>
                 <Text style={[styles.miniMetricValue, { color: instability != null ? theme.colors.accent : theme.colors.mutedForeground }]}>
-                  {instability != null ? `${instability.toFixed(1)}%` : '--'}
+                  {instability != null ? `${instability.toFixed(1)}` : '--'}
                 </Text>
               </View>
 
