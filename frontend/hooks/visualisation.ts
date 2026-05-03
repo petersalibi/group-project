@@ -73,6 +73,7 @@ export function useVisualisation(props: UseVisualisationProps) {
   const xDirRef = useRef<number[] | null>(null);
   const yDirRef = useRef<number[] | null>(null);
   const regenPathRef = useRef<number[][] | null>(null);
+  const regenFidelityRef = useRef<number | null>(null);
 
   // Three.js refs
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -294,6 +295,7 @@ export function useVisualisation(props: UseVisualisationProps) {
         xDirRef.current = dict.x_direction;
         yDirRef.current = dict.y_direction;
         if (dict.proj_trajectories) regenPathRef.current = dict.proj_trajectories;
+        if (dict.fidelity) regenFidelityRef.current = dict.fidelity;
 
         const { mesh, geoWidth, geoHeight } = createLandscapeMesh(
           logPlot,
@@ -448,7 +450,8 @@ export function useVisualisation(props: UseVisualisationProps) {
       if (method === 'pca') await loadAndBuildLandscape('PCAMINIMISER', pathParameters);
       if (method === 'autoencoder') await loadAndBuildLandscape('AUTOENCODER', pathParameters);
 
-      if (regenPathRef.current) {
+      if (regenPathRef.current && regenFidelityRef.current) {
+        savedMetrics[0] = regenFidelityRef.current;
         loadRegenPath(savedParams, savedMetrics, regenPathRef.current);
         return true;
       }

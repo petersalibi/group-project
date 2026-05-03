@@ -557,6 +557,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
 
       setIsPathLoaded(true);
       setIsPlaying(true);
+      onViewPath(0);
       animationTimeRef.current = 0;
       if (clockRef.current && clockRef.current.getTimescale() === 0)
         clockRef.current.setTimescale(1);

@@ -112,7 +112,7 @@ export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: numbe
 
   for (let j = 0; j <= heightSegments; j++) {
     for (let i = 0; i <= widthSegments; i++) {
-      const row = heightSegments - j;
+      const row = j;
       const col = i;
       const zVal = zGrid[row][col];
       positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
