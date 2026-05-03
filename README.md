@@ -75,7 +75,7 @@ separate terminal window.
 1. Open a new terminal and navigate to the frontend directory:
 
 ```text
-   cd frontend/discovering-dimensions-frontend
+   cd frontend
 ```
 
 2. Install dependencies:
