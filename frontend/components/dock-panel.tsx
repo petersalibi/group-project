@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS, interpolate } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useLayout } from './docking-provider';
 import { Text } from '../components/text';
@@ -20,13 +20,22 @@ export function DockPanel({
   isDraggable?: boolean, 
   children: React.ReactNode 
 }) {
-  const { theme, registry, requestSwap, updateGhost, getSlotDims, isResizing, leftBarWidth, rightBarWidth, bottomBarHeight } = useLayout();
+  const { theme, registry, requestSwap, updateGhost, getSlotDims, isResizing, leftBarWidth, rightBarWidth, bottomBarHeight, screenW, screenH } = useLayout();
   
   const isDragging = useSharedValue(false);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const dragX = useSharedValue(0);
   const dragY = useSharedValue(0);
+  const slotX = useSharedValue(0);
+  const slotY = useSharedValue(0);
+  const slotW = useSharedValue(screenW);
+  const slotH = useSharedValue(screenH);
+  const maximizedProgress = useSharedValue(isMaximized ? 1 : 0);
+
+  useEffect(() => {
+    maximizedProgress.value = withTiming(isMaximized ? 1 : 0, { duration: 250 });
+  }, [isMaximized]);
 
   const pan = Gesture.Pan()
     .enabled(isDraggable)
@@ -54,37 +63,47 @@ export function DockPanel({
     rightBarWidth.value;
     bottomBarHeight.value;
 
-    if (isMaximized) {
-      return {
-        width: '100%' as any, height: '100%' as any, top: 0, left: 0,
-        transform: [{ translateX: 0 }, { translateY: 0 }] as any,
-        zIndex: 9999, position: 'absolute' as any,
-      };
-    }
-
     const target = getSlotDims(registry[id], registry);
     const isCollapsed = target.w === 0 || target.h === 0;
+    const animConfig = { duration: 250 };
+
+    let x: number, y: number, w: number, h: number;
 
     if (isDragging.value) {
-      return {
-        width: target.w, height: target.h,
-        transform: [{ translateX: dragX.value }, { translateY: dragY.value }] as any,
-        zIndex: 1000, position: 'absolute' as any,
-      };
+      slotX.value = dragX.value;
+      slotY.value = dragY.value;
+      slotW.value = target.w;
+      slotH.value = target.h;
+    } else {
+      slotX.value = isResizing.value
+        ? target.x
+        : withTiming(target.x, animConfig);
+      slotY.value = isResizing.value
+        ? target.y
+        : withTiming(target.y, animConfig);
+      slotW.value = isResizing.value
+        ? target.w
+        : withTiming(target.w, animConfig);
+      slotH.value = isResizing.value
+        ? target.h
+        : withTiming(target.h, animConfig);
     }
 
-    const animConfig = { duration: 250 };
-    const x = isResizing.value ? target.x : withTiming(target.x, animConfig);
-    const y = isResizing.value ? target.y : withTiming(target.y, animConfig);
-    const w = isResizing.value ? target.w : withTiming(target.w, animConfig);
-    const h = isResizing.value ? target.h : withTiming(target.h, animConfig);
+    const p = maximizedProgress.value;
+
+    const finalX = interpolate(p, [0, 1], [slotX.value, 0]);
+    const finalY = interpolate(p, [0, 1], [slotY.value, 0]);
+    const finalW = interpolate(p, [0, 1], [slotW.value, screenW]);
+    const finalH = interpolate(p, [0, 1], [slotH.value, screenH]);
 
     return {
-      width: w, height: h,
-      transform: [{ translateX: x }, { translateY: y }] as any,
-      zIndex: 1, position: 'absolute' as any,
-      opacity: isCollapsed ? 0 : 1,
-      pointerEvents: isCollapsed ? 'none' : 'auto',
+      width: finalW,
+      height: finalH,
+      transform: [{ translateX: finalX }, { translateY: finalY }],
+      zIndex: p > 0 ? 9999 : (isDragging.value ? 1000 : 1),
+      position: 'absolute' as const,
+      opacity: isCollapsed && p === 0 ? 0 : 1,
+      pointerEvents: (isCollapsed && p === 0) ? 'none' : 'auto',
     };
   });
 

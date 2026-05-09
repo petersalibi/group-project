@@ -114,7 +114,7 @@ export function createLandscapeMesh(isLogPlot: boolean, data: any, zValue: numbe
     for (let i = 0; i <= widthSegments; i++) {
       const row = j;
       const col = i;
-      const zVal = zGrid[row][col];
+      const zVal = zGrid[col][row];
       positions.setZ(v, ((zVal - minZ) / range) * baseZScale);
       const t = Math.max(0, Math.min(1, (zVal - minZ) / range));
       
@@ -259,7 +259,7 @@ export function project2DPathTo3D(
     // Map to the actual physical boundaries of the mesh
     const targetX = boundingBox.min.x + (xPercent * (boundingBox.max.x - boundingBox.min.x));
     
-    const targetZ = boundingBox.min.z + ((1 - yPercent) * (boundingBox.max.z - boundingBox.min.z)); 
+    const targetZ = boundingBox.min.z + (yPercent * (boundingBox.max.z - boundingBox.min.z)); 
 
     RAY_ORIGIN.set(targetX, 100, targetZ);
     raycaster.set(RAY_ORIGIN, RAY_DIRECTION);

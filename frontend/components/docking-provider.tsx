@@ -213,7 +213,7 @@ export function LayoutManager({
   }));
 
   return (
-    <LayoutContext.Provider value={{ theme, registry, requestSwap, updateGhost, getSlotDims, isResizing, leftBarWidth, rightBarWidth, bottomBarHeight }}>
+    <LayoutContext.Provider value={{ theme, registry, requestSwap, updateGhost, getSlotDims, isResizing, leftBarWidth, rightBarWidth, bottomBarHeight, screenW: SCREEN_W, screenH: SCREEN_H }}>
       <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         {children}
         

@@ -669,7 +669,7 @@ export function usePathVisualisations(props: UsePathVisualisationsProps) {
       const intersects = raycasterRef.current.intersectObject(meshRef.current);
       if (intersects.length > 0) {
         const hit = intersects[0];
-        const newStartPoint: [number, number] = [hit.point.x, -hit.point.z];
+        const newStartPoint: [number, number] = [hit.point.x, hit.point.z];
         onPathConfigChange(placingPathId, 'startPoint', newStartPoint);
 
         const mat = marker.line.material as THREE.LineDashedMaterial;
