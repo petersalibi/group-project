@@ -24,6 +24,9 @@ import {
   ScanLine,
 } from 'lucide-react-native';
 import * as THREE from 'three';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -68,16 +71,16 @@ const directionMap: { [key: number]: string } = {
   1: '-X',
   2: '+Z',
   3: '-Z',
-  4: '-Y',
-  5: '+Y',
-  6: 'diag(-X,+Y,-Z)',
-  7: 'diag(-X,-Y,-Z)',
-  8: 'diag(-X,+Y,+Z)',
+  4: '+Y',
+  5: '-Y',
+  6: 'diag(-X,-Y,-Z)',
+  7: 'diag(-X,+Y,-Z)',
+  8: 'diag(-X,-Y,-Z)',
   9: 'diag(-X,-Y,+Z)',
-  10: 'diag(+X,+Y,-Z)',
-  11: 'diag(+X,-Y,-Z)',
-  12: 'diag(+X,+Y,+Z)',
-  13: 'diag(+X,-Y,+Z)',
+  10: 'diag(+X,-Y,-Z)',
+  11: 'diag(+X,+Y,-Z)',
+  12: 'diag(+X,-Y,+Z)',
+  13: 'diag(+X,+Y,+Z)',
 };
 
 const LANDSCAPE_Z_SCALE = 3.5;
@@ -266,7 +269,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
   const directionSpheresRef = useRef<THREE.Mesh[]>([]);
 
   const intersectionSceneRef = useRef<any>(null);
-  const intersectionLineRef = useRef<THREE.Line | null>(null);
+  const intersectionLineRef = useRef<Line2 | null>(null);
 
   const slicePlaneRef = useRef<THREE.Mesh | null>(null);
   const sliceLine3DRef = useRef<THREE.Line | null>(null);
@@ -348,6 +351,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     onTaskUpdate,
   ]);
 
+  // When selected directions change, check if the user has selected two directions and if they form a flat plane
   useEffect(() => {
     if (hasCompletedTask) return;
     setHasSelectedDirections(selectedDirections.length === 2);
@@ -377,6 +381,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     [landscapeData],
   );
 
+  // Calculate the world coordinates of the center of the projection plane based on the landscape transform and the plane offset
   const planeCenterWorld = useMemo(() => {
     if (!projectionPlaneNormal || !landscapeTransform) return null;
 
@@ -402,7 +407,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     // Calculate the 2D direction of the slice on the landscape floor (XY plane)
     let normal2D = new THREE.Vector2(
       projectionPlaneNormal.x,
-      projectionPlaneNormal.z,
+      -projectionPlaneNormal.z, // Z in world space corresponds to Y in landscape data
     );
 
     if (normal2D.lengthSq() < 1e-6) return [];
@@ -410,34 +415,18 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
 
     // Perpendicular vector for the direction of the line
     const dir = new THREE.Vector2(-normal2D.y, normal2D.x);
+    // Determine the sampling range along the slice line based on the landscape size
     const span = Math.max(landscapeTransform.xRange, landscapeTransform.yRange);
     const tMax = span * 1.8;
     const samples = 260;
 
-    // If selected directions are Z and X, flip the normal to get the correct orientation of the slice line
-    if (
-      (selectedDirections.includes(0) && selectedDirections.includes(2)) || // +X and +Z
-      (selectedDirections.includes(0) && selectedDirections.includes(3)) || // +X and -Z
-      (selectedDirections.includes(1) && selectedDirections.includes(2)) || // -X and +Z
-      (selectedDirections.includes(1) && selectedDirections.includes(3)) // -X and -Z
-      //(selectedDirections.includes(2) && selectedDirections.includes(6)) || // +Z and diag(-X,+Y,-Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(7)) || // +Z and diag(-X,-Y,-Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(8)) || // +Z and diag(-X,+Y,+Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(9)) || // +Z and diag(-X,-Y,+Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(10)) || // +Z and diag(+X,+Y,-Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(11)) || // +Z and diag(+X,-Y,-Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(12)) || // +Z and diag(+X,+Y,+Z)
-      //(selectedDirections.includes(2) && selectedDirections.includes(13)) || // +Z and diag(+X,-Y,+Z)
-      //(selectedDirections.includes(3) && selectedDirections.includes(12)) || // -Z and diag(+X,+Y,+Z)
-      //(selectedDirections.includes(3) && selectedDirections.includes(13)) // -Z and diag(+X,-Y,+Z)
-    ) {
-      normal2D.negate();
-    }
-
+    // Calculate the world coordinates of the center of the slice line
     const lineCenter = new THREE.Vector2(
       landscapeTransform.centerX,
       landscapeTransform.centerY,
     ).addScaledVector(normal2D, planeOffset);
+
+    // Sample points along the slice line and calculate their corresponding Z values on the landscape surface using bilinear interpolation
     const points: { x: number; y: number; z: number; t: number }[] = [];
     for (let i = 0; i < samples; i++) {
       const t = -tMax + (i / (samples - 1)) * tMax * 2;
@@ -451,13 +440,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       points.push({ x: px, y: py, z, t });
     }
     return points;
-  }, [
-    landscapeData,
-    projectionPlaneNormal,
-    planeOffset,
-    landscapeTransform,
-    selectedDirections,
-  ]);
+  }, [landscapeData, projectionPlaneNormal, planeOffset, landscapeTransform]);
 
   const convexityMetrics = useMemo(() => {
     const targetLoss = landscapeTransform
@@ -475,9 +458,11 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       };
     }
 
+    // Find the minimum loss value in the cross-section to check if it reaches the target minimum loss
     const zValues = crossSection.map((p) => p.z);
     const sectionMin = Math.min(...zValues);
 
+    // Calculate second differences to assess convexity
     const secondDiffs: number[] = [];
     for (let i = 1; i < zValues.length - 1; i++) {
       secondDiffs.push(zValues[i + 1] - 2 * zValues[i] + zValues[i - 1]);
@@ -535,6 +520,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     };
   }, [meetsConvexAndMinLoss]);
 
+  // Initialize the landscape scene with the loss surface mesh and the slice plane
   useEffect(() => {
     if (!landscapeContainerRef.current) return;
     const container = landscapeContainerRef.current as HTMLElement;
@@ -593,15 +579,15 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     };
   }, []);
 
+  // Initialize the vector ball scene with the direction spheres and axis labels
   useEffect(() => {
     if (!vectorBallContainerRef.current) return;
     const container = vectorBallContainerRef.current as HTMLElement;
     const { scene, camera, renderer, controls } = initScene(container);
 
-    // Diagonal facing +X (X label), +Y (Z label), -Z (Y label)
     const dist = VECTOR_CAMERA_DISTANCE;
     const d = dist / Math.sqrt(3);
-    camera.position.set(d, d, -d);
+    camera.position.set(d, d, -d); // Start in a diagonal view
     controls.target.set(0, 0, 0);
     controls.enableRotate = true;
     controls.enablePan = false;
@@ -625,6 +611,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     const axisLines = new THREE.AxesHelper(axisLength);
     scene.add(axisLines);
 
+    // Add axis labels as sprites that always face the camera
     const xLabel = makeAxisLabel('+X', '#ef4444');
     const xLabelOpp = makeAxisLabel('-X', '#ef4444');
     const yLabel = makeAxisLabel('+Y', '#22c55e');
@@ -640,11 +627,11 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       scene.add(xLabelOpp);
     }
     if (yLabel) {
-      yLabel.position.set(0, 0, -(axisLength + 0.16));
+      yLabel.position.set(0, 0, axisLength + 0.16);
       scene.add(yLabel);
     }
     if (yLabelOpp) {
-      yLabelOpp.position.set(0, 0, axisLength + 0.16);
+      yLabelOpp.position.set(0, 0, -(axisLength + 0.16));
       scene.add(yLabelOpp);
     }
     if (zLabel) {
@@ -656,6 +643,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       scene.add(zLabelOpp);
     }
 
+    // Add arrows and spheres for each direction
     directionSpheresRef.current = [];
     directions.forEach((d, idx) => {
       const arrow = new THREE.ArrowHelper(
@@ -680,6 +668,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
 
     vectorSceneRef.current = { scene, camera, renderer, controls };
 
+    // Raycaster for detecting clicks on direction spheres
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -711,6 +700,8 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     controls.addEventListener('start', onVectorControlStart);
     controls.addEventListener('end', onVectorControlEnd);
 
+    // When the vector ball is being dragged, update the landscape camera to match the vector ball camera's position and orientation,
+    // but keep the same distance from the origin
     let animationId: number;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
@@ -868,6 +859,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     };
   }, []);
 
+  // When depth or width changes, fetch a new landscape from the API and update the landscape scene
   useEffect(() => {
     let isMounted = true;
 
@@ -875,6 +867,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
       if (!sceneRef.current) return;
       setIsLoading(true);
 
+      // For simplicity, we use a fixed network architecture and method here
       try {
         const payload = {
           network: { activation: 'Tanh', depth, width },
@@ -923,6 +916,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     };
   }, [depth, width]);
 
+  // When the projection plane changes, update the corresponding plane in the landscape scene
   useEffect(() => {
     if (!sceneRef.current) return;
     const { scene } = sceneRef.current;
@@ -958,6 +952,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     slicePlaneRef.current = plane;
   }, [projectionPlaneNormal, planeCenterWorld]);
 
+  // When the projection plane changes, update the slice line in the landscape scene
   useEffect(() => {
     if (!sceneRef.current) return;
     const { scene } = sceneRef.current;
@@ -983,6 +978,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
     planeCenterWorld,
   ]);
 
+  // When the slice line in the landscape scene changes, update the corresponding line in the intersection scene
   useEffect(() => {
     if (!intersectionSceneRef.current || !landscapeTransform) return;
     const { scene, VIEW_W, VIEW_H } = intersectionSceneRef.current;
@@ -998,20 +994,34 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
 
     const { zMin, zRange } = landscapeTransform;
 
+    // Map the cross-section points to the intersection scene coordinates
     const pts = crossSection.map((p) => {
       const x = p.t * VIEW_W;
       const y = ((p.z - zMin) / zRange) * (VIEW_H * 2) - VIEW_H;
       return new THREE.Vector3(x, y, 0);
     });
 
-    const line = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(pts),
-      new THREE.LineBasicMaterial({ color: 0x22c55e }),
-    );
-    scene.add(line);
-    intersectionLineRef.current = line;
+    // Create a thick intersection line using the Line2 library for better visibility
+    const positions = pts.flatMap((p) => [p.x, p.y, p.z ?? 0]);
+    const lineGeometry = new LineGeometry();
+    lineGeometry.setPositions(positions);
+    const lineMat: any = new LineMaterial({
+      color: 0x22c55e,
+      linewidth: 2,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    // LineMaterial requires a resolution uniform in pixels
+    lineMat.resolution = new THREE.Vector2(VIEW_W, VIEW_H);
+    const line2 = new Line2(lineGeometry as any, lineMat);
+    line2.renderOrder = 1;
+    scene.add(line2);
+    intersectionLineRef.current = line2;
   }, [crossSection, landscapeTransform]);
 
+  // Zoom handler for the landscape scene
   const handleZoom = (direction: 'in' | 'out') => {
     if (!sceneRef.current) return;
     const { camera } = sceneRef.current;
@@ -1298,6 +1308,7 @@ export function ProjectionsLesson({ onTaskUpdate }: any) {
                 style={{
                   color:
                     convexityMetrics.currentMin &&
+                    convexityMetrics.targetLoss &&
                     convexityMetrics.currentMin <= convexityMetrics.targetLoss
                       ? theme.colors.accent
                       : theme.colors.mutedForeground,
